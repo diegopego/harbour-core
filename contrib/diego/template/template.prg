@@ -1,0 +1,3 @@
+PROCEDURE Main()
+    ? "hello"
+return

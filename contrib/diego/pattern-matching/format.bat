@@ -1,0 +1,1 @@
+C:\harbour\bin\hbformat.exe .\temp.prg
