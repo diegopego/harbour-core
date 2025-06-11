@@ -1,6 +1,3 @@
-// this is AI generated, do not treat as reference or documentation. it is just practicing
-// https://deepwiki.com/search/write-the-pp-directives-for-a_d1740588-2369-4e7b-831d-c5171e08a9a9
-
 // experimenting with the "restricted match marker"
 // =================
 // #xcommand ALIGN TO [<alinhamento:center,left>] => alinha(<alinhamento>)
