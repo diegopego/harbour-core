@@ -1,0 +1,8 @@
+-w3
+#-es2
+-p
+-p+
+-b
+# -r:n set maximum number of preprocessor iterations"
+# -r:1
+exhaustive-do-case.prg
