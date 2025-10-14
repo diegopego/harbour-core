@@ -367,6 +367,8 @@ extern const HB_BYTE hb_comp_pcode_len[];
 #define HB_COMPFLAG_MACROTEXT    0x0400            /* -kM turn off macrotext substitution */
 #define HB_COMPFLAG_USERCP       0x0800            /* -ku strings in user encoding */
 #define HB_COMPFLAG_MACRODECL    0x1000            /* -kd accept macros with declared symbols */
+/* /AST tooling flag */
+#define HB_COMPFLAG_EMIT_AST 0x2000 /* enable --emit-ast-json */
 
 #define HB_COMP_ISSUPPORTED(flag)   ( HB_COMP_PARAM->supported & (flag) )
 
@@ -377,6 +379,7 @@ extern const HB_BYTE hb_comp_pcode_len[];
 #define HB_SUPPORT_MACROTEXT        ( HB_COMP_ISSUPPORTED(HB_COMPFLAG_MACROTEXT) )
 #define HB_SUPPORT_USERCP           ( HB_COMP_ISSUPPORTED(HB_COMPFLAG_USERCP) )
 #define HB_SUPPORT_MACRODECL        ( HB_COMP_ISSUPPORTED(HB_COMPFLAG_MACRODECL) )
+#define HB_SUPPORT_EMIT_AST (HB_COMP_ISSUPPORTED(HB_COMPFLAG_EMIT_AST))
 
 #if defined( HB_MACRO_SUPPORT )
 #  define HB_MACRO_GENFLAGS   HB_COMPFLAG_RT_MACRO

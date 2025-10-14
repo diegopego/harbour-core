@@ -36,6 +36,8 @@ C_SOURCES := \
    hbstripl.c \
    hbusage.c \
    ppcomp.c \
+   hb_semjson_export.c \
+   hb_semjson_fs.c \
 
 LIBNAME := hbcplr
 

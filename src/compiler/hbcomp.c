@@ -289,6 +289,9 @@ PHB_COMP hb_comp_new( void )
       pComp->iErrorFmt   = HB_ERRORFMT_CLIPPER;  /* default Harbour generated output language */
 
       pComp->outMsgFunc  = hb_compOutMsg;
+      /* tooling: semantic JSON export */
+      pComp->fEmitAST = HB_FALSE;
+      pComp->szASTDir[0] = '\0'; /* output directory for AST/semantic JSON */
    }
 
    return pComp;
@@ -319,6 +322,132 @@ void hb_comp_free( PHB_COMP pComp )
    while( pComp->modules )
    {
       PHB_MODULE pModule = pComp->modules;
+      PHB_COMP hb_comp_new(void)
+      {
+         PHB_COMP pComp = NULL;
+         PHB_PP_STATE pPP = hb_pp_new();
+
+         if (pPP)
+         {
+            pComp = (PHB_COMP)hb_xgrabz(sizeof(HB_COMP));
+            pComp->pLex = (PHB_COMP_LEX)hb_xgrabz(sizeof(HB_COMP_LEX));
+
+            /* initialize default settings */
+            pComp->mode = HB_MODE_COMPILER;
+            pComp->funcs = &s_comp_funcs;
+
+            pComp->pLex->pPP = pPP;
+
+            /* various compatibility flags (-k switch)
+               activate Harbour extensions by default. */
+            pComp->supported = HB_COMPFLAG_HARBOUR |
+                               HB_COMPFLAG_XBASE |
+                               HB_COMPFLAG_HB_INLINE |
+                               HB_COMPFLAG_OPTJUMP |
+                               HB_COMPFLAG_MACROTEXT |
+                               HB_COMPFLAG_SHORTCUTS;
+
+            pComp->fSwitchCase = HB_FALSE;
+            pComp->fPPO = HB_FALSE;              /* flag indicating, is .ppo output needed */
+            pComp->fLineNumbers = HB_TRUE;       /* holds if we need pcodes with line numbers */
+            pComp->fAnyWarning = HB_FALSE;       /* holds if there was any warning during the compilation process */
+            pComp->fAutoMemvarAssume = HB_FALSE; /* holds if undeclared variables are automatically assumed MEMVAR (-a)*/
+            pComp->fForceMemvars = HB_FALSE;     /* holds if memvars are assumed when accessing undeclared variable (-v)*/
+            pComp->fDebugInfo = HB_FALSE;        /* holds if generate debugger required info */
+            pComp->fHideSource = HB_FALSE;       /* do not store .prg file names in PCODE */
+            pComp->fNoStartUp = HB_FALSE;        /* C code generation embed HB_FS_FIRST or not */
+            pComp->fCredits = HB_FALSE;          /* print credits */
+            pComp->fBuildInfo = HB_FALSE;        /* print build info */
+            pComp->fGauge = HB_TRUE;             /* line counter gauge */
+            pComp->fLogo = HB_TRUE;              /* print logo */
+            pComp->fSingleModule = HB_FALSE;
+            pComp->fError = HB_FALSE;
+            pComp->fINCLUDE = HB_TRUE;
+
+            pComp->iSyntaxCheckOnly = 0; /* syntax check only */
+            pComp->iStartProc = 0;       /* no implicit starting procedure */
+            pComp->iWarnings = 0;        /* enable parse warnings */
+            pComp->iErrorCount = 0;      /* number of compile errors */
+
+            pComp->iGenCOutput = HB_COMPGENC_COMPACT; /* C code generation default mode */
+            pComp->iExitLevel = HB_EXITLEVEL_DEFAULT; /* holds if there was any warning during the compilation process */
+            pComp->iLanguage = HB_LANG_C;             /* default Harbour generated output language */
+            pComp->iErrorFmt = HB_ERRORFMT_CLIPPER;   /* default Harbour generated output language */
+
+            pComp->outMsgFunc = hb_compOutMsg;
+         }
+
+         return pComp;
+      }
+
+      void hb_comp_free(PHB_COMP pComp)
+      {
+         hb_compI18nFree(pComp);
+         hb_compCompileEnd(pComp);
+         hb_compParserStop(pComp);
+
+         /* free allocated expressions only when errors appear - in all
+          * other cases expressions should be always cleanly freed so
+          * executing hb_compExprLstDealloc() may only hides some real
+          * memory leaks
+          */
+         if (pComp->iErrorCount != 0)
+            hb_compExprLstDealloc(pComp);
+
+         hb_compIdentifierClose(pComp);
+
+         if (pComp->pOutPath)
+            hb_xfree(pComp->pOutPath);
+
+         if (pComp->pPpoPath)
+            hb_xfree(pComp->pPpoPath);
+
+         while (pComp->modules)
+         {
+            PHB_MODULE pModule = pComp->modules;
+
+            pComp->modules = pComp->modules->pNext;
+            hb_xfree(pModule);
+         }
+
+         while (pComp->pVarType)
+         {
+            PHB_VARTYPE pVarType = pComp->pVarType;
+
+            pComp->pVarType = pComp->pVarType->pNext;
+            hb_xfree(pVarType);
+         }
+
+         if (pComp->pOutBuf)
+            hb_xfree(pComp->pOutBuf);
+
+         if (pComp->pLex)
+         {
+            if (pComp->pLex->pPP)
+               hb_pp_free(pComp->pLex->pPP);
+            hb_xfree(pComp->pLex);
+         }
+
+         if (pComp->szDepExt)
+            hb_xfree(pComp->szDepExt);
+
+         if (pComp->szStdCh)
+            hb_xfree(pComp->szStdCh);
+
+         if (pComp->iStdChExt > 0)
+         {
+            do
+            {
+               hb_xfree(pComp->szStdChExt[--pComp->iStdChExt]);
+            } while (pComp->iStdChExt != 0);
+            hb_xfree(pComp->szStdChExt);
+         }
+
+         if (pComp->pI18nFileName)
+            hb_xfree(pComp->pI18nFileName);
+
+         hb_xfree(pComp);
+      }
 
       pComp->modules = pComp->modules->pNext;
       hb_xfree( pModule );

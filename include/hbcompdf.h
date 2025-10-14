@@ -850,6 +850,10 @@ typedef struct _HB_COMP
    HB_BOOL           fNoArchDefs;         /* do not define architecture dependent macros: __PLATFORM__*, __ARCH??BIT__, __*_ENDIAN__ */
    HB_BOOL           fMeaningful;         /* do not generate warnings about meaningless expression usage */
    HB_BOOL           fINCLUDE;            /* use INCLUDE envvar as header path (default) */
+
+   /* tooling: semantic/AST export */
+   HB_BOOL fEmitAST;           /* flag: export AST/semantic JSON */
+   char szASTDir[HB_PATH_MAX]; /* output directory for AST/semantic JSON */
 } HB_COMP, * PHB_COMP;
 
 typedef struct

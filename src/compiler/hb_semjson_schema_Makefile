@@ -1,0 +1,10 @@
+SEMJ_SRC=hb_semjson.c hb_semjson_fs.c
+SEMJ_HDR=hb_semjson.h hb_semjson_schema.h
+
+bin/hb-semjson-dummy: $(SEMJ_SRC) hb_semjson_dummy.c $(SEMJ_HDR)
+	@mkdir -p bin
+	$(CC) -O2 -std=c11 -I. -o $@ $^
+
+.PHONY: semantic-json-dummy
+semantic-json-dummy: bin/hb-semjson-dummy
+	./bin/hb-semjson-dummy --out .harboursems foo.prg

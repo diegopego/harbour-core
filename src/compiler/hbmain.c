@@ -3956,6 +3956,11 @@ void hb_compModuleAdd( HB_COMP_DECL, const char * szModuleName, HB_BOOL fForce )
 
 void hb_compCompileEnd( HB_COMP_DECL )
 {
+   if (HB_COMP_PARAM->fEmitAST)
+   {
+      hb_compEmitASTIfEnabled(HB_COMP_PARAM);
+   }
+
    if( HB_COMP_PARAM->pFileName )
    {
       hb_xfree( HB_COMP_PARAM->pFileName );
@@ -4016,11 +4021,11 @@ void hb_compCompileEnd( HB_COMP_DECL )
       PHB_PPDEFINE pDefine = HB_COMP_PARAM->ppdefines;
 
       HB_COMP_PARAM->ppdefines = pDefine->pNext;
-      hb_xfree( pDefine->szName );
-      hb_xfree( pDefine );
+      hb_xfree(pDefine->szName);
+      hb_xfree(pDefine);
    }
 
-   while( HB_COMP_PARAM->inlines.pFirst )
+   while (HB_COMP_PARAM->inlines.pFirst)
    {
       PHB_HINLINE pInline = HB_COMP_PARAM->inlines.pFirst;
 

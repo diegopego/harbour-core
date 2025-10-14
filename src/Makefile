@@ -10,6 +10,7 @@ ifeq ($(HB_BUILD_PARTS),compiler)
       pp{common,nortl} \
       compiler \
       main{pp,compiler} \
+      tooling/semjson \
 
 else
 

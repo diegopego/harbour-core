@@ -260,10 +260,21 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
             break;
 
          case 'E':
-            if( HB_TOUPPER( szSwPtr[ 1 ] ) == 'S' )
-            {
-               switch( szSwPtr[ 2 ] )
+         {
+               /* padrão do Harbour para "long options" iniciadas por uma letra base: -EMITAST[=dir] (nos moldes de -CREDITS) */ char *szOption = hb_compChkOptionDup(szSwPtr); /* 1) Trata -EMITAST[=dir] primeiro */
+               if (strlen(szOption) >= 7 && strncmp("EMITAST", szOption, strlen(szOption)) == 0)
+               {                                     /* habilita exportação de AST/semântica */
+                  HB_COMP_PARAM->fEmitAST = HB_TRUE; /* avança o ponteiro pelo nome da opção ("EMITAST") */
+                  szSwPtr += strlen(szOption);       /* permite -EMITAST=path */
+                  hb_strncpy(HB_COMP_PARAM->szASTDir, ".harbourast", HB_PATH_MAX - 1);
+                  hb_xfree(szOption);
+                  break;
+               }
+
+               if (HB_TOUPPER(szSwPtr[1]) == 'S')
                {
+                  switch (szSwPtr[2])
+                  {
                   case '1':
                      szSwPtr += 3;
                      HB_COMP_PARAM->iExitLevel = HB_EXITLEVEL_SETEXIT;
@@ -279,9 +290,10 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
                      szSwPtr += 2;
                      HB_COMP_PARAM->iExitLevel = HB_EXITLEVEL_DEFAULT;
                      break;
+                  }
                }
+               break;
             }
-            break;
 
          case 'F':
             switch( HB_TOUPPER( szSwPtr[ 1 ] ) )
