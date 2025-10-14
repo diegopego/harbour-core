@@ -8,6 +8,7 @@ ifeq ($(HB_BUILD_PARTS),compiler)
       common \
       nortl \
       pp{common,nortl} \
+      ast \
       compiler \
       main{pp,compiler} \
 
@@ -94,6 +95,7 @@ else
       common \
       nortl \
       pp{common,nortl} \
+      ast \
       compiler \
       $(HB_COMP_DIR) \
       vm$(HB_COMP_RF2) \

@@ -1,0 +1,34 @@
+## compiling
+hbmk2 links against the runtime/static libraries, but in a “compiler only” build those archives (libhbextern.a, libhbrtl.a, …) haven’t been produced yet. Because of that the linker can’t find them and the compiler step stops.
+
+You already succeeded in building the host harbour executable (bin/linux/gcc/harbour). With that tool available you can now build the libraries:
+
+make HB_BUILD_PARTS=lib HB_PLATFORM=linux HB_COMPILER=gcc
+(or just run make / make HB_BUILD_PARTS=all ... if you’d rather let the standard bootstrap sequence happen). Once the libraries exist, rerun the compiler build so hbmk2 can link cleanly:
+
+make HB_BUILD_PARTS=compiler HB_PLATFORM=linux HB_COMPILER=gcc
+If you only want the compiler and don’t care about the utilities right now, you can skip building hbmk2 by adding HB_WITH_UTILS=no:
+
+make HB_BUILD_PARTS=compiler HB_PLATFORM=linux HB_COMPILER=gcc HB_WITH_UTILS=no
+After these steps you’ll have the new libhbastlex.a inside lib/linux/gcc/, ready to link against.
+
+## testing the stub
+
+Um teste de fumaça em C está disponível em `tests/ast/smoke.c`. Ele instancia o lexer incremental e percorre o fluxo de tokens (atualmente retorna imediatamente, já que o protótipo ainda não gera tokens reais).
+
+1. Certifique-se de ter construído as bibliotecas (`make HB_BUILD_PARTS=lib ...`).
+2. Compile o teste com o Makefile auxiliar:
+
+   ```sh
+   make -C tests/ast HB_PLATFORM=linux HB_COMPILER=gcc
+   ```
+
+   Ajuste `HB_PLATFORM`/`HB_COMPILER` conforme os diretórios gerados em `lib/`.
+
+3. Execute o binário:
+
+   ```sh
+   ./tests/ast/smoke
+   ```
+
+Quando o lexer ganhar implementação real, esse binário poderá ser expandido para inspecionar os tokens emitidos e validar round-trips.
