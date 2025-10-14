@@ -219,6 +219,11 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
       start.nColumn = ( HB_SIZE ) pSrcToken->iColumn;
       pLexer->cursor.nColumn = start.nColumn;
    }
+   if( pSrcToken->nOffset != ( HB_SIZE ) -1 )
+   {
+      start.nOffset = pSrcToken->nOffset;
+      pLexer->cursor.nOffset = start.nOffset;
+   }
    HB_SIZE nLen = pSrcToken->len;
    const char * pszLexeme = pSrcToken->value;
 
@@ -243,6 +248,16 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
    {
       end.nColumn = ( HB_SIZE ) ( pSrcToken->iColumn + ( int ) nLen );
       pLexer->cursor.nColumn = end.nColumn;
+   }
+   if( pSrcToken->nEndOffset != ( HB_SIZE ) -1 )
+   {
+      end.nOffset = pSrcToken->nEndOffset;
+      pLexer->cursor.nOffset = end.nOffset;
+   }
+   else if( pSrcToken->nOffset != ( HB_SIZE ) -1 && nLen > 0 )
+   {
+      end.nOffset = pSrcToken->nOffset + nLen;
+      pLexer->cursor.nOffset = end.nOffset;
    }
 
    pToken->id.uHash       = ++pLexer->nTokenIndex;

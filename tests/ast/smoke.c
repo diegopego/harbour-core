@@ -12,8 +12,8 @@
  * - `kind`: token category (`HB_AST_TOKEN_KIND_*`). Values: 0 unknown, 1 eof, 2 keyword, 3 identifier,
  *   4 literal, 5 operator, 6 punctuation, 7 directive, 8 macro, 9 newline.
  * - `pp`: raw preprocessor token type (`HB_PP_TOKEN_*`). E.g. 21 KEYWORD, 41 STRING, 42 NUMBER, etc.
- * - `span`: `line:column:offset` start → end (exclusive). Columns are 1-based. The offset is a monotonic counter
- *   in the PP-expanded stream (good for ordering, not yet a byte index in the original file).
+ * - `span`: `line:column:offset` start → end (exclusive). Columns are 1-based; the offset is the byte position
+ *   in the originating module (exclusive end).
  * - `module`: source file captured by the preprocessor; includes and macro expansions carry their original module.
  * - `text`: lexeme as emitted by the PP after macro/include processing.
  */
