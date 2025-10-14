@@ -63,4 +63,4 @@ test-ast:
 	./tests/ast/smoke
 	./tests/ast/snapshot
 	./bin/$(HB_PLATFORM)/$(HB_COMPILER)/hbast tests/ast/demo.prg -o tests/ast/demo.hbast.json
-	rm -f tests/ast/demo.hbast.json
+# 	rm -f tests/ast/demo.hbast.json
