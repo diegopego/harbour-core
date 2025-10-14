@@ -141,6 +141,15 @@ static const char * const s_pp_szErrors[] =
    "Write error to intermediate file '%s'"                              /* C3029 */
 };
 
+static PHB_PP_TRACEINFO hb_pp_traceinfoNew( const char * szMacroName,
+                                            const char * szCallModule,
+                                            int iCallLine, int iCallColumn,
+                                            int iCallEndLine, int iCallEndColumn,
+                                            HB_SIZE nCallOffset, HB_SIZE nCallEndOffset,
+                                            PHB_PP_TRACEINFO pParent );
+static void hb_pp_traceinfoRetain( PHB_PP_TRACEINFO pInfo );
+static void hb_pp_traceinfoRelease( PHB_PP_TRACEINFO pInfo );
+
 
 static const HB_PP_OPERATOR s_operators[] =
 {
@@ -360,12 +369,61 @@ static void hb_membufAddStr( PHB_MEM_BUFFER pBuffer, const char * szText )
    hb_membufAddData( pBuffer, szText, strlen( szText ) );
 }
 
+static void hb_pp_traceinfoRetain( PHB_PP_TRACEINFO pInfo )
+{
+   if( pInfo )
+      ++pInfo->nRefCount;
+}
+
+static void hb_pp_traceinfoRelease( PHB_PP_TRACEINFO pInfo )
+{
+   if( pInfo && --pInfo->nRefCount == 0 )
+   {
+      if( pInfo->pszMacroName )
+         hb_xfree( pInfo->pszMacroName );
+      if( pInfo->pszCallModule )
+         hb_xfree( pInfo->pszCallModule );
+      if( pInfo->pParent )
+         hb_pp_traceinfoRelease( pInfo->pParent );
+      hb_xfree( pInfo );
+   }
+}
+
+static PHB_PP_TRACEINFO hb_pp_traceinfoNew( const char * szMacroName,
+                                            const char * szCallModule,
+                                            int iCallLine, int iCallColumn,
+                                            int iCallEndLine, int iCallEndColumn,
+                                            HB_SIZE nCallOffset, HB_SIZE nCallEndOffset,
+                                            PHB_PP_TRACEINFO pParent )
+{
+   PHB_PP_TRACEINFO pInfo = ( PHB_PP_TRACEINFO ) hb_xgrabz( sizeof( HB_PP_TRACEINFO ) );
+
+   pInfo->nRefCount = 1;
+   if( szMacroName )
+      pInfo->pszMacroName = hb_strdup( szMacroName );
+   if( szCallModule )
+      pInfo->pszCallModule = hb_strdup( szCallModule );
+   pInfo->iCallLine = iCallLine;
+   pInfo->iCallColumn = iCallColumn;
+   pInfo->iCallEndLine = iCallEndLine;
+   pInfo->iCallEndColumn = iCallEndColumn;
+   pInfo->nCallOffset = nCallOffset;
+   pInfo->nCallEndOffset = nCallEndOffset;
+   pInfo->pParent = pParent;
+   if( pParent )
+      hb_pp_traceinfoRetain( pParent );
+
+   return pInfo;
+}
+
 static void hb_pp_tokenFree( PHB_PP_TOKEN pToken )
 {
    if( HB_PP_TOKEN_ALLOC( pToken->type ) )
       hb_xfree( HB_UNCONST( pToken->value ) );
    if( pToken->szModule )
       hb_xfree( pToken->szModule );
+   if( pToken->pTraceInfo )
+      hb_pp_traceinfoRelease( pToken->pTraceInfo );
    if( HB_PP_TOKEN_TYPE( pToken->type ) == HB_PP_MMARKER_RESTRICT ||
        HB_PP_TOKEN_TYPE( pToken->type ) == HB_PP_MMARKER_OPTIONAL ||
        HB_PP_TOKEN_TYPE( pToken->type ) == HB_PP_RMARKER_OPTIONAL )
@@ -495,6 +553,7 @@ static PHB_PP_TOKEN hb_pp_tokenNew( const char * value, HB_SIZE nLen,
    pToken->iEndColumn = 0;
    pToken->nOffset = ( HB_SIZE ) -1;
    pToken->nEndOffset = ( HB_SIZE ) -1;
+   pToken->pTraceInfo = NULL;
 
    return pToken;
 }
@@ -534,6 +593,8 @@ static PHB_PP_TOKEN hb_pp_tokenClone( PHB_PP_TOKEN pSource )
    pDest->pNext  = NULL;
    if( pDest->szModule )
       pDest->szModule = hb_strdup( pDest->szModule );
+   if( pDest->pTraceInfo )
+      hb_pp_traceinfoRetain( pDest->pTraceInfo );
 
    return pDest;
 }
@@ -4587,6 +4648,7 @@ static void hb_pp_patternReplace( PHB_PP_STATE pState, PHB_PP_RULE pRule,
                                   PHB_PP_TOKEN * pTokenPtr, const char * szType )
 {
    PHB_PP_TOKEN pFinalResult = NULL, * pResultPtr, pSource;
+   PHB_PP_TRACEINFO pTraceInfo = NULL;
 
    pResultPtr = hb_pp_patternStuff( pState, pRule, 0, pRule->pResult, &pFinalResult );
 
@@ -4614,9 +4676,100 @@ static void hb_pp_patternReplace( PHB_PP_STATE pState, PHB_PP_RULE pRule,
                                    pState->pBuffer, HB_TRUE, HB_FALSE ) );
    }
 
+   if( pFinalResult )
+   {
+      const char * szMacroName = NULL;
+      const char * szCallModule = NULL;
+      PHB_PP_TRACEINFO pParentTrace = NULL;
+      int iCallLine = 0, iCallColumn = 0;
+      int iCallEndLine = 0, iCallEndColumn = 0;
+      HB_SIZE nCallOffset = ( HB_SIZE ) -1;
+      HB_SIZE nCallEndOffset = ( HB_SIZE ) -1;
+      PHB_PP_TOKEN pIter = pSource;
+
+      if( pSource )
+         pParentTrace = pSource->pTraceInfo;
+
+      if( pRule->pMatch && pRule->pMatch->value )
+         szMacroName = pRule->pMatch->value;
+
+      while( pIter && pIter != pRule->pNextExpr )
+      {
+         if( szCallModule == NULL && pIter->szModule )
+            szCallModule = pIter->szModule;
+
+         if( pIter->nOffset != ( HB_SIZE ) -1 )
+         {
+            if( nCallOffset == ( HB_SIZE ) -1 || pIter->nOffset < nCallOffset )
+               nCallOffset = pIter->nOffset;
+         }
+         if( pIter->nEndOffset != ( HB_SIZE ) -1 )
+         {
+            if( nCallEndOffset == ( HB_SIZE ) -1 || pIter->nEndOffset > nCallEndOffset )
+               nCallEndOffset = pIter->nEndOffset;
+         }
+
+         if( pIter->iLine > 0 )
+         {
+            if( iCallLine == 0 || pIter->iLine < iCallLine ||
+                ( pIter->iLine == iCallLine && pIter->iColumn > 0 &&
+                  ( iCallColumn == 0 || pIter->iColumn < iCallColumn ) ) )
+            {
+               iCallLine = pIter->iLine;
+               iCallColumn = pIter->iColumn;
+            }
+            if( pIter->iEndColumn > 0 )
+            {
+               if( iCallEndLine == 0 || pIter->iLine > iCallEndLine ||
+                   ( pIter->iLine == iCallEndLine &&
+                     ( pIter->iEndColumn > iCallEndColumn ) ) )
+               {
+                  iCallEndLine = pIter->iLine;
+                  iCallEndColumn = pIter->iEndColumn;
+               }
+            }
+            else if( pIter->iColumn > 0 )
+            {
+               if( iCallEndLine == 0 || pIter->iLine > iCallEndLine ||
+                   ( pIter->iLine == iCallEndLine && pIter->iColumn > iCallEndColumn ) )
+               {
+                  iCallEndLine = pIter->iLine;
+                  iCallEndColumn = pIter->iColumn;
+               }
+            }
+         }
+
+         pIter = pIter->pNext;
+      }
+
+      if( szMacroName || szCallModule || pParentTrace || nCallOffset != ( HB_SIZE ) -1 ||
+          nCallEndOffset != ( HB_SIZE ) -1 || iCallLine > 0 || iCallEndLine > 0 )
+      {
+         pTraceInfo = hb_pp_traceinfoNew( szMacroName, szCallModule,
+                                          iCallLine, iCallColumn,
+                                          iCallEndLine, iCallEndColumn,
+                                          nCallOffset, nCallEndOffset,
+                                          pParentTrace );
+      }
+   }
+
    /* Replace matched tokens with result pattern */
    *pResultPtr = pRule->pNextExpr;
    *pTokenPtr = pFinalResult;
+
+    if( pTraceInfo )
+    {
+       PHB_PP_TOKEN pAssign = pFinalResult;
+       while( pAssign && pAssign != pRule->pNextExpr )
+       {
+          if( pAssign->pTraceInfo )
+             hb_pp_traceinfoRelease( pAssign->pTraceInfo );
+          pAssign->pTraceInfo = pTraceInfo;
+          hb_pp_traceinfoRetain( pAssign->pTraceInfo );
+          pAssign = pAssign->pNext;
+       }
+       hb_pp_traceinfoRelease( pTraceInfo );
+    }
 
    /* Free the matched tokens */
    while( pSource != pRule->pNextExpr )

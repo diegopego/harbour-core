@@ -381,6 +381,20 @@ typedef HB_PP_MSG_FUNC_( ( * PHB_PP_MSG_FUNC ) );
                                       HB_PP_TOKEN_TYPE(t) != HB_PP_TOKEN_LOGICAL )
 #endif
 
+typedef struct _HB_PP_TRACEINFO
+{
+   HB_SIZE              nRefCount;
+   char *               pszMacroName;
+   char *               pszCallModule;
+   int                  iCallLine;
+   int                  iCallColumn;
+   int                  iCallEndLine;
+   int                  iCallEndColumn;
+   HB_SIZE              nCallOffset;
+   HB_SIZE              nCallEndOffset;
+   struct _HB_PP_TRACEINFO * pParent;
+} HB_PP_TRACEINFO, * PHB_PP_TRACEINFO;
+
 typedef struct _HB_PP_TOKEN
 {
    struct _HB_PP_TOKEN * pNext;     /* next token pointer */
@@ -397,6 +411,7 @@ typedef struct _HB_PP_TOKEN
    int       iEndColumn;            /* end column (exclusive) */
    HB_SIZE   nOffset;               /* byte offset from start of source */
    HB_SIZE   nEndOffset;            /* end offset (exclusive) */
+   PHB_PP_TRACEINFO pTraceInfo;     /* macro expansion trace (internal) */
 }
 HB_PP_TOKEN, * PHB_PP_TOKEN;
 

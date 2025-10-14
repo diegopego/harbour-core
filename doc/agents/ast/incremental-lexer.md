@@ -56,6 +56,7 @@
       MacroCallRef origin;
   };
   ```
+  - `origin` encapsula nome da macro, módulo e intervalo da invocação atual, acessíveis via helpers `hb_astMacroTrace*()`; cada nó mantém ponteiro para o pai para reconstruir a pilha de expansões.
 - `ExpansionNode`: descreve cada expansão de macro com ponteiros para tokens de entrada/saída.
 - `ScopeGuard`: acompanha diretivas condicionais (`#ifdef`, `#endif`) e produz mapa de regiões ativas.
 

@@ -26,7 +26,7 @@ int main( void )
 
    while( hb_astLexerNextToken( lex, &tok ) )  /* hoje sai imediatamente */
    {
-      printf( "[%4u] kind=%d pp=%u span=(%lu:%lu:%lu -> %lu:%lu:%lu) module=%s text=\"%.*s\"\n",
+      printf( "[%4u] kind=%d pp=%u span=(%lu:%lu:%lu -> %lu:%lu:%lu) module=%s text=\"%.*s\"",
               ( unsigned ) tok.id.uHash,
               ( int ) tok.kind,
               ( unsigned ) tok.uPPType,
@@ -39,6 +39,27 @@ int main( void )
               tok.pszModule ? tok.pszModule : "<none>",
               ( int ) tok.nLexemeLength,
               tok.pszLexeme ? tok.pszLexeme : "" );
+
+      if( tok.pMacroOrigin )
+      {
+         HB_AST_SOURCE_RANGE call = hb_astMacroTraceCallRange( tok.pMacroOrigin );
+         const char * pszCallModule = hb_astMacroTraceCallModule( tok.pMacroOrigin );
+         const char * pszMacroName = hb_astMacroTraceName( tok.pMacroOrigin );
+         HB_SIZE nDepth = hb_astMacroTraceDepth( tok.pMacroOrigin );
+
+         printf( " macroDepth=%lu macro=\"%s\" caller=%s call=(%lu:%lu:%lu -> %lu:%lu:%lu)",
+                 ( unsigned long ) nDepth,
+                 pszMacroName ? pszMacroName : "<anon>",
+                 pszCallModule ? pszCallModule : "<unknown>",
+                 ( unsigned long ) call.start.nLine,
+                 ( unsigned long ) call.start.nColumn,
+                 ( unsigned long ) call.start.nOffset,
+                 ( unsigned long ) call.end.nLine,
+                 ( unsigned long ) call.end.nColumn,
+                 ( unsigned long ) call.end.nOffset );
+      }
+
+      putchar( '\n' );
    }
 
    puts( "[done] EOF reached" );

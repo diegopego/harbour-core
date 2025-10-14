@@ -48,6 +48,7 @@ Quando o lexer ganhar implementação real, esse binário poderá ser expandido 
   - `pszModule` e `original.start.nLine`: herdados do PP, preservando o módulo/arquivo e a linha original de cada token.
 - `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para asserts futuros.
 - `hb_astTokenStreamSnapshot()` agora clona o histórico de tokens e expõe acessos constantes através de `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()`, permitindo inspeção sem depender do pré-processador.
+- `pMacroOrigin` aponta para estruturas imutáveis de expansão; os helpers `hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()` e `hb_astMacroTraceParent()` permitem reconstruir a cadeia de macros com ranges de chamada para validações de rename.
 
 ### Limitações conhecidas
 
@@ -59,4 +60,4 @@ Próximos passos sugeridos:
 
 1. Instrumentar o PP para reportar offsets reais (pré e pós expansão) em vez de inferir via lexema.
 2. Persistir tokens em cache por bloco e invalidar apenas regiões alteradas.
-3. Expor metadados de macro (`ExpansionTraceLog`) no token stream para futuras refatorações.
+3. Serializar o grafo de macro (`ExpansionTraceLog`) no payload AST para que consumidores externos acessem os ranges de chamada sem depender do lexer em memória.

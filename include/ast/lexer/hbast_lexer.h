@@ -130,6 +130,11 @@ HB_AST_TOKEN_STREAM * hb_astTokenStreamSnapshot( const HB_AST_LEXER * pLexer );
 void hb_astTokenStreamRelease( HB_AST_TOKEN_STREAM * pStream );
 HB_SIZE hb_astTokenStreamCount( const HB_AST_TOKEN_STREAM * pStream );
 const HB_AST_TOKEN * hb_astTokenStreamToken( const HB_AST_TOKEN_STREAM * pStream, HB_SIZE nIndex );
+const char * hb_astMacroTraceName( const void * pMacroTrace );
+const char * hb_astMacroTraceCallModule( const void * pMacroTrace );
+HB_AST_SOURCE_RANGE hb_astMacroTraceCallRange( const void * pMacroTrace );
+HB_SIZE hb_astMacroTraceDepth( const void * pMacroTrace );
+const void * hb_astMacroTraceParent( const void * pMacroTrace );
 
 HB_EXTERN_END
 

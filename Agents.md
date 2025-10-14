@@ -74,8 +74,9 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 - O lexer incremental mantém um histórico de tokens persistente em memória (`HB_AST_TOKEN_ENTRY`), garantindo que instantâneos possam ser consumidos sem depender do contexto do pré-processador.
 - `hb_astTokenStreamSnapshot()` devolve um clone profundo desse histórico e está acompanhado pelos utilitários `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()` para iteração leve em clientes externos.
 - Cada token armazenado contém cópias próprias de `pszLexeme` e `pszModule`, evitando dangling pointers quando o pré-processador recicla buffers internos.
-- O campo `pMacroOrigin` ainda não é serializado; o próximo incremento deve conectar o `ExpansionTraceLog` ao histórico para permitir renames seguros.
+- As expansões de macro já populam `pMacroOrigin`; próxima etapa é serializar esse grafo no payload AST para que agentes externos reutilizem os ranges de chamada sem depender do lexer residente.
 - `README-AST.MD` foi atualizado para refletir o comportamento do snapshot; consultar antes de escrever novos consumidores.
+- `pMacroOrigin` aponta agora para um grafo de rastreamento de macros contendo nome, módulo de chamada, intervalo (`hb_astMacroTraceCallRange()`) e cadeia pai, permitindo verificar colisões de rename sem depender do `HB_PP_TOKEN` original. A profundidade pode ser consultada via `hb_astMacroTraceDepth()`.
 
 #### Artefatos relevantes
 
