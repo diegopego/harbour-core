@@ -47,7 +47,7 @@ Quando o lexer ganhar implementação real, esse binário poderá ser expandido 
 
 ### Limitações conhecidas
 
-- Os ranges dependem do próprio lexema, então macro expansões e normalização de whitespace ainda não refletem posições reais no arquivo original.
+- Os ranges dependem do lexema e do campo `spaces` emitido pelo pré-processador; macros, includes e normalizações mais agressivas ainda não refletem posições reais do arquivo original.
 - Não há cache incremental: qualquer alteração exigirá reconstruir o contexto PP.
 - Canais (`channel`) distinguem apenas `code`, `directive` e `trivia`; comentários ainda são mapeados como código.
 - O snapshot (`hb_astTokenStreamSnapshot`) continua um stub e precisa ser implementado antes do suporte a editores.

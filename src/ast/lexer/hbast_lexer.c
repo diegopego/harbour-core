@@ -48,6 +48,8 @@
 #include "hbpp.h"
 #include <string.h>
 
+static const char s_astNewlineLexeme[] = "\n";
+
 typedef struct _HB_AST_MACRO_TRACE
 {
    char *               pszMacroName;
@@ -73,7 +75,7 @@ struct _HB_AST_TOKEN_STREAM
 
 static void hb_astLexerTraceClear( HB_AST_LEXER * pLexer );
 static void hb_astLexerResetCursor( HB_AST_LEXER * pLexer );
-static void hb_astLexerConsumeWhitespace( HB_AST_LEXER * pLexer );
+static void hb_astLexerAdvanceSpaces( HB_AST_LEXER * pLexer, HB_SIZE nSpaces );
 static void hb_astLexerAdvanceByLexeme( HB_AST_LEXER * pLexer, const char * pszLexeme, HB_SIZE nLen );
 static HB_AST_TOKEN_KIND hb_astClassifyToken( HB_USHORT uType );
 static HB_U16 hb_astDetermineChannel( HB_USHORT uType );
@@ -161,8 +163,6 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
       return HB_FALSE;
    }
 
-   hb_astLexerConsumeWhitespace( pLexer );
-
    PHB_PP_TOKEN pSrcToken = hb_pp_lexGet( pLexer->pPP );
 
    if( pSrcToken == NULL )
@@ -172,26 +172,42 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
       return HB_FALSE;
    }
 
+   HB_USHORT uType = HB_PP_TOKEN_TYPE( pSrcToken->type );
+   HB_SIZE nSpaces = ( HB_SIZE ) pSrcToken->spaces;
+
+   if( uType == HB_PP_TOKEN_EOL )
+      nSpaces = 0;
+
+   if( nSpaces > 0 )
+      hb_astLexerAdvanceSpaces( pLexer, nSpaces );
+
    HB_AST_SOURCE_COORD start = pLexer->cursor;
    HB_SIZE nLen = pSrcToken->len;
    const char * pszLexeme = pSrcToken->value;
 
-   if( pszLexeme && nLen > 0 )
+   if( uType == HB_PP_TOKEN_EOL )
+   {
+      hb_astAdvanceChar( pLexer, '\n' );
+      pszLexeme = s_astNewlineLexeme;
+      if( nLen == 0 )
+         nLen = 1;
+   }
+   else if( pszLexeme && nLen > 0 )
       hb_astLexerAdvanceByLexeme( pLexer, pszLexeme, nLen );
 
    HB_AST_SOURCE_COORD end = pLexer->cursor;
 
-   pToken->id.uHash      = ++pLexer->nTokenIndex;
+   pToken->id.uHash       = ++pLexer->nTokenIndex;
    pToken->id.nMacroDepth = pLexer->nMacroDepth;
    pToken->original.start = start;
    pToken->original.end   = end;
    pToken->expanded       = pToken->original;
    pToken->nLexemeLength  = nLen;
 
-   pToken->uPPType  = HB_PP_TOKEN_TYPE( pSrcToken->type );
-   pToken->kind     = hb_astClassifyToken( pToken->uPPType );
-   pToken->uChannel = hb_astDetermineChannel( pToken->uPPType );
-   pToken->pszLexeme = pszLexeme;
+   pToken->uPPType     = uType;
+   pToken->kind        = hb_astClassifyToken( uType );
+   pToken->uChannel    = hb_astDetermineChannel( uType );
+   pToken->pszLexeme   = pszLexeme ? pszLexeme : "";
    pToken->pMacroOrigin = pSrcToken;
 
    return HB_TRUE;
@@ -274,19 +290,10 @@ static void hb_astLexerResetCursor( HB_AST_LEXER * pLexer )
    }
 }
 
-static void hb_astLexerConsumeWhitespace( HB_AST_LEXER * pLexer )
+static void hb_astLexerAdvanceSpaces( HB_AST_LEXER * pLexer, HB_SIZE nSpaces )
 {
-   if( pLexer == NULL || pLexer->source.pszBuffer == NULL )
-      return;
-
-   while( pLexer->cursor.nOffset < pLexer->source.nLength )
-   {
-      char c = pLexer->source.pszBuffer[ pLexer->cursor.nOffset ];
-      if( c == ' ' || c == '\t' )
-         hb_astAdvanceChar( pLexer, c );
-      else
-         break;
-   }
+   while( pLexer && nSpaces-- > 0 )
+      hb_astAdvanceChar( pLexer, ' ' );
 }
 
 static void hb_astLexerAdvanceByLexeme( HB_AST_LEXER * pLexer, const char * pszLexeme, HB_SIZE nLen )
