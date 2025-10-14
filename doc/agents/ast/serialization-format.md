@@ -105,12 +105,19 @@
 {
   "expansion_id": 6001,
   "macro_name": "DBG",
-  "definition_range": {"file": 2, "range": {/* ... */}},
-  "call_site": {"file": 1, "token": 2101},
-  "arguments": ["expr", "message"],
-  "output_tokens": [2105, 2106]
+  "call_module": "src/foo.prg",
+  "depth": 1,
+  "parent_expansion_id": 5999,
+  "call_range": {
+    "start": {"line": 42, "column": 10, "offset": 1234},
+    "end":   {"line": 42, "column": 25, "offset": 1250}
+  }
 }
 ```
+
+- `call_module` corresponde ao arquivo reportado pelo PP no momento da expansão.
+- `parent_expansion_id` é opcional e aparece quando a expansão ocorreu dentro de outra macro.
+- `call_range` sempre usa coordenadas do arquivo de chamada; offsets são absolutos baseados no módulo.
 
 ### `DiagnosticEntry`
 

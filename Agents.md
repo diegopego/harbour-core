@@ -75,12 +75,13 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 - `hb_pp_patternReplace()` passou a fabricar `HB_PP_TRACEINFO` com nome da macro, módulo e intervalo da chamada; `HB_PP_TOKEN` mantém esse traço e refcounts para reaproveitar dados entre expansões.
 - `hb_astTokenStreamSnapshot()` continua a fornecer cópias profundas e agora replica os rastros de macro (`HB_AST_MACRO_TRACE_INFO`). A API pública expõe helpers (`hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()`, `hb_astMacroTraceParent()`, `hb_astMacroTraceId()`) e iteradores (`hb_astTokenStreamMacroTraceCount()`, `hb_astTokenStreamMacroTrace()`) para navegar na pilha de expansões e produzir IDs estáveis para serialização.
 - `pMacroOrigin` dentro de `HB_AST_TOKEN` é estável, carregando profundidade e ranges do ponto de chamada; `tests/ast/smoke` imprime essa informação para validação rápida.
-- Documentação e fixtures alinhados: `README-AST.MD` descreve as novas APIs, `doc/agents/ast/incremental-lexer.md` esclarece o campo `origin`, e o smoke continua a servir como verificação de regressão.
-- Testes cobrindo o pipeline: `tests/ast/smoke` imprime o fluxo para depuração e `tests/ast/snapshot` valida programaticamente o snapshot e o grafo de macros.
+- Documentação e fixtures alinhados: `README-AST.MD` descreve as novas APIs, `doc/agents/ast/incremental-lexer.md` esclarece o campo `origin`, `doc/agents/ast/serialization-format.md` cobre o payload e o smoke continua a servir como verificação de regressão.
+- Serialização auxiliar disponível: `hb_astTokenStreamSerializeMacrosJson()` e `hb_astTokenStreamWriteMacrosJson()` exportam o grafo de macros (`macros.expansions`) em JSON, prontos para ser embutidos no payload final.
+- Testes cobrindo o pipeline: `tests/ast/smoke` imprime o fluxo para depuração e `tests/ast/snapshot` valida programaticamente o snapshot, o grafo de macros e a serialização JSON.
 
 #### Artefatos relevantes
 
-- Código-base: `src/ast/lexer/hbast_lexer.c` concentra as estruturas `HB_AST_TOKEN_ENTRY`, `HB_AST_TOKEN_STREAM_ENTRY` e macros como `HB_AST_LEXER_HISTORY_GROWTH`, além das rotinas internas `hb_astLexerHistoryReset()` e `hb_astLexerHistoryStore()` que calibram o cache.
+- Código-base: `src/ast/lexer/hbast_lexer.c` concentra as estruturas `HB_AST_TOKEN_ENTRY`, `HB_AST_TOKEN_STREAM_ENTRY` e macros como `HB_AST_LEXER_HISTORY_GROWTH`, além das rotinas internas `hb_astLexerHistoryReset()` e `hb_astLexerHistoryStore()` que calibram o cache. O módulo `src/ast/lexer/hbast_json.c` gera o JSON de `macros.expansions`.
 - API pública: `include/ast/lexer/hbast_lexer.h` exporta `hb_astTokenStreamSnapshot()`, `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()`; revisar antes de evoluções de assinatura.
 - Fixtures: `tests/ast/smoke.c`, `tests/ast/demo.prg` e `tests/ast/helpers.ch` validam o fluxo atual via `make -C tests/ast`.
 - Build alvo: `src/ast/lexer/Makefile` gera `libhbastlex.a`, consumida por `tests/ast/Makefile`.
@@ -138,10 +139,10 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 ## Next Steps
 
 1. Instrumentar o pré-processador para produzir coordenadas originais/expandidas precisas e diferenciar trivia (comentários, espaços) sem heurísticas.
-2. Serializar o grafo de macro (`pMacroOrigin`) junto do AST para que agentes externos (rename, diff, format) recebam ranges de chamada completos.
+2. Integrar o grafo de macro (`macros.expansions`) ao payload completo do `hbast` (JSON/CBOR), reaproveitando o helper disponível.
 3. Revisar o motor de rename/extract para consumir os rastros de macro, bloqueando cenários inseguros e emitindo relatórios de colisão.
 4. Introduzir cache incremental por bloco de tokens, reaproveitando rastros existentes em edições locais.
-5. Construir o encoder CBOR mantendo paridade com o schema JSON (`hbast.schema.json`) e iniciar o comando `hbast verify`. *Dependência:* aguarda a serialização de macro traces para garantir ranges consistentes no payload.
+5. Construir o encoder CBOR mantendo paridade com o schema JSON (`hbast.schema.json`) e iniciar o comando `hbast verify`. *Dependência:* aguarda a serialização de macro traces no payload completo para garantir ranges consistentes.*
 6. Iniciar o builder de AST semântico reutilizando o fluxo de tokens categorizado. *Status:* pendente; será alimentado pelos tokens enriquecidos com grafo de macros e offsets confiáveis.
 
 

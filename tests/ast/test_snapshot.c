@@ -1,11 +1,11 @@
 // tests/ast/test_snapshot.c
-// tests/ast/snapshot is our fast “sanity probe” that the lexer + snapshot infrastructure is preserving macro-expansion metadata correctly. It instantiates the lexer on tests/ast/demo.prg, consumes the token stream, and then:
-// Asserts that the literal coming from the VALUE macro carries pMacroOrigin with the right name, caller module and source range.
-// Takes a snapshot and enumerates the recorded macro graph, checking that there’s exactly one expansion, with depth/ID/ranges matching the call site.
-// If anything in that pipeline regresses—PP trace wiring, snapshot cloning, helper APIs—the test exits with a failure message. Because our downstream tooling (rename, verify, serializer) depends on that macro graph being trustworthy, this test is our early warning that the data feeding those agents is still sane.
+// tests/ast/snapshot is our fast “sanity probe” that the lexer + snapshot infrastructure
+// is preserving macro-expansion metadata correctly and that the serialized payload matches
+// the documented schema.
 #include "ast/lexer/hbast_lexer.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 static int report_failure( const char * pszMessage )
 {
@@ -140,6 +140,36 @@ int main( void )
                rc = report_failure( "macro graph json missing call module" );
 
             hb_astTokenStreamSerializeMacrosJsonFree( pszJson );
+         }
+
+         if( rc == 0 )
+         {
+            const char * pszPath = "tests/ast/out_macro.json";
+            FILE * pFile;
+            char buffer[ 512 ];
+            size_t nRead;
+
+            if( ! hb_astTokenStreamWriteMacrosJson( pSnapshot, pszPath ) )
+               rc = report_failure( "failed to write macro graph json file" );
+            else
+            {
+               pFile = fopen( pszPath, "rb" );
+               if( pFile == NULL )
+                  rc = report_failure( "unable to reopen macro graph json file" );
+               else
+               {
+                  nRead = fread( buffer, 1, sizeof( buffer ) - 1, pFile );
+                  buffer[ nRead ] = '\0';
+                  fclose( pFile );
+
+                  if( strstr( buffer, "\"expansions\"" ) == NULL )
+                     rc = report_failure( "macro graph file missing expansions array" );
+                  else if( strstr( buffer, "\"macro_name\":\"VALUE\"" ) == NULL )
+                     rc = report_failure( "macro graph file missing macro name" );
+               }
+            }
+
+            remove( pszPath );
          }
 
          hb_astTokenStreamRelease( pSnapshot );
