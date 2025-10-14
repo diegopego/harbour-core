@@ -57,6 +57,22 @@ typedef struct _HB_AST_MACRO_TRACE
    struct _HB_AST_MACRO_TRACE * pPrev;
 } HB_AST_MACRO_TRACE;
 
+#define HB_AST_LEXER_HISTORY_GROWTH 64
+
+typedef struct _HB_AST_TOKEN_ENTRY
+{
+   HB_AST_TOKEN token;
+   char *       pszLexemeOwned;
+   char *       pszModuleOwned;
+} HB_AST_TOKEN_ENTRY;
+
+typedef struct _HB_AST_TOKEN_STREAM_ENTRY
+{
+   HB_AST_TOKEN token;
+   char *       pszLexemeOwned;
+   char *       pszModuleOwned;
+} HB_AST_TOKEN_STREAM_ENTRY;
+
 struct _HB_AST_LEXER
 {
    HB_AST_LEXER_SOURCE source;
@@ -68,11 +84,15 @@ struct _HB_AST_LEXER
    HB_BOOL             fDirtySnapshot;
    HB_SIZE             nMacroDepth;
    HB_BOOL             fSkipLineDirective;
+   HB_AST_TOKEN_ENTRY *pHistory;
+   HB_SIZE             nHistoryCount;
+   HB_SIZE             nHistoryCapacity;
 };
 
 struct _HB_AST_TOKEN_STREAM
 {
    HB_SIZE nTokenCount;
+   HB_AST_TOKEN_STREAM_ENTRY * pEntries;
 };
 
 static void hb_astLexerTraceClear( HB_AST_LEXER * pLexer );
@@ -83,6 +103,9 @@ static HB_AST_TOKEN_KIND hb_astClassifyToken( HB_USHORT uType );
 static HB_U16 hb_astDetermineChannel( HB_USHORT uType );
 static void hb_astAdvanceChar( HB_AST_LEXER * pLexer, char c );
 static PHB_PP_STATE hb_astCreatePP( const HB_AST_LEXER_SOURCE * pSource );
+static void hb_astLexerHistoryReset( HB_AST_LEXER * pLexer );
+static void hb_astLexerHistoryEnsureCapacity( HB_AST_LEXER * pLexer, HB_SIZE nExtra );
+static void hb_astLexerHistoryStore( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken );
 
 HB_AST_LEXER * hb_astLexerNew( const HB_AST_LEXER_SOURCE * pSource )
 {
@@ -99,6 +122,7 @@ void hb_astLexerFree( HB_AST_LEXER * pLexer )
    if( pLexer )
    {
       hb_astLexerTraceClear( pLexer );
+      hb_astLexerHistoryReset( pLexer );
 
       if( pLexer->pPP )
       {
@@ -111,6 +135,14 @@ void hb_astLexerFree( HB_AST_LEXER * pLexer )
          hb_xfree( ( void * ) pLexer->source.pszBuffer );
       }
 
+      if( pLexer->pHistory )
+      {
+         hb_xfree( pLexer->pHistory );
+         pLexer->pHistory = NULL;
+      }
+      pLexer->nHistoryCapacity = 0;
+      pLexer->nHistoryCount = 0;
+
       hb_xfree( pLexer );
    }
 }
@@ -120,6 +152,7 @@ void hb_astLexerReset( HB_AST_LEXER * pLexer, const HB_AST_LEXER_SOURCE * pSourc
    if( pLexer )
    {
       hb_astLexerTraceClear( pLexer );
+      hb_astLexerHistoryReset( pLexer );
 
       if( pLexer->pPP )
       {
@@ -271,7 +304,7 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
    pToken->kind        = hb_astClassifyToken( uType );
    pToken->uChannel    = hb_astDetermineChannel( uType );
    pToken->pszLexeme   = pszLexeme ? pszLexeme : "";
-   pToken->pMacroOrigin = pSrcToken;
+   pToken->pMacroOrigin = NULL;
    if( pSrcToken->szModule )
       pToken->pszModule = pSrcToken->szModule;
    else if( pLexer->source.pszModule )
@@ -280,6 +313,8 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
       pToken->pszModule = pLexer->source.pszBuffer;
    else
       pToken->pszModule = "<buffer>";
+
+   hb_astLexerHistoryStore( pLexer, pToken );
 
    return HB_TRUE;
 }
@@ -325,7 +360,49 @@ HB_AST_TOKEN_STREAM * hb_astTokenStreamSnapshot( const HB_AST_LEXER * pLexer )
       return NULL;
 
    pStream = ( HB_AST_TOKEN_STREAM * ) hb_xgrabz( sizeof( HB_AST_TOKEN_STREAM ) );
-   HB_SYMBOL_UNUSED( pLexer );
+
+   if( pLexer->nHistoryCount > 0 && pLexer->pHistory )
+   {
+      HB_SIZE i;
+
+      pStream->nTokenCount = pLexer->nHistoryCount;
+      pStream->pEntries = ( HB_AST_TOKEN_STREAM_ENTRY * ) hb_xgrabz( pStream->nTokenCount * sizeof( HB_AST_TOKEN_STREAM_ENTRY ) );
+
+      for( i = 0; i < pStream->nTokenCount; ++i )
+      {
+         const HB_AST_TOKEN_ENTRY * pSrc = &pLexer->pHistory[ i ];
+         HB_AST_TOKEN_STREAM_ENTRY * pDst = &pStream->pEntries[ i ];
+
+         pDst->token = pSrc->token;
+
+         if( pSrc->token.pszLexeme )
+         {
+            if( pSrc->token.nLexemeLength > 0 )
+            {
+               HB_SIZE nCopy = pSrc->token.nLexemeLength;
+               pDst->pszLexemeOwned = ( char * ) hb_xgrab( nCopy + 1 );
+               memcpy( pDst->pszLexemeOwned, pSrc->token.pszLexeme, nCopy );
+               pDst->pszLexemeOwned[ nCopy ] = '\0';
+            }
+            else
+               pDst->pszLexemeOwned = hb_strdup( pSrc->token.pszLexeme );
+         }
+         else
+            pDst->pszLexemeOwned = hb_strdup( "" );
+
+         pDst->token.pszLexeme = pDst->pszLexemeOwned;
+
+         if( pSrc->token.pszModule )
+            pDst->pszModuleOwned = hb_strdup( pSrc->token.pszModule );
+         else
+            pDst->pszModuleOwned = NULL;
+
+         pDst->token.pszModule = pDst->pszModuleOwned;
+         pDst->token.pMacroOrigin = NULL;
+      }
+   }
+
+   ( ( HB_AST_LEXER * ) pLexer )->fDirtySnapshot = HB_FALSE;
 
    return pStream;
 }
@@ -334,8 +411,38 @@ void hb_astTokenStreamRelease( HB_AST_TOKEN_STREAM * pStream )
 {
    if( pStream )
    {
+      if( pStream->pEntries )
+      {
+         HB_SIZE i;
+
+         for( i = 0; i < pStream->nTokenCount; ++i )
+         {
+            HB_AST_TOKEN_STREAM_ENTRY * pEntry = &pStream->pEntries[ i ];
+
+            if( pEntry->pszLexemeOwned )
+               hb_xfree( pEntry->pszLexemeOwned );
+            if( pEntry->pszModuleOwned )
+               hb_xfree( pEntry->pszModuleOwned );
+         }
+
+         hb_xfree( pStream->pEntries );
+      }
+
       hb_xfree( pStream );
    }
+}
+
+HB_SIZE hb_astTokenStreamCount( const HB_AST_TOKEN_STREAM * pStream )
+{
+   return pStream ? pStream->nTokenCount : 0;
+}
+
+const HB_AST_TOKEN * hb_astTokenStreamToken( const HB_AST_TOKEN_STREAM * pStream, HB_SIZE nIndex )
+{
+   if( pStream == NULL || pStream->pEntries == NULL || nIndex >= pStream->nTokenCount )
+      return NULL;
+
+   return &pStream->pEntries[ nIndex ].token;
 }
 
 static void hb_astLexerTraceClear( HB_AST_LEXER * pLexer )
@@ -401,6 +508,109 @@ static PHB_PP_STATE hb_astCreatePP( const HB_AST_LEXER_SOURCE * pSource )
    }
 
    return pPP;
+}
+
+static void hb_astLexerHistoryReset( HB_AST_LEXER * pLexer )
+{
+   HB_SIZE i;
+
+   if( pLexer == NULL )
+      return;
+
+   if( pLexer->pHistory )
+   {
+      for( i = 0; i < pLexer->nHistoryCount; ++i )
+      {
+         HB_AST_TOKEN_ENTRY * pEntry = &pLexer->pHistory[ i ];
+
+         if( pEntry->pszLexemeOwned )
+         {
+            hb_xfree( pEntry->pszLexemeOwned );
+            pEntry->pszLexemeOwned = NULL;
+         }
+
+         if( pEntry->pszModuleOwned )
+         {
+            hb_xfree( pEntry->pszModuleOwned );
+            pEntry->pszModuleOwned = NULL;
+         }
+
+         hb_xmemset( &pEntry->token, 0, sizeof( HB_AST_TOKEN ) );
+      }
+   }
+
+   pLexer->nHistoryCount = 0;
+}
+
+static void hb_astLexerHistoryEnsureCapacity( HB_AST_LEXER * pLexer, HB_SIZE nExtra )
+{
+   HB_SIZE nNeeded, nCapacity;
+
+   if( pLexer == NULL )
+      return;
+
+   nNeeded = pLexer->nHistoryCount + nExtra;
+   if( nNeeded <= pLexer->nHistoryCapacity )
+      return;
+
+   nCapacity = pLexer->nHistoryCapacity;
+   if( nCapacity == 0 )
+      nCapacity = HB_AST_LEXER_HISTORY_GROWTH;
+
+   while( nCapacity < nNeeded )
+   {
+      if( nCapacity < HB_AST_LEXER_HISTORY_GROWTH )
+         nCapacity = HB_AST_LEXER_HISTORY_GROWTH;
+      else
+         nCapacity *= 2;
+   }
+
+   pLexer->pHistory = ( HB_AST_TOKEN_ENTRY * ) hb_xrealloc( pLexer->pHistory, nCapacity * sizeof( HB_AST_TOKEN_ENTRY ) );
+   hb_xmemset( pLexer->pHistory + pLexer->nHistoryCapacity, 0, ( nCapacity - pLexer->nHistoryCapacity ) * sizeof( HB_AST_TOKEN_ENTRY ) );
+   pLexer->nHistoryCapacity = nCapacity;
+}
+
+static void hb_astLexerHistoryStore( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
+{
+   HB_AST_TOKEN_ENTRY * pEntry;
+   HB_SIZE nCopyLen;
+
+   if( pLexer == NULL || pToken == NULL )
+      return;
+
+   hb_astLexerHistoryEnsureCapacity( pLexer, 1 );
+
+   pEntry = &pLexer->pHistory[ pLexer->nHistoryCount++ ];
+   memcpy( &pEntry->token, pToken, sizeof( HB_AST_TOKEN ) );
+
+   pEntry->pszLexemeOwned = NULL;
+   pEntry->pszModuleOwned = NULL;
+
+   if( pToken->pszLexeme )
+   {
+      if( pToken->nLexemeLength > 0 )
+      {
+         nCopyLen = pToken->nLexemeLength;
+         pEntry->pszLexemeOwned = ( char * ) hb_xgrab( nCopyLen + 1 );
+         memcpy( pEntry->pszLexemeOwned, pToken->pszLexeme, nCopyLen );
+         pEntry->pszLexemeOwned[ nCopyLen ] = '\0';
+      }
+      else
+         pEntry->pszLexemeOwned = hb_strdup( pToken->pszLexeme );
+   }
+   else
+      pEntry->pszLexemeOwned = hb_strdup( "" );
+
+   pEntry->token.pszLexeme = pEntry->pszLexemeOwned;
+
+   if( pToken->pszModule )
+      pEntry->pszModuleOwned = hb_strdup( pToken->pszModule );
+
+   pEntry->token.pszModule = pEntry->pszModuleOwned ? pEntry->pszModuleOwned : NULL;
+   pEntry->token.pMacroOrigin = NULL;
+
+   *pToken = pEntry->token;
+   pLexer->fDirtySnapshot = HB_TRUE;
 }
 
 static void hb_astLexerResetCursor( HB_AST_LEXER * pLexer )

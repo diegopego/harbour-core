@@ -69,6 +69,22 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
    - Schema inicial publicado em `doc/agents/ast/hbast.schema.json` e plano do verificador em `doc/agents/ast/hbast-verify.md`.
    - Protótipo de código disponível em `src/ast/lexer/hbast_lexer.c` e `include/ast/lexer/hbast_lexer.h`.
 
+### Implementação Atual (Jun/2024)
+
+- O lexer incremental mantém um histórico de tokens persistente em memória (`HB_AST_TOKEN_ENTRY`), garantindo que instantâneos possam ser consumidos sem depender do contexto do pré-processador.
+- `hb_astTokenStreamSnapshot()` devolve um clone profundo desse histórico e está acompanhado pelos utilitários `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()` para iteração leve em clientes externos.
+- Cada token armazenado contém cópias próprias de `pszLexeme` e `pszModule`, evitando dangling pointers quando o pré-processador recicla buffers internos.
+- O campo `pMacroOrigin` ainda não é serializado; o próximo incremento deve conectar o `ExpansionTraceLog` ao histórico para permitir renames seguros.
+- `README-AST.MD` foi atualizado para refletir o comportamento do snapshot; consultar antes de escrever novos consumidores.
+
+#### Artefatos relevantes
+
+- Código-base: `src/ast/lexer/hbast_lexer.c` concentra as estruturas `HB_AST_TOKEN_ENTRY`, `HB_AST_TOKEN_STREAM_ENTRY` e macros como `HB_AST_LEXER_HISTORY_GROWTH`, além das rotinas internas `hb_astLexerHistoryReset()` e `hb_astLexerHistoryStore()` que calibram o cache.
+- API pública: `include/ast/lexer/hbast_lexer.h` exporta `hb_astTokenStreamSnapshot()`, `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()`; revisar antes de evoluções de assinatura.
+- Fixtures: `tests/ast/smoke.c`, `tests/ast/demo.prg` e `tests/ast/helpers.ch` validam o fluxo atual via `make -C tests/ast`.
+- Build alvo: `src/ast/lexer/Makefile` gera `libhbastlex.a`, consumida por `tests/ast/Makefile`.
+- Documentação: `doc/agents/ast/incremental-lexer.md` e `doc/agents/ast/serialization-format.md` detalham as próximas etapas do pipeline, enquanto `doc/agents/ast/hbast-verify.md` descreve o verificador planejado.
+
 ## Primary Agents
 
 | Agent | Goals | Notes |
@@ -122,8 +138,8 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 
 1. Instrumentar o pré-processador para produzir coordenadas originais/expandidas precisas e diferenciar trivia (comentários, espaços) sem heurísticas.
 2. Introduzir cache incremental do fluxo de tokens (blocos sujos) e implementar `hb_astTokenStreamSnapshot`.
-3. Persistir o grafo `ExpansionTraceLog`, expondo consultas (`token → macro`, `macro → tokens`) para futuros renames seguros.
-4. Construir o encoder CBOR mantendo paridade com o schema JSON (`hbast.schema.json`) e iniciar o comando `hbast verify`.
-5. Iniciar o builder de AST semântico reutilizando o fluxo de tokens categorizado.
+3. Persistir o grafo `ExpansionTraceLog`, expondo consultas (`token → macro`, `macro → tokens`) para futuros renames seguros. *Status atual:* offsets byte-a-byte já funcionam; próxima etapa é registrar e expor metadados de expansão em `HB_PP_TOKEN`.
+4. Construir o encoder CBOR mantendo paridade com o schema JSON (`hbast.schema.json`) e iniciar o comando `hbast verify`. *Dependência:* aguarda rastros de macro para garantir ranges consistentes no payload.
+5. Iniciar o builder de AST semântico reutilizando o fluxo de tokens categorizado. *Status:* pendente; será alimentado pelos tokens enriquecidos com grafo de macros e offsets confiáveis.
 
 By investing in agents that speak a common language core, this Harbour fork can offer the same developer experience programmers expect from modern typed ecosystems—while staying true to Harbour’s heritage.

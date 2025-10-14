@@ -128,6 +128,8 @@ void hb_astLexerMacroTracePop( HB_AST_LEXER * pLexer );
 
 HB_AST_TOKEN_STREAM * hb_astTokenStreamSnapshot( const HB_AST_LEXER * pLexer );
 void hb_astTokenStreamRelease( HB_AST_TOKEN_STREAM * pStream );
+HB_SIZE hb_astTokenStreamCount( const HB_AST_TOKEN_STREAM * pStream );
+const HB_AST_TOKEN * hb_astTokenStreamToken( const HB_AST_TOKEN_STREAM * pStream, HB_SIZE nIndex );
 
 HB_EXTERN_END
 

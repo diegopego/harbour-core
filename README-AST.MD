@@ -47,13 +47,13 @@ Quando o lexer ganhar implementação real, esse binário poderá ser expandido 
   - `original`/`expanded`: coordenadas básicas (line/column/offset) atualizadas a partir do lexema; ainda ingênuas para casos de macro expansão.
   - `pszModule` e `original.start.nLine`: herdados do PP, preservando o módulo/arquivo e a linha original de cada token.
 - `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para asserts futuros.
+- `hb_astTokenStreamSnapshot()` agora clona o histórico de tokens e expõe acessos constantes através de `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()`, permitindo inspeção sem depender do pré-processador.
 
 ### Limitações conhecidas
 
 - Os ranges dependem do lexema e do campo `spaces` emitido pelo pré-processador; macros, includes e normalizações mais agressivas ainda não refletem posições reais do arquivo original.
 - Não há cache incremental: qualquer alteração exigirá reconstruir o contexto PP.
 - Canais (`channel`) distinguem apenas `code`, `directive` e `trivia`; comentários ainda são mapeados como código.
-- O snapshot (`hb_astTokenStreamSnapshot`) continua um stub e precisa ser implementado antes do suporte a editores.
 
 Próximos passos sugeridos:
 
