@@ -12,7 +12,6 @@ LIBS     := -L$(LIBDIR) \
             -lhbastlex \
             -lhbpp \
             -lhbrtl \
-            -lhbnortl \
             -lhbvm \
             -lhbcommon \
             -lharbour \

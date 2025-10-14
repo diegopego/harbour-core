@@ -123,6 +123,25 @@ int main( void )
             }
          }
 
+         if( rc == 0 )
+         {
+            HB_SIZE nJsonLen = 0;
+            char * pszJson = hb_astTokenStreamSerializeMacrosJson( pSnapshot, &nJsonLen );
+
+            if( pszJson == NULL )
+               rc = report_failure( "failed to serialize macro graph to json" );
+            else if( nJsonLen == 0 )
+               rc = report_failure( "macro graph json has zero length" );
+            else if( strstr( pszJson, "\"macro_name\":\"VALUE\"" ) == NULL )
+               rc = report_failure( "macro graph json missing macro name" );
+            else if( strstr( pszJson, "\"expansion_id\":0" ) == NULL )
+               rc = report_failure( "macro graph json missing expansion id" );
+            else if( strstr( pszJson, "\"call_module\":\"tests/ast/demo.prg\"" ) == NULL )
+               rc = report_failure( "macro graph json missing call module" );
+
+            hb_astTokenStreamSerializeMacrosJsonFree( pszJson );
+         }
+
          hb_astTokenStreamRelease( pSnapshot );
       }
    }
