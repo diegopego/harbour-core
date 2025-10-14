@@ -172,6 +172,25 @@ int main( void )
             remove( pszPath );
          }
 
+         if( rc == 0 )
+         {
+            HB_SIZE nFullLen = 0;
+            char * pszFull = hb_astTokenStreamSerializeSnapshotJson( pSnapshot, cfg.pszBuffer, &nFullLen );
+
+            if( pszFull == NULL )
+               rc = report_failure( "failed to serialize snapshot json" );
+            else if( nFullLen == 0 )
+               rc = report_failure( "snapshot json has zero length" );
+            else if( strstr( pszFull, "\"format_version\"") == NULL )
+               rc = report_failure( "snapshot json missing format_version" );
+            else if( strstr( pszFull, "\"tokens\"") == NULL )
+               rc = report_failure( "snapshot json missing tokens array" );
+            else if( strstr( pszFull, "\"macros\":{\"expansions\"") == NULL )
+               rc = report_failure( "snapshot json missing macro section" );
+
+            hb_astTokenStreamSerializeSnapshotJsonFree( pszFull );
+         }
+
          hb_astTokenStreamRelease( pSnapshot );
       }
    }

@@ -57,7 +57,10 @@ endif
 .PHONY: test-ast
 test-ast:
 	+$(MAKE) HB_BUILD_PARTS=compiler HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER) HB_WITH_UTILS=no
+	+$(MAKE) -C utils/hbast HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER)
 	+$(MAKE) -C tests/ast clean HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER)
 	+$(MAKE) -C tests/ast HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER)
 	./tests/ast/smoke
 	./tests/ast/snapshot
+	./bin/$(HB_PLATFORM)/$(HB_COMPILER)/hbast tests/ast/demo.prg -o tests/ast/demo.hbast.json
+	rm -f tests/ast/demo.hbast.json

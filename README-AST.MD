@@ -48,6 +48,11 @@ Quando o lexer ganhar implementação real, esse binário poderá ser expandido 
   - `pszModule` e `original.start.nLine`: herdados do PP, preservando o módulo/arquivo e a linha original de cada token.
 - `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para inspeções manuais.
 - `tests/ast/snapshot` executa asserts automatizados garantindo que tokens e rastros de macro (`pMacroOrigin`) produzidos pelo snapshot representam corretamente o grafo de expansão e valida o JSON emitido por `hb_astTokenStreamSerializeMacrosJson()`/`hb_astTokenStreamWriteMacrosJson()`.
+
+### `hbast` CLI
+
+- Construção: `make HB_BUILD_PARTS=compiler HB_PLATFORM=linux HB_COMPILER=gcc HB_WITH_UTILS=no` gera o binário `bin/<plat>/<compiler>/hbast`.
+- Execução: `bin/linux/gcc/hbast tests/ast/demo.prg -o demo.hbast.json` produz um payload conforme `doc/agents/ast/serialization-format.md` com tokens e `macros.expansions`.
 - `hb_astTokenStreamSnapshot()` agora clona o histórico de tokens e expõe acessos constantes através de `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()`, permitindo inspeção sem depender do pré-processador.
 - `pMacroOrigin` aponta para estruturas imutáveis de expansão; os helpers `hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()`, `hb_astMacroTraceParent()` e `hb_astMacroTraceId()` permitem reconstruir a cadeia de macros, mapear pais e obter um identificador determinístico para serialização. `hb_astTokenStreamMacroTraceCount()`/`hb_astTokenStreamMacroTrace()` expõem a lista de expansões únicas por snapshot.
 

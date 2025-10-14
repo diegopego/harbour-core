@@ -77,6 +77,7 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 - `pMacroOrigin` dentro de `HB_AST_TOKEN` é estável, carregando profundidade e ranges do ponto de chamada; `tests/ast/smoke` imprime essa informação para validação rápida.
 - Documentação e fixtures alinhados: `README-AST.MD` descreve as novas APIs, `doc/agents/ast/incremental-lexer.md` esclarece o campo `origin`, `doc/agents/ast/serialization-format.md` cobre o payload e o smoke continua a servir como verificação de regressão.
 - Serialização auxiliar disponível: `hb_astTokenStreamSerializeMacrosJson()` e `hb_astTokenStreamWriteMacrosJson()` exportam o grafo de macros (`macros.expansions`) em JSON, prontos para ser embutidos no payload final.
+- CLI `hbast` disponível em `utils/hbast/` gerando dumps JSON (`tokens` + `macros.expansions`) a partir de arquivos `.prg`.
 - Testes cobrindo o pipeline: `tests/ast/smoke` imprime o fluxo para depuração e `tests/ast/snapshot` valida programaticamente o snapshot, o grafo de macros e a serialização JSON.
 
 #### Artefatos relevantes
