@@ -491,6 +491,8 @@ static PHB_PP_TOKEN hb_pp_tokenNew( const char * value, HB_SIZE nLen,
    pToken->pMTokens = NULL;
    pToken->szModule = NULL;
    pToken->iLine  = 0;
+   pToken->iColumn = 0;
+   pToken->iEndColumn = 0;
 
    return pToken;
 }
@@ -568,6 +570,13 @@ static void hb_pp_tokenAddCmdSep( PHB_PP_STATE pState )
 {
    PHB_PP_TOKEN pToken = hb_pp_tokenAdd( &pState->pNextTokenPtr, ";", 1, pState->nSpacesNL, HB_PP_TOKEN_EOC | HB_PP_TOKEN_STATIC );
    hb_pp_tokenAnnotate( pState, pToken );
+   if( pState->pFile )
+   {
+      int iStartCol = pState->pFile->iColumn + ( int ) pState->nSpacesNL;
+      pToken->iColumn = iStartCol;
+      pToken->iEndColumn = iStartCol + 1;
+      pState->pFile->iColumn = pToken->iEndColumn;
+   }
    pState->pFile->iTokens++;
    pState->fNewStatement = HB_TRUE;
    pState->fCanNextLine = HB_FALSE;
@@ -630,9 +639,17 @@ static void hb_pp_tokenAddNext( PHB_PP_STATE pState, const char * value, HB_SIZE
        HB_PP_TOKEN_TYPE( type ) == HB_PP_TOKEN_KEYWORD )
       pState->nSpaces = pState->nSpacesMin;
 #endif
-   {
+  {
       PHB_PP_TOKEN pToken = hb_pp_tokenAdd( &pState->pNextTokenPtr, value, nLen, pState->nSpaces, type );
       hb_pp_tokenAnnotate( pState, pToken );
+      if( pState->pFile )
+      {
+         int iStartCol = pState->pFile->iColumn + ( int ) pState->nSpaces;
+         int iWidth = ( int ) ( nLen > 0 ? nLen : 1 );
+         pToken->iColumn = iStartCol;
+         pToken->iEndColumn = iStartCol + iWidth;
+         pState->pFile->iColumn = pToken->iEndColumn;
+      }
    }
    pState->pFile->iTokens++;
    pState->fNewStatement = HB_FALSE;
@@ -923,8 +940,9 @@ static void hb_pp_getLine( PHB_PP_STATE pState )
 
    pInLinePtr = pEolTokenPtr = NULL;
    hb_pp_tokenListFree( &pState->pFile->pTokenList );
-   pState->pNextTokenPtr = &pState->pFile->pTokenList;
-   pState->pFile->iTokens = 0;
+  pState->pNextTokenPtr = &pState->pFile->pTokenList;
+  pState->pFile->iTokens = 0;
+  pState->pFile->iColumn = 1;
    pState->nSpaces = pState->nSpacesMin = 0;
    pState->fCanNextLine = pState->fDirective = HB_FALSE;
    pState->fNewStatement = HB_TRUE;
@@ -1583,6 +1601,12 @@ static void hb_pp_getLine( PHB_PP_STATE pState )
       {
          PHB_PP_TOKEN pNl = hb_pp_tokenAdd( &pState->pNextTokenPtr, "\n", 1, 0, HB_PP_TOKEN_EOL | HB_PP_TOKEN_STATIC );
          hb_pp_tokenAnnotate( pState, pNl );
+         if( pState->pFile )
+         {
+            pNl->iColumn = 1;
+            pNl->iEndColumn = 1;
+            pState->pFile->iColumn = 1;
+         }
       }
       pState->pFile->iTokens++;
    }
@@ -2087,6 +2111,7 @@ static PHB_PP_FILE hb_pp_FileNew( PHB_PP_STATE pState, const char * szFileName,
    pFile->pLineBuf = pLineBuf;
    pFile->nLineBufLen = nLineBufLen;
    pFile->iLastLine = 1;
+   pFile->iColumn = 1;
 
    return pFile;
 }
@@ -2099,6 +2124,7 @@ static PHB_PP_FILE hb_pp_FileBufNew( const char * pLineBuf, HB_SIZE nLineBufLen 
    pFile->pLineBuf = pLineBuf;
    pFile->nLineBufLen = nLineBufLen;
    pFile->iLastLine = 1;
+   pFile->iColumn = 1;
 
    return pFile;
 }
@@ -2328,6 +2354,12 @@ static void hb_pp_pragmaStreamFile( PHB_PP_STATE pState, const char * szFileName
             {
                PHB_PP_TOKEN pNl = hb_pp_tokenAdd( &pState->pNextTokenPtr, "\n", 1, 0, HB_PP_TOKEN_EOL | HB_PP_TOKEN_STATIC );
                hb_pp_tokenAnnotate( pState, pNl );
+               if( pState->pFile )
+               {
+                  pNl->iColumn = 1;
+                  pNl->iEndColumn = 1;
+                  pState->pFile->iColumn = 1;
+               }
             }
             pState->pFile->iTokens++;
          }
@@ -2356,6 +2388,12 @@ static void hb_pp_pragmaStreamFile( PHB_PP_STATE pState, const char * szFileName
             {
                PHB_PP_TOKEN pNl = hb_pp_tokenAdd( &pState->pNextTokenPtr, "\n", 1, 0, HB_PP_TOKEN_EOL | HB_PP_TOKEN_STATIC );
                hb_pp_tokenAnnotate( pState, pNl );
+               if( pState->pFile )
+               {
+                  pNl->iColumn = 1;
+                  pNl->iEndColumn = 1;
+                  pState->pFile->iColumn = 1;
+               }
             }
          else
             {
@@ -5167,6 +5205,12 @@ static void hb_pp_genLineTokens( PHB_PP_STATE pState )
          {
             PHB_PP_TOKEN pNl = hb_pp_tokenAdd( &pState->pNextTokenPtr, "\n", 1, 0, HB_PP_TOKEN_EOL | HB_PP_TOKEN_STATIC );
             hb_pp_tokenAnnotate( pState, pNl );
+            if( pState->pFile )
+            {
+               pNl->iColumn = 1;
+               pNl->iEndColumn = 1;
+               pState->pFile->iColumn = 1;
+            }
          }
       }
       while( ++pState->pFile->iLastLine < pState->pFile->iCurrentLine );

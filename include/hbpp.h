@@ -393,6 +393,8 @@ typedef struct _HB_PP_TOKEN
    HB_USHORT index;                 /* index to match marker or 0 */
    char *    szModule;              /* originating module/file name */
    int       iLine;                 /* originating line number (1-based) */
+   int       iColumn;               /* start column (1-based) */
+   int       iEndColumn;            /* end column (exclusive) */
 }
 HB_PP_TOKEN, * PHB_PP_TOKEN;
 
@@ -543,6 +545,7 @@ typedef struct _HB_PP_FILE
    int      iLastLine;             /* last non empty generated line */
    int      iLastDisp;             /* last shown line number */
    int      iTokens;               /* number of decoded tokens */
+   int      iColumn;               /* current column (1-based) */
    HB_BOOL  fGenLineInfo;          /* #line information should be generated */
    HB_BOOL  fEof;                  /* the end of file reached */
 
