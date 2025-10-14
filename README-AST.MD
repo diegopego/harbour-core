@@ -43,6 +43,7 @@ Quando o lexer ganhar implementação real, esse binário poderá ser expandido 
   - `uPPType`: tipo bruto (`HB_PP_TOKEN_*`), útil para depuração e compatibilidade.
   - `nLexemeLength`/`pszLexeme`: conteúdo textual retornado pelo PP.
   - `original`/`expanded`: coordenadas básicas (line/column/offset) atualizadas a partir do lexema; ainda ingênuas para casos de macro expansão.
+  - `pszModule` e `original.start.nLine`: herdados do PP, preservando o módulo/arquivo e a linha original de cada token.
 - `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para asserts futuros.
 
 ### Limitações conhecidas

@@ -4,7 +4,8 @@
 
 int main( void )
 {
-   const char source[] = "PROC Demo()\nRETURN\n";
+   const char source[] =
+      "PROC Demo()\nRETURN\n";
 
    HB_AST_LEXER_SOURCE cfg = { "demo.prg", source, sizeof( source ) - 1, HB_FALSE };
    HB_AST_LEXER *lex = hb_astLexerNew( &cfg );
@@ -12,7 +13,7 @@ int main( void )
 
    while( hb_astLexerNextToken( lex, &tok ) )  /* hoje sai imediatamente */
    {
-      printf( "[%4u] kind=%d pp=%u span=(%lu:%lu -> %lu:%lu) text=\"%.*s\"\n",
+      printf( "[%4u] kind=%d pp=%u span=(%lu:%lu -> %lu:%lu) module=%s text=\"%.*s\"\n",
               ( unsigned ) tok.id.uHash,
               ( int ) tok.kind,
               ( unsigned ) tok.uPPType,
@@ -20,6 +21,7 @@ int main( void )
               ( unsigned long ) tok.original.start.nColumn,
               ( unsigned long ) tok.original.end.nLine,
               ( unsigned long ) tok.original.end.nColumn,
+              tok.pszModule ? tok.pszModule : "<none>",
               ( int ) tok.nLexemeLength,
               tok.pszLexeme ? tok.pszLexeme : "" );
    }

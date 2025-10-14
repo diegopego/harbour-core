@@ -103,6 +103,7 @@ typedef struct
    HB_U16 uChannel;
    const char * pszLexeme;
    void * pMacroOrigin;
+   const char * pszModule;
 } HB_AST_TOKEN;
 
 typedef struct _HB_AST_LEXER HB_AST_LEXER;

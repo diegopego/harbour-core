@@ -391,6 +391,8 @@ typedef struct _HB_PP_TOKEN
    HB_SIZE   spaces;                /* leading spaces for stringify */
    HB_USHORT type;                  /* token type, see HB_PP_TOKEN_* */
    HB_USHORT index;                 /* index to match marker or 0 */
+   char *    szModule;              /* originating module/file name */
+   int       iLine;                 /* originating line number (1-based) */
 }
 HB_PP_TOKEN, * PHB_PP_TOKEN;
 

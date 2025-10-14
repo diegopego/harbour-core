@@ -182,6 +182,11 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
       hb_astLexerAdvanceSpaces( pLexer, nSpaces );
 
    HB_AST_SOURCE_COORD start = pLexer->cursor;
+   if( pSrcToken->iLine > 0 )
+   {
+      start.nLine = ( HB_SIZE ) pSrcToken->iLine;
+      pLexer->cursor.nLine = start.nLine;
+   }
    HB_SIZE nLen = pSrcToken->len;
    const char * pszLexeme = pSrcToken->value;
 
@@ -209,6 +214,7 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
    pToken->uChannel    = hb_astDetermineChannel( uType );
    pToken->pszLexeme   = pszLexeme ? pszLexeme : "";
    pToken->pMacroOrigin = pSrcToken;
+   pToken->pszModule   = pSrcToken->szModule ? pSrcToken->szModule : pLexer->source.pszModule;
 
    return HB_TRUE;
 }
