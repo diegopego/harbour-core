@@ -67,6 +67,7 @@ struct _HB_AST_LEXER
    HB_AST_MACRO_TRACE *pTraceTop;
    HB_BOOL             fDirtySnapshot;
    HB_SIZE             nMacroDepth;
+   HB_BOOL             fSkipLineDirective;
 };
 
 struct _HB_AST_TOKEN_STREAM
@@ -143,6 +144,7 @@ void hb_astLexerReset( HB_AST_LEXER * pLexer, const HB_AST_LEXER_SOURCE * pSourc
       hb_astLexerResetCursor( pLexer );
       pLexer->nTokenIndex    = 0;
       pLexer->fDirtySnapshot = HB_TRUE;
+      pLexer->fSkipLineDirective = HB_FALSE;
 
       if( pSource )
       {
@@ -165,13 +167,36 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
       return HB_FALSE;
    }
 
-   PHB_PP_TOKEN pSrcToken = hb_pp_tokenGet( pLexer->pPP );
+   PHB_PP_TOKEN pSrcToken = NULL;
 
-   if( pSrcToken == NULL )
+   for( ;; )
    {
-      pToken->kind     = HB_AST_TOKEN_KIND_EOF;
-      pToken->uChannel = ( HB_U16 ) HB_AST_TOKEN_CHANNEL_CODE;
-      return HB_FALSE;
+      pSrcToken = hb_pp_tokenGet( pLexer->pPP );
+
+      if( pSrcToken == NULL )
+      {
+         pToken->kind     = HB_AST_TOKEN_KIND_EOF;
+         pToken->uChannel = ( HB_U16 ) HB_AST_TOKEN_CHANNEL_CODE;
+         return HB_FALSE;
+      }
+
+      HB_USHORT uTypePeek = HB_PP_TOKEN_TYPE( pSrcToken->type );
+
+      if( pLexer->fSkipLineDirective )
+      {
+         if( uTypePeek == HB_PP_TOKEN_EOL )
+            pLexer->fSkipLineDirective = HB_FALSE;
+         continue;
+      }
+
+      if( ( uTypePeek == HB_PP_TOKEN_DIRECTIVE || uTypePeek == HB_PP_TOKEN_HASH ) &&
+          pSrcToken->value && pSrcToken->len == 1 && pSrcToken->value[ 0 ] == '#' )
+      {
+         pLexer->fSkipLineDirective = HB_TRUE;
+         continue;
+      }
+
+      break;
    }
 
    HB_USHORT uType = HB_PP_TOKEN_TYPE( pSrcToken->type );
