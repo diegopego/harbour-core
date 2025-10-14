@@ -40,3 +40,4 @@ obj
 !/*.exe
 tests/ast/smoke
 tests/ast/snapshot
+tests/ast/demo.hbast.json
