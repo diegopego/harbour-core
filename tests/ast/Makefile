@@ -18,15 +18,17 @@ LIBS     := -L$(LIBDIR) \
             -lharbour \
             -lm
 
-TARGET := smoke
-SOURCE := smoke.c
+TARGETS := smoke snapshot
 
 .PHONY: all clean
 
-all: $(TARGET)
+all: $(TARGETS)
 
-$(TARGET): $(SOURCE)
+smoke: smoke.c
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
+
+snapshot: test_snapshot.c
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGETS)

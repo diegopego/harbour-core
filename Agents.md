@@ -76,6 +76,7 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 - `hb_astTokenStreamSnapshot()` continua a fornecer cópias profundas e agora replica os rastros de macro (`HB_AST_MACRO_TRACE_INFO`). A API pública expõe helpers (`hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()`, `hb_astMacroTraceParent()`, `hb_astMacroTraceId()`) e iteradores (`hb_astTokenStreamMacroTraceCount()`, `hb_astTokenStreamMacroTrace()`) para navegar na pilha de expansões e produzir IDs estáveis para serialização.
 - `pMacroOrigin` dentro de `HB_AST_TOKEN` é estável, carregando profundidade e ranges do ponto de chamada; `tests/ast/smoke` imprime essa informação para validação rápida.
 - Documentação e fixtures alinhados: `README-AST.MD` descreve as novas APIs, `doc/agents/ast/incremental-lexer.md` esclarece o campo `origin`, e o smoke continua a servir como verificação de regressão.
+- Testes cobrindo o pipeline: `tests/ast/smoke` imprime o fluxo para depuração e `tests/ast/snapshot` valida programaticamente o snapshot e o grafo de macros.
 
 #### Artefatos relevantes
 
@@ -145,4 +146,3 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 
 
 By investing in agents that speak a common language core, this Harbour fork can offer the same developer experience programmers expect from modern typed ecosystems—while staying true to Harbour’s heritage.
-

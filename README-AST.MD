@@ -46,7 +46,8 @@ Quando o lexer ganhar implementação real, esse binário poderá ser expandido 
   - `nLexemeLength`/`pszLexeme`: conteúdo textual retornado pelo PP.
   - `original`/`expanded`: coordenadas básicas (line/column/offset) atualizadas a partir do lexema; ainda ingênuas para casos de macro expansão.
   - `pszModule` e `original.start.nLine`: herdados do PP, preservando o módulo/arquivo e a linha original de cada token.
-- `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para asserts futuros.
+- `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para inspeções manuais.
+- `tests/ast/snapshot` executa asserts automatizados garantindo que tokens e rastros de macro (`pMacroOrigin`) produzidos pelo snapshot representam corretamente o grafo de expansão.
 - `hb_astTokenStreamSnapshot()` agora clona o histórico de tokens e expõe acessos constantes através de `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()`, permitindo inspeção sem depender do pré-processador.
 - `pMacroOrigin` aponta para estruturas imutáveis de expansão; os helpers `hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()`, `hb_astMacroTraceParent()` e `hb_astMacroTraceId()` permitem reconstruir a cadeia de macros, mapear pais e obter um identificador determinístico para serialização. `hb_astTokenStreamMacroTraceCount()`/`hb_astTokenStreamMacroTrace()` expõem a lista de expansões únicas por snapshot.
 

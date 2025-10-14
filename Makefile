@@ -54,8 +54,10 @@ first clean install::
 
 endif
 
-.PHONY: ast-smoke
-ast-smoke:
-	+$(MAKE) HB_BUILD_PARTS=compiler HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER) HB_WITH_UTILS=no first
+.PHONY: test-ast
+test-ast:
+	+$(MAKE) HB_BUILD_PARTS=compiler HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER) HB_WITH_UTILS=no
+	+$(MAKE) -C tests/ast clean HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER)
 	+$(MAKE) -C tests/ast HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER)
 	./tests/ast/smoke
+	./tests/ast/snapshot

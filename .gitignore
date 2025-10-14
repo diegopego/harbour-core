@@ -39,3 +39,4 @@ obj
 !config/*.exe
 !/*.exe
 tests/ast/smoke
+tests/ast/snapshot
