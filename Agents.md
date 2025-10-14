@@ -71,12 +71,11 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 
 ### Implementação Atual (Jun/2024)
 
-- O lexer incremental mantém um histórico de tokens persistente em memória (`HB_AST_TOKEN_ENTRY`), garantindo que instantâneos possam ser consumidos sem depender do contexto do pré-processador.
-- `hb_astTokenStreamSnapshot()` devolve um clone profundo desse histórico e está acompanhado pelos utilitários `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()` para iteração leve em clientes externos.
-- Cada token armazenado contém cópias próprias de `pszLexeme` e `pszModule`, evitando dangling pointers quando o pré-processador recicla buffers internos.
-- As expansões de macro já populam `pMacroOrigin`; próxima etapa é serializar esse grafo no payload AST para que agentes externos reutilizem os ranges de chamada sem depender do lexer residente.
-- `README-AST.MD` foi atualizado para refletir o comportamento do snapshot; consultar antes de escrever novos consumidores.
-- `pMacroOrigin` aponta agora para um grafo de rastreamento de macros contendo nome, módulo de chamada, intervalo (`hb_astMacroTraceCallRange()`) e cadeia pai, permitindo verificar colisões de rename sem depender do `HB_PP_TOKEN` original. A profundidade pode ser consultada via `hb_astMacroTraceDepth()`.
+- O lexer incremental mantém um histórico de tokens persistente (`HB_AST_TOKEN_ENTRY`) com lexema/módulo clonados, permitindo consumo assíncrono sem depender do estado do PP.
+- `hb_pp_patternReplace()` passou a fabricar `HB_PP_TRACEINFO` com nome da macro, módulo e intervalo da chamada; `HB_PP_TOKEN` mantém esse traço e refcounts para reaproveitar dados entre expansões.
+- `hb_astTokenStreamSnapshot()` continua a fornecer cópias profundas e agora replica os rastros de macro (`HB_AST_MACRO_TRACE_INFO`). A API pública expõe helpers (`hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()`, `hb_astMacroTraceParent()`) para navegar na pilha de expansões.
+- `pMacroOrigin` dentro de `HB_AST_TOKEN` é estável, carregando profundidade e ranges do ponto de chamada; `tests/ast/smoke` imprime essa informação para validação rápida.
+- Documentação e fixtures alinhados: `README-AST.MD` descreve as novas APIs, `doc/agents/ast/incremental-lexer.md` esclarece o campo `origin`, e o smoke continua a servir como verificação de regressão.
 
 #### Artefatos relevantes
 
@@ -138,9 +137,13 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 ## Next Steps
 
 1. Instrumentar o pré-processador para produzir coordenadas originais/expandidas precisas e diferenciar trivia (comentários, espaços) sem heurísticas.
-2. Introduzir cache incremental do fluxo de tokens (blocos sujos) e implementar `hb_astTokenStreamSnapshot`.
-3. Persistir o grafo `ExpansionTraceLog`, expondo consultas (`token → macro`, `macro → tokens`) para futuros renames seguros. *Status atual:* offsets byte-a-byte já funcionam; próxima etapa é registrar e expor metadados de expansão em `HB_PP_TOKEN`.
-4. Construir o encoder CBOR mantendo paridade com o schema JSON (`hbast.schema.json`) e iniciar o comando `hbast verify`. *Dependência:* aguarda rastros de macro para garantir ranges consistentes no payload.
-5. Iniciar o builder de AST semântico reutilizando o fluxo de tokens categorizado. *Status:* pendente; será alimentado pelos tokens enriquecidos com grafo de macros e offsets confiáveis.
+2. Serializar o grafo de macro (`pMacroOrigin`) junto do AST para que agentes externos (rename, diff, format) recebam ranges de chamada completos.
+3. Revisar o motor de rename/extract para consumir os rastros de macro, bloqueando cenários inseguros e emitindo relatórios de colisão.
+4. Introduzir cache incremental por bloco de tokens, reaproveitando rastros existentes em edições locais.
+5. Construir o encoder CBOR mantendo paridade com o schema JSON (`hbast.schema.json`) e iniciar o comando `hbast verify`. *Dependência:* aguarda a serialização de macro traces para garantir ranges consistentes no payload.
+6. Iniciar o builder de AST semântico reutilizando o fluxo de tokens categorizado. *Status:* pendente; será alimentado pelos tokens enriquecidos com grafo de macros e offsets confiáveis.
+
 
 By investing in agents that speak a common language core, this Harbour fork can offer the same developer experience programmers expect from modern typed ecosystems—while staying true to Harbour’s heritage.
+
+
