@@ -48,7 +48,7 @@ Quando o lexer ganhar implementação real, esse binário poderá ser expandido 
   - `pszModule` e `original.start.nLine`: herdados do PP, preservando o módulo/arquivo e a linha original de cada token.
 - `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para asserts futuros.
 - `hb_astTokenStreamSnapshot()` agora clona o histórico de tokens e expõe acessos constantes através de `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()`, permitindo inspeção sem depender do pré-processador.
-- `pMacroOrigin` aponta para estruturas imutáveis de expansão; os helpers `hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()` e `hb_astMacroTraceParent()` permitem reconstruir a cadeia de macros com ranges de chamada para validações de rename.
+- `pMacroOrigin` aponta para estruturas imutáveis de expansão; os helpers `hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()`, `hb_astMacroTraceParent()` e `hb_astMacroTraceId()` permitem reconstruir a cadeia de macros, mapear pais e obter um identificador determinístico para serialização. `hb_astTokenStreamMacroTraceCount()`/`hb_astTokenStreamMacroTrace()` expõem a lista de expansões únicas por snapshot.
 
 ### Limitações conhecidas
 

@@ -73,7 +73,7 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 
 - O lexer incremental mantém um histórico de tokens persistente (`HB_AST_TOKEN_ENTRY`) com lexema/módulo clonados, permitindo consumo assíncrono sem depender do estado do PP.
 - `hb_pp_patternReplace()` passou a fabricar `HB_PP_TRACEINFO` com nome da macro, módulo e intervalo da chamada; `HB_PP_TOKEN` mantém esse traço e refcounts para reaproveitar dados entre expansões.
-- `hb_astTokenStreamSnapshot()` continua a fornecer cópias profundas e agora replica os rastros de macro (`HB_AST_MACRO_TRACE_INFO`). A API pública expõe helpers (`hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()`, `hb_astMacroTraceParent()`) para navegar na pilha de expansões.
+- `hb_astTokenStreamSnapshot()` continua a fornecer cópias profundas e agora replica os rastros de macro (`HB_AST_MACRO_TRACE_INFO`). A API pública expõe helpers (`hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()`, `hb_astMacroTraceParent()`, `hb_astMacroTraceId()`) e iteradores (`hb_astTokenStreamMacroTraceCount()`, `hb_astTokenStreamMacroTrace()`) para navegar na pilha de expansões e produzir IDs estáveis para serialização.
 - `pMacroOrigin` dentro de `HB_AST_TOKEN` é estável, carregando profundidade e ranges do ponto de chamada; `tests/ast/smoke` imprime essa informação para validação rápida.
 - Documentação e fixtures alinhados: `README-AST.MD` descreve as novas APIs, `doc/agents/ast/incremental-lexer.md` esclarece o campo `origin`, e o smoke continua a servir como verificação de regressão.
 
@@ -145,5 +145,4 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 
 
 By investing in agents that speak a common language core, this Harbour fork can offer the same developer experience programmers expect from modern typed ecosystems—while staying true to Harbour’s heritage.
-
 

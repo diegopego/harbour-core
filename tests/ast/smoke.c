@@ -46,6 +46,10 @@ int main( void )
          const char * pszCallModule = hb_astMacroTraceCallModule( tok.pMacroOrigin );
          const char * pszMacroName = hb_astMacroTraceName( tok.pMacroOrigin );
          HB_SIZE nDepth = hb_astMacroTraceDepth( tok.pMacroOrigin );
+         HB_SIZE nMacroId = hb_astMacroTraceId( tok.pMacroOrigin );
+
+         if( nMacroId != HB_SIZE_MAX )
+            printf( " macroId=%lu", ( unsigned long ) nMacroId );
 
          printf( " macroDepth=%lu macro=\"%s\" caller=%s call=(%lu:%lu:%lu -> %lu:%lu:%lu)",
                  ( unsigned long ) nDepth,
@@ -63,6 +67,39 @@ int main( void )
    }
 
    puts( "[done] EOF reached" );
+
+   {
+      HB_AST_TOKEN_STREAM * snapshot = hb_astTokenStreamSnapshot( lex );
+
+      if( snapshot )
+      {
+         HB_SIZE nCount = hb_astTokenStreamMacroTraceCount( snapshot );
+         HB_SIZE i;
+
+         for( i = 0; i < nCount; ++i )
+         {
+            const void * pTrace = hb_astTokenStreamMacroTrace( snapshot, i );
+            HB_AST_SOURCE_RANGE call = hb_astMacroTraceCallRange( pTrace );
+            const char * pszCallModule = hb_astMacroTraceCallModule( pTrace );
+            const char * pszMacroName = hb_astMacroTraceName( pTrace );
+
+            printf( "[macro %3lu] id=%lu depth=%lu macro=\"%s\" caller=%s call=(%lu:%lu:%lu -> %lu:%lu:%lu)\n",
+                    ( unsigned long ) i,
+                    ( unsigned long ) hb_astMacroTraceId( pTrace ),
+                    ( unsigned long ) hb_astMacroTraceDepth( pTrace ),
+                    pszMacroName ? pszMacroName : "<anon>",
+                    pszCallModule ? pszCallModule : "<unknown>",
+                    ( unsigned long ) call.start.nLine,
+                    ( unsigned long ) call.start.nColumn,
+                    ( unsigned long ) call.start.nOffset,
+                    ( unsigned long ) call.end.nLine,
+                    ( unsigned long ) call.end.nColumn,
+                    ( unsigned long ) call.end.nOffset );
+         }
+
+         hb_astTokenStreamRelease( snapshot );
+      }
+   }
 
    hb_astLexerFree( lex );
    return 0;

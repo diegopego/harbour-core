@@ -67,7 +67,14 @@ typedef struct _HB_AST_MACRO_TRACE_INFO
    HB_AST_SOURCE_RANGE callRange;
    HB_SIZE nMacroDepth;
    struct _HB_AST_MACRO_TRACE_INFO * pParent;
+   HB_SIZE nExpansionId;
 } HB_AST_MACRO_TRACE_INFO;
+
+typedef struct _HB_AST_MACRO_TRACE_MAP
+{
+   const HB_AST_MACRO_TRACE_INFO * pSource;
+   HB_AST_MACRO_TRACE_INFO * pClone;
+} HB_AST_MACRO_TRACE_MAP;
 
 typedef struct _HB_AST_TOKEN_ENTRY
 {
@@ -82,7 +89,7 @@ typedef struct _HB_AST_TOKEN_STREAM_ENTRY
    HB_AST_TOKEN token;
    char *       pszLexemeOwned;
    char *       pszModuleOwned;
-    HB_AST_MACRO_TRACE_INFO * pMacroTrace;
+   HB_AST_MACRO_TRACE_INFO * pMacroTrace;
 } HB_AST_TOKEN_STREAM_ENTRY;
 
 struct _HB_AST_LEXER
@@ -107,6 +114,8 @@ struct _HB_AST_TOKEN_STREAM
 {
    HB_SIZE nTokenCount;
    HB_AST_TOKEN_STREAM_ENTRY * pEntries;
+   HB_AST_MACRO_TRACE_INFO ** pMacroTraces;
+   HB_SIZE nMacroTraceCount;
 };
 
 static void hb_astLexerTraceClear( HB_AST_LEXER * pLexer );
@@ -123,6 +132,10 @@ static void hb_astLexerHistoryStore( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToke
 static HB_AST_MACRO_TRACE_INFO * hb_astMacroTraceFromPP( HB_AST_LEXER * pLexer, const PHB_PP_TRACEINFO pTrace );
 static HB_AST_MACRO_TRACE_INFO * hb_astMacroTraceRetain( HB_AST_MACRO_TRACE_INFO * pTrace );
 static void hb_astMacroTraceRelease( HB_AST_MACRO_TRACE_INFO * pTrace );
+static HB_AST_MACRO_TRACE_INFO * hb_astMacroTraceClone( const HB_AST_MACRO_TRACE_INFO * pTrace,
+                                                        HB_AST_MACRO_TRACE_MAP ** ppMap,
+                                                        HB_SIZE * pnCount,
+                                                        HB_SIZE * pnCapacity );
 
 HB_AST_LEXER * hb_astLexerNew( const HB_AST_LEXER_SOURCE * pSource )
 {
@@ -385,6 +398,10 @@ void hb_astLexerMacroTracePop( HB_AST_LEXER * pLexer )
 HB_AST_TOKEN_STREAM * hb_astTokenStreamSnapshot( const HB_AST_LEXER * pLexer )
 {
    HB_AST_TOKEN_STREAM * pStream;
+   HB_AST_MACRO_TRACE_MAP * pTraceMap = NULL;
+   HB_SIZE nTraceMapCount = 0;
+   HB_SIZE nTraceMapCapacity = 0;
+   HB_SIZE i = 0;
 
    if( pLexer == NULL )
       return NULL;
@@ -393,8 +410,6 @@ HB_AST_TOKEN_STREAM * hb_astTokenStreamSnapshot( const HB_AST_LEXER * pLexer )
 
    if( pLexer->nHistoryCount > 0 && pLexer->pHistory )
    {
-      HB_SIZE i;
-
       pStream->nTokenCount = pLexer->nHistoryCount;
       pStream->pEntries = ( HB_AST_TOKEN_STREAM_ENTRY * ) hb_xgrabz( pStream->nTokenCount * sizeof( HB_AST_TOKEN_STREAM_ENTRY ) );
 
@@ -402,6 +417,7 @@ HB_AST_TOKEN_STREAM * hb_astTokenStreamSnapshot( const HB_AST_LEXER * pLexer )
       {
          const HB_AST_TOKEN_ENTRY * pSrc = &pLexer->pHistory[ i ];
          HB_AST_TOKEN_STREAM_ENTRY * pDst = &pStream->pEntries[ i ];
+         HB_AST_MACRO_TRACE_INFO * pTraceExport;
 
          pDst->token = pSrc->token;
 
@@ -428,13 +444,34 @@ HB_AST_TOKEN_STREAM * hb_astTokenStreamSnapshot( const HB_AST_LEXER * pLexer )
             pDst->pszModuleOwned = NULL;
 
          pDst->token.pszModule = pDst->pszModuleOwned;
-         if( pSrc->pMacroTrace )
-            pDst->pMacroTrace = hb_astMacroTraceRetain( pSrc->pMacroTrace );
-         else
-            pDst->pMacroTrace = NULL;
-         pDst->token.pMacroOrigin = pDst->pMacroTrace;
+
+         pTraceExport = hb_astMacroTraceClone( pSrc->pMacroTrace, &pTraceMap, &nTraceMapCount, &nTraceMapCapacity );
+         pDst->pMacroTrace = pTraceExport;
+         pDst->token.pMacroOrigin = pTraceExport;
+         if( pTraceExport )
+            pDst->token.id.nMacroDepth = pTraceExport->nMacroDepth;
       }
    }
+
+   if( nTraceMapCount > 0 )
+   {
+      pStream->pMacroTraces = ( HB_AST_MACRO_TRACE_INFO ** ) hb_xgrab( nTraceMapCount * sizeof( HB_AST_MACRO_TRACE_INFO * ) );
+      for( i = 0; i < nTraceMapCount; ++i )
+      {
+         HB_AST_MACRO_TRACE_INFO * pTrace = pTraceMap[ i ].pClone;
+         pTrace->nExpansionId = i;
+         pStream->pMacroTraces[ i ] = pTrace;
+      }
+      pStream->nMacroTraceCount = nTraceMapCount;
+   }
+   else
+   {
+      pStream->pMacroTraces = NULL;
+      pStream->nMacroTraceCount = 0;
+   }
+
+   if( pTraceMap )
+      hb_xfree( pTraceMap );
 
    ( ( HB_AST_LEXER * ) pLexer )->fDirtySnapshot = HB_FALSE;
 
@@ -457,11 +494,19 @@ void hb_astTokenStreamRelease( HB_AST_TOKEN_STREAM * pStream )
                hb_xfree( pEntry->pszLexemeOwned );
             if( pEntry->pszModuleOwned )
                hb_xfree( pEntry->pszModuleOwned );
-            if( pEntry->pMacroTrace )
-               hb_astMacroTraceRelease( pEntry->pMacroTrace );
          }
 
          hb_xfree( pStream->pEntries );
+      }
+
+      if( pStream->pMacroTraces )
+      {
+         HB_SIZE i;
+
+         for( i = 0; i < pStream->nMacroTraceCount; ++i )
+            hb_astMacroTraceRelease( pStream->pMacroTraces[ i ] );
+
+         hb_xfree( pStream->pMacroTraces );
       }
 
       hb_xfree( pStream );
@@ -479,6 +524,19 @@ const HB_AST_TOKEN * hb_astTokenStreamToken( const HB_AST_TOKEN_STREAM * pStream
       return NULL;
 
    return &pStream->pEntries[ nIndex ].token;
+}
+
+HB_SIZE hb_astTokenStreamMacroTraceCount( const HB_AST_TOKEN_STREAM * pStream )
+{
+   return pStream ? pStream->nMacroTraceCount : 0;
+}
+
+const void * hb_astTokenStreamMacroTrace( const HB_AST_TOKEN_STREAM * pStream, HB_SIZE nIndex )
+{
+   if( pStream == NULL || pStream->pMacroTraces == NULL || nIndex >= pStream->nMacroTraceCount )
+      return NULL;
+
+   return pStream->pMacroTraces[ nIndex ];
 }
 
 const char * hb_astMacroTraceName( const void * pMacroTrace )
@@ -519,6 +577,13 @@ const void * hb_astMacroTraceParent( const void * pMacroTrace )
    const HB_AST_MACRO_TRACE_INFO * pInfo = ( const HB_AST_MACRO_TRACE_INFO * ) pMacroTrace;
 
    return pInfo ? pInfo->pParent : NULL;
+}
+
+HB_SIZE hb_astMacroTraceId( const void * pMacroTrace )
+{
+   const HB_AST_MACRO_TRACE_INFO * pInfo = ( const HB_AST_MACRO_TRACE_INFO * ) pMacroTrace;
+
+   return pInfo ? pInfo->nExpansionId : HB_SIZE_MAX;
 }
 
 static void hb_astLexerTraceClear( HB_AST_LEXER * pLexer )
@@ -778,6 +843,8 @@ static HB_AST_MACRO_TRACE_INFO * hb_astMacroTraceFromPP( HB_AST_LEXER * pLexer, 
    else
       pResult->nMacroDepth = 1;
 
+   pResult->nExpansionId = HB_SIZE_MAX;
+
    if( pLexer )
    {
       if( pLexer->pLastASTTrace )
@@ -787,6 +854,66 @@ static HB_AST_MACRO_TRACE_INFO * hb_astMacroTraceFromPP( HB_AST_LEXER * pLexer, 
    }
 
    return pResult;
+}
+
+static HB_AST_MACRO_TRACE_INFO * hb_astMacroTraceClone( const HB_AST_MACRO_TRACE_INFO * pTrace,
+                                                        HB_AST_MACRO_TRACE_MAP ** ppMap,
+                                                        HB_SIZE * pnCount,
+                                                        HB_SIZE * pnCapacity )
+{
+   HB_AST_MACRO_TRACE_MAP * pMap;
+   HB_SIZE nCount, nCapacity, i;
+   HB_AST_MACRO_TRACE_INFO * pClone;
+
+   if( pTrace == NULL )
+      return NULL;
+
+   pMap = *ppMap;
+   nCount = *pnCount;
+   nCapacity = *pnCapacity;
+
+   for( i = 0; i < nCount; ++i )
+   {
+      if( pMap[ i ].pSource == pTrace )
+         return pMap[ i ].pClone;
+   }
+
+   pClone = ( HB_AST_MACRO_TRACE_INFO * ) hb_xgrabz( sizeof( HB_AST_MACRO_TRACE_INFO ) );
+   pClone->nRefCount = 1;
+
+   if( pTrace->pszMacroName )
+      pClone->pszMacroName = hb_strdup( pTrace->pszMacroName );
+   if( pTrace->pszCallModule )
+      pClone->pszCallModule = hb_strdup( pTrace->pszCallModule );
+
+   pClone->callRange = pTrace->callRange;
+   if( pClone->callRange.end.nLine == 0 )
+      pClone->callRange.end.nLine = pClone->callRange.start.nLine;
+   if( pClone->callRange.end.nColumn == 0 )
+      pClone->callRange.end.nColumn = pClone->callRange.start.nColumn;
+   if( pClone->callRange.end.nOffset == 0 && pClone->callRange.start.nOffset != 0 )
+      pClone->callRange.end.nOffset = pClone->callRange.start.nOffset;
+
+   pClone->nMacroDepth = pTrace->nMacroDepth;
+   pClone->nExpansionId = HB_SIZE_MAX;
+
+   pClone->pParent = hb_astMacroTraceClone( pTrace->pParent, ppMap, pnCount, pnCapacity );
+   if( pClone->pParent )
+      hb_astMacroTraceRetain( pClone->pParent );
+
+   if( nCount == nCapacity )
+   {
+      nCapacity = nCapacity ? nCapacity * 2 : 16;
+      pMap = ( HB_AST_MACRO_TRACE_MAP * ) hb_xrealloc( pMap, nCapacity * sizeof( HB_AST_MACRO_TRACE_MAP ) );
+      *ppMap = pMap;
+      *pnCapacity = nCapacity;
+   }
+
+   pMap[ nCount ].pSource = pTrace;
+   pMap[ nCount ].pClone  = pClone;
+   *pnCount = nCount + 1;
+
+   return pClone;
 }
 
 static void hb_astLexerResetCursor( HB_AST_LEXER * pLexer )
