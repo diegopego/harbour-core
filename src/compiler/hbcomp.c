@@ -45,6 +45,7 @@
  */
 
 #include "hbcomp.h"
+#include "hbast.h"
 
 static PHB_EXPR hb_compExprAlloc( HB_COMP_DECL )
 {
@@ -245,6 +246,7 @@ PHB_COMP hb_comp_new( void )
    {
       pComp = ( PHB_COMP ) hb_xgrabz( sizeof( HB_COMP ) );
       pComp->pLex = ( PHB_COMP_LEX ) hb_xgrabz( sizeof( HB_COMP_LEX ) );
+      pComp->pAst = hb_astNew( pComp );
 
       /* initialize default settings */
       pComp->mode = HB_MODE_COMPILER;
@@ -292,6 +294,11 @@ PHB_COMP hb_comp_new( void )
    }
 
    return pComp;
+}
+
+PHB_AST hb_compGetAST( HB_COMP_DECL )
+{
+   return HB_COMP_PARAM ? HB_COMP_PARAM->pAst : NULL;
 }
 
 void hb_comp_free( PHB_COMP pComp )
@@ -360,6 +367,12 @@ void hb_comp_free( PHB_COMP pComp )
 
    if( pComp->pI18nFileName )
       hb_xfree( pComp->pI18nFileName );
+
+   if( pComp->pAst )
+   {
+      hb_astFree( pComp->pAst );
+      pComp->pAst = NULL;
+   }
 
    hb_xfree( pComp );
 }

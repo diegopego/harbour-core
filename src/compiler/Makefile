@@ -22,6 +22,7 @@ C_SOURCES := \
    gencc.c \
    genhrb.c \
    hbcmplib.c \
+   hbast.c \
    hbcomp.c \
    hbdbginf.c \
    hbdead.c \

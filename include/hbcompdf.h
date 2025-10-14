@@ -70,6 +70,7 @@ typedef enum
 } HB_ERRORFMT;
 
 struct _HB_HCLASS;    /* forward declaration */
+struct _HB_AST;
 
 /* Declared Function/Method support structure */
 typedef struct _HB_HDECLARED
@@ -761,6 +762,7 @@ typedef struct _HB_COMP
    /* compiler only members */
    PHB_COMP_LEX      pLex;
    PHB_EXPRLST       pExprLst;
+   struct _HB_AST *  pAst;
 
    PHB_HASH_TABLE    pIdentifiers;
    HB_HFUNCTION_LIST functions;
