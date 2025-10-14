@@ -31,6 +31,8 @@ Um teste de fumaça em C está disponível em `tests/ast/smoke.c`. Ele instancia
    ./tests/ast/smoke
    ```
 
+O fixture `tests/ast/demo.prg` inclui `tests/ast/helpers.ch`; os tokens provenientes de cada arquivo preservam o campo `module`, permitindo observar como o PP capturou linhas e arquivos originais.
+
 Quando o lexer ganhar implementação real, esse binário poderá ser expandido para inspecionar os tokens emitidos e validar round-trips.
 
 > Dica: `make ast-smoke HB_PLATFORM=linux HB_COMPILER=gcc` automatiza as três etapas (construir libs, compilar o teste e executar o binário).

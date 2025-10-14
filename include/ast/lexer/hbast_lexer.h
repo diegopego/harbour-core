@@ -115,6 +115,7 @@ typedef struct
    const char * pszBuffer;
    HB_SIZE nLength;
    HB_BOOL fOwnBuffer;
+   HB_BOOL fFromFile;
 } HB_AST_LEXER_SOURCE;
 
 HB_AST_LEXER * hb_astLexerNew( const HB_AST_LEXER_SOURCE * pSource );

@@ -46,6 +46,7 @@
 
 #include "ast/lexer/hbast_lexer.h"
 #include "hbpp.h"
+#include "hbapifs.h"
 #include <string.h>
 
 static const char s_astNewlineLexeme[] = "\n";
@@ -80,6 +81,7 @@ static void hb_astLexerAdvanceByLexeme( HB_AST_LEXER * pLexer, const char * pszL
 static HB_AST_TOKEN_KIND hb_astClassifyToken( HB_USHORT uType );
 static HB_U16 hb_astDetermineChannel( HB_USHORT uType );
 static void hb_astAdvanceChar( HB_AST_LEXER * pLexer, char c );
+static PHB_PP_STATE hb_astCreatePP( const HB_AST_LEXER_SOURCE * pSource );
 
 HB_AST_LEXER * hb_astLexerNew( const HB_AST_LEXER_SOURCE * pSource )
 {
@@ -142,9 +144,9 @@ void hb_astLexerReset( HB_AST_LEXER * pLexer, const HB_AST_LEXER_SOURCE * pSourc
       pLexer->nTokenIndex    = 0;
       pLexer->fDirtySnapshot = HB_TRUE;
 
-      if( pLexer->source.pszBuffer && pLexer->source.nLength > 0 )
+      if( pSource )
       {
-         pLexer->pPP = hb_pp_lexNew( pLexer->source.pszBuffer, pLexer->source.nLength );
+         pLexer->pPP = hb_astCreatePP( &pLexer->source );
       }
    }
 }
@@ -163,7 +165,7 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
       return HB_FALSE;
    }
 
-   PHB_PP_TOKEN pSrcToken = hb_pp_lexGet( pLexer->pPP );
+   PHB_PP_TOKEN pSrcToken = hb_pp_tokenGet( pLexer->pPP );
 
    if( pSrcToken == NULL )
    {
@@ -214,7 +216,14 @@ HB_BOOL hb_astLexerNextToken( HB_AST_LEXER * pLexer, HB_AST_TOKEN * pToken )
    pToken->uChannel    = hb_astDetermineChannel( uType );
    pToken->pszLexeme   = pszLexeme ? pszLexeme : "";
    pToken->pMacroOrigin = pSrcToken;
-   pToken->pszModule   = pSrcToken->szModule ? pSrcToken->szModule : pLexer->source.pszModule;
+   if( pSrcToken->szModule )
+      pToken->pszModule = pSrcToken->szModule;
+   else if( pLexer->source.pszModule )
+      pToken->pszModule = pLexer->source.pszModule;
+   else if( pLexer->source.fFromFile && pLexer->source.pszBuffer )
+      pToken->pszModule = pLexer->source.pszBuffer;
+   else
+      pToken->pszModule = "<buffer>";
 
    return HB_TRUE;
 }
@@ -283,6 +292,59 @@ static void hb_astLexerTraceClear( HB_AST_LEXER * pLexer )
       }
       pLexer->nMacroDepth = 0;
    }
+}
+
+static PHB_PP_STATE hb_astCreatePP( const HB_AST_LEXER_SOURCE * pSource )
+{
+   PHB_PP_STATE pPP = hb_pp_new();
+
+   if( pPP == NULL )
+      return NULL;
+
+   hb_pp_init( pPP, HB_TRUE, HB_FALSE, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL );
+   hb_pp_setStdRules( pPP );
+   hb_pp_initDynDefines( pPP, HB_TRUE );
+   hb_pp_setStdBase( pPP );
+
+   if( pSource )
+   {
+      if( pSource->fFromFile )
+      {
+         if( pSource->pszBuffer && pSource->pszBuffer[ 0 ] )
+         {
+            PHB_FNAME pFName = hb_fsFNameSplit( pSource->pszBuffer );
+
+            if( pFName )
+            {
+               if( pFName->szPath && pFName->szPath[ 0 ] )
+                  hb_pp_addSearchPath( pPP, pFName->szPath, HB_FALSE );
+
+               hb_xfree( pFName );
+            }
+         }
+
+         if( ! pSource->pszBuffer || ! hb_pp_inFile( pPP, pSource->pszBuffer, HB_TRUE, NULL, HB_TRUE ) )
+         {
+            hb_pp_free( pPP );
+            return NULL;
+         }
+      }
+      else if( pSource->pszBuffer )
+      {
+         HB_SIZE nLen = pSource->nLength;
+
+         if( nLen == 0 )
+            nLen = ( HB_SIZE ) strlen( pSource->pszBuffer );
+
+         hb_pp_inBuffer( pPP,
+                         pSource->pszModule ? pSource->pszModule : "buffer",
+                         pSource->pszBuffer,
+                         nLen,
+                         1 );
+      }
+   }
+
+   return pPP;
 }
 
 static void hb_astLexerResetCursor( HB_AST_LEXER * pLexer )
