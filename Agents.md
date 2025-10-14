@@ -120,9 +120,10 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 
 ## Next Steps
 
-1. Evoluir o lexer incremental para suportar reprocessamento por blocos e geração real de tokens.
-2. Implementar persistência do `ExpansionTraceLog` e APIs de consulta cruzando tokens ↔ macros.
-3. Construir o encoder CBOR e garantir paridade com o schema JSON (`hbast.schema.json`).
-4. Iniciar o executável `hbast verify`, consumindo o schema e aplicando as regras de integridade descritas.
+1. Instrumentar o pré-processador para produzir coordenadas originais/expandidas precisas e diferenciar trivia (comentários, espaços) sem heurísticas.
+2. Introduzir cache incremental do fluxo de tokens (blocos sujos) e implementar `hb_astTokenStreamSnapshot`.
+3. Persistir o grafo `ExpansionTraceLog`, expondo consultas (`token → macro`, `macro → tokens`) para futuros renames seguros.
+4. Construir o encoder CBOR mantendo paridade com o schema JSON (`hbast.schema.json`) e iniciar o comando `hbast verify`.
+5. Iniciar o builder de AST semântico reutilizando o fluxo de tokens categorizado.
 
 By investing in agents that speak a common language core, this Harbour fork can offer the same developer experience programmers expect from modern typed ecosystems—while staying true to Harbour’s heritage.

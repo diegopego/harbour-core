@@ -1,5 +1,6 @@
 // tests/ast/smoke.c
 #include "ast/lexer/hbast_lexer.h"
+#include <stdio.h>
 
 int main( void )
 {
@@ -11,8 +12,19 @@ int main( void )
 
    while( hb_astLexerNextToken( lex, &tok ) )  /* hoje sai imediatamente */
    {
-      /* imprimir tok.kind, tok.original etc. quando houver implementação real */
+      printf( "[%4u] kind=%d pp=%u span=(%lu:%lu -> %lu:%lu) text=\"%.*s\"\n",
+              ( unsigned ) tok.id.uHash,
+              ( int ) tok.kind,
+              ( unsigned ) tok.uPPType,
+              ( unsigned long ) tok.original.start.nLine,
+              ( unsigned long ) tok.original.start.nColumn,
+              ( unsigned long ) tok.original.end.nLine,
+              ( unsigned long ) tok.original.end.nColumn,
+              ( int ) tok.nLexemeLength,
+              tok.pszLexeme ? tok.pszLexeme : "" );
    }
+
+   puts( "[done] EOF reached" );
 
    hb_astLexerFree( lex );
    return 0;

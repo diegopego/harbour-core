@@ -14,7 +14,7 @@ After these steps you’ll have the new libhbastlex.a inside lib/linux/gcc/, rea
 
 ## testing the stub
 
-Um teste de fumaça em C está disponível em `tests/ast/smoke.c`. Ele instancia o lexer incremental e percorre o fluxo de tokens (atualmente retorna imediatamente, já que o protótipo ainda não gera tokens reais).
+Um teste de fumaça em C está disponível em `tests/ast/smoke.c`. Ele instancia o lexer incremental, percorre o fluxo de tokens produzidos pelo pré-processador e imprime categoria, tipo bruto e intervalo calculado.
 
 1. Certifique-se de ter construído as bibliotecas (`make HB_BUILD_PARTS=lib ...`).
 2. Compile o teste com o Makefile auxiliar:
@@ -32,3 +32,28 @@ Um teste de fumaça em C está disponível em `tests/ast/smoke.c`. Ele instancia
    ```
 
 Quando o lexer ganhar implementação real, esse binário poderá ser expandido para inspecionar os tokens emitidos e validar round-trips.
+
+> Dica: `make ast-smoke HB_PLATFORM=linux HB_COMPILER=gcc` automatiza as três etapas (construir libs, compilar o teste e executar o binário).
+
+### Estado atual do lexer
+
+- `hb_astLexerNextToken()` agora delega ao pré-processador (`hb_pp_lexGet`) e categoriza cada token segundo `HB_AST_TOKEN_KIND`.
+- Campos preenchidos:
+  - `id.uHash`: índice sequencial no fluxo.
+  - `uPPType`: tipo bruto (`HB_PP_TOKEN_*`), útil para depuração e compatibilidade.
+  - `nLexemeLength`/`pszLexeme`: conteúdo textual retornado pelo PP.
+  - `original`/`expanded`: coordenadas básicas (line/column/offset) atualizadas a partir do lexema; ainda ingênuas para casos de macro expansão.
+- `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para asserts futuros.
+
+### Limitações conhecidas
+
+- Os ranges dependem do próprio lexema, então macro expansões e normalização de whitespace ainda não refletem posições reais no arquivo original.
+- Não há cache incremental: qualquer alteração exigirá reconstruir o contexto PP.
+- Canais (`channel`) distinguem apenas `code`, `directive` e `trivia`; comentários ainda são mapeados como código.
+- O snapshot (`hb_astTokenStreamSnapshot`) continua um stub e precisa ser implementado antes do suporte a editores.
+
+Próximos passos sugeridos:
+
+1. Instrumentar o PP para reportar offsets reais (pré e pós expansão) em vez de inferir via lexema.
+2. Persistir tokens em cache por bloco e invalidar apenas regiões alteradas.
+3. Expor metadados de macro (`ExpansionTraceLog`) no token stream para futuras refatorações.

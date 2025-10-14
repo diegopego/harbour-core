@@ -10,11 +10,12 @@ INCLUDES := -I$(ROOT)/include
 LIBDIR   := $(ROOT)/lib/$(HB_PLATFORM)/$(HB_COMPILER)
 LIBS     := -L$(LIBDIR) \
             -lhbastlex \
+            -lhbpp \
             -lhbrtl \
             -lhbnortl \
             -lhbvm \
             -lhbcommon \
-            -lhbpp \
+            -lharbour \
             -lm
 
 TARGET := smoke

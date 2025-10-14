@@ -53,3 +53,9 @@ first clean install::
 	$(if $(wildcard $(HB_HOST_BIN_DIR)/hbmk2$(HB_HOST_BIN_EXT)),+$(HB_HOST_BIN_DIR)/hbmk2$(HB_HOST_BIN_EXT) $(TOP)$(ROOT)config/postinst.hb $@,@$(ECHO) $(ECHOQUOTE)! Warning: hbmk2 not found, config/postinst.hb skipped.$(ECHOQUOTE))
 
 endif
+
+.PHONY: ast-smoke
+ast-smoke:
+	+$(MAKE) HB_BUILD_PARTS=compiler HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER) HB_WITH_UTILS=no first
+	+$(MAKE) -C tests/ast HB_PLATFORM=$(HB_PLATFORM) HB_COMPILER=$(HB_COMPILER)
+	./tests/ast/smoke
