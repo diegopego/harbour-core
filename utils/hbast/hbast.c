@@ -9,6 +9,47 @@ static void hb_astUsage( void )
    fprintf( stderr, "usage: hbast <input.prg> [-o <output.json>]\n" );
 }
 
+static void hb_astJsonPrintEscaped( FILE * stream, const char * pszValue )
+{
+   const unsigned char * pch;
+
+   if( pszValue == NULL )
+   {
+      fputs( "null", stream );
+      return;
+   }
+
+   fputc( '"', stream );
+   pch = ( const unsigned char * ) pszValue;
+   while( *pch )
+   {
+      unsigned char ch = *pch++;
+
+      switch( ch )
+      {
+         case '"':
+         case '\\':
+            fputc( '\\', stream );
+            fputc( ch, stream );
+            break;
+
+         case '\b': fputs( "\\b", stream ); break;
+         case '\f': fputs( "\\f", stream ); break;
+         case '\n': fputs( "\\n", stream ); break;
+         case '\r': fputs( "\\r", stream ); break;
+         case '\t': fputs( "\\t", stream ); break;
+
+         default:
+            if( ch < 0x20 )
+               fprintf( stream, "\\u%04x", ch );
+            else
+               fputc( ch, stream );
+            break;
+      }
+   }
+   fputc( '"', stream );
+}
+
 int main( int argc, char * argv[] )
 {
    const char * pszInput = NULL;
@@ -77,18 +118,10 @@ int main( int argc, char * argv[] )
       return 1;
    }
 
-   if( pszOutput )
-   {
-      if( ! hb_astTokenStreamWriteSnapshotJson( pStream, pszInput, pszOutput ) )
-      {
-         fprintf( stderr, "hbast: failed to write '%s'\n", pszOutput );
-         rc = 1;
-      }
-   }
-   else
    {
       HB_SIZE nLen = 0;
-      char * pszJson = hb_astTokenStreamSerializeSnapshotJson( pStream, pszInput, &nLen );
+      char * pszJson = hb_astTokenStreamSerializeSnapshotJson( pStream, &nLen );
+      FILE * hOut = stdout;
 
       if( pszJson == NULL )
       {
@@ -97,9 +130,33 @@ int main( int argc, char * argv[] )
       }
       else
       {
-         if( nLen > 0 )
-            fwrite( pszJson, 1, nLen, stdout );
-         fputc( '\n', stdout );
+         if( pszOutput )
+         {
+            hOut = fopen( pszOutput, "wb" );
+            if( hOut == NULL )
+            {
+               fprintf( stderr, "hbast: failed to write '%s'\n", pszOutput );
+               rc = 1;
+            }
+         }
+
+         if( rc == 0 )
+         {
+            fputs( "{\"format_version\":\"0.0.1\",\"schema_revision\":1,"
+                   "\"generator\":{\"name\":\"hbast\",\"version\":\"0.0.1\"},"
+                   "\"files\":[{\"file_id\":1,\"path\":", hOut );
+            hb_astJsonPrintEscaped( hOut, pszInput );
+            fputs( ",\"hash\":\"\",\"ast\":{\"root\":0,\"nodes\":[],", hOut );
+            if( nLen > 0 )
+               fwrite( pszJson, 1, nLen, hOut );
+            fputs( "}}]}", hOut );
+            if( hOut == stdout )
+               fputc( '\n', hOut );
+         }
+
+         if( pszOutput && hOut )
+            fclose( hOut );
+
          hb_astTokenStreamSerializeSnapshotJsonFree( pszJson );
       }
    }

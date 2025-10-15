@@ -239,7 +239,7 @@ HB_BOOL hb_astTokenStreamWriteMacrosJson( const HB_AST_TOKEN_STREAM * pStream, c
    return fResult;
 }
 
-char * hb_astTokenStreamSerializeSnapshotJson( const HB_AST_TOKEN_STREAM * pStream, const char * pszSourcePath, HB_SIZE * pnLength )
+char * hb_astTokenStreamSerializeSnapshotJson( const HB_AST_TOKEN_STREAM * pStream, HB_SIZE * pnLength )
 {
    HB_AST_JSON_BUFFER buffer;
    HB_SIZE nTokenCount, i;
@@ -249,9 +249,7 @@ char * hb_astTokenStreamSerializeSnapshotJson( const HB_AST_TOKEN_STREAM * pStre
 
    hb_astJsonBufferInit( &buffer );
 
-   hb_astJsonBufferAddCStr( &buffer, "{\"format_version\":\"0.0.1\",\"schema_revision\":1,\"generator\":{\"name\":\"hbast\",\"version\":\"0.0.1\"},\"files\":[{\"file_id\":1,\"path\":" );
-   hb_astJsonAddEscapedString( &buffer, pszSourcePath );
-   hb_astJsonBufferAddCStr( &buffer, ",\"hash\":\"\",\"ast\":{\"root\":0,\"nodes\":[],\"token_stream\":{\"tokens\":[" );
+   hb_astJsonBufferAddCStr( &buffer, "\"token_stream\":{\"tokens\":[" );
 
    nTokenCount = hb_astTokenStreamCount( pStream );
    for( i = 0; i < nTokenCount; ++i )
@@ -307,11 +305,8 @@ char * hb_astTokenStreamSerializeSnapshotJson( const HB_AST_TOKEN_STREAM * pStre
       hb_astJsonBufferAddChar( &buffer, '}' );
    }
 
-   hb_astJsonBufferAddCStr( &buffer, "]}}," );
+   hb_astJsonBufferAddCStr( &buffer, "]}," );
    hb_astJsonAppendMacroSection( &buffer, pStream );
-   hb_astJsonBufferAddChar( &buffer, '}' );   /* close file entry */
-   hb_astJsonBufferAddChar( &buffer, ']' );   /* close files array */
-   hb_astJsonBufferAddChar( &buffer, '}' );   /* close root */
    hb_astJsonBufferAddChar( &buffer, '\0' );
 
    if( pnLength )
@@ -325,7 +320,7 @@ void hb_astTokenStreamSerializeSnapshotJsonFree( char * pszJson )
    hb_astTokenStreamSerializeMacrosJsonFree( pszJson );
 }
 
-HB_BOOL hb_astTokenStreamWriteSnapshotJson( const HB_AST_TOKEN_STREAM * pStream, const char * pszSourcePath, const char * pszPath )
+HB_BOOL hb_astTokenStreamWriteSnapshotJson( const HB_AST_TOKEN_STREAM * pStream, const char * pszPath )
 {
    char * pszJson;
    HB_SIZE nLen;
@@ -335,7 +330,7 @@ HB_BOOL hb_astTokenStreamWriteSnapshotJson( const HB_AST_TOKEN_STREAM * pStream,
    if( pszPath == NULL )
       return HB_FALSE;
 
-   pszJson = hb_astTokenStreamSerializeSnapshotJson( pStream, pszSourcePath, &nLen );
+   pszJson = hb_astTokenStreamSerializeSnapshotJson( pStream, &nLen );
    if( pszJson == NULL )
       return HB_FALSE;
 

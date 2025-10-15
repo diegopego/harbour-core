@@ -175,20 +175,42 @@ int main( void )
          if( rc == 0 )
          {
             HB_SIZE nFullLen = 0;
-            char * pszFull = hb_astTokenStreamSerializeSnapshotJson( pSnapshot, cfg.pszBuffer, &nFullLen );
+            char * pszFull = hb_astTokenStreamSerializeSnapshotJson( pSnapshot, &nFullLen );
 
             if( pszFull == NULL )
                rc = report_failure( "failed to serialize snapshot json" );
             else if( nFullLen == 0 )
                rc = report_failure( "snapshot json has zero length" );
-            else if( strstr( pszFull, "\"format_version\"") == NULL )
-               rc = report_failure( "snapshot json missing format_version" );
-            else if( strstr( pszFull, "\"tokens\"") == NULL )
-               rc = report_failure( "snapshot json missing tokens array" );
+            else if( strstr( pszFull, "\"token_stream\"") == NULL )
+               rc = report_failure( "snapshot json missing token_stream" );
             else if( strstr( pszFull, "\"macros\":{\"expansions\"") == NULL )
                rc = report_failure( "snapshot json missing macro section" );
 
             hb_astTokenStreamSerializeSnapshotJsonFree( pszFull );
+         }
+
+         if( rc == 0 )
+         {
+            const char * pszSnapPath = "tests/ast/out_snapshot.json";
+            FILE * pSnap;
+            size_t nSnapRead;
+            char snapBuffer[ 512 ];
+
+            if( ! hb_astTokenStreamWriteSnapshotJson( pSnapshot, pszSnapPath ) )
+               rc = report_failure( "failed to write snapshot json file" );
+            else if( ( pSnap = fopen( pszSnapPath, "rb" ) ) == NULL )
+               rc = report_failure( "unable to reopen snapshot json file" );
+            else
+            {
+               nSnapRead = fread( snapBuffer, 1, sizeof( snapBuffer ) - 1, pSnap );
+               snapBuffer[ nSnapRead ] = '\0';
+               fclose( pSnap );
+
+               if( strstr( snapBuffer, "\"token_stream\"") == NULL )
+                  rc = report_failure( "snapshot json file missing token_stream" );
+            }
+
+            remove( pszSnapPath );
          }
 
          hb_astTokenStreamRelease( pSnapshot );
