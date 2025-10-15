@@ -20,7 +20,7 @@
 
 int main( void )
 {
-   HB_AST_LEXER_SOURCE cfg = { "demo.prg", "demo.prg", 0, HB_FALSE, HB_TRUE };
+   HB_AST_LEXER_SOURCE cfg = { "tests/ast/demo.prg", "tests/ast/demo.prg", 0, HB_FALSE, HB_TRUE };
    HB_AST_LEXER *lex = hb_astLexerNew( &cfg );
    HB_AST_TOKEN tok;
 
