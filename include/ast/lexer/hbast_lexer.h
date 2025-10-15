@@ -109,6 +109,14 @@ typedef struct
 typedef struct _HB_AST_LEXER HB_AST_LEXER;
 typedef struct _HB_AST_TOKEN_STREAM HB_AST_TOKEN_STREAM;
 
+/* Describes the input used to initialise an incremental lexer.
+   Fields:
+     - pszModule  : logical module name copied into every emitted token.
+     - pszBuffer  : points to the source buffer, or (when fFromFile is HB_TRUE)
+                    the filesystem path to open.
+     - nLength    : size of the buffer in bytes; ignored for file-backed input.
+     - fOwnBuffer : HB_TRUE when the lexer should free the buffer during reset.
+     - fFromFile  : HB_TRUE to stream from disk, HB_FALSE for in-memory buffers. */
 typedef struct
 {
    const char * pszModule;

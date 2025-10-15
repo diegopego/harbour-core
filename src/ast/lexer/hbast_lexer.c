@@ -137,6 +137,11 @@ static HB_AST_MACRO_TRACE_INFO * hb_astMacroTraceClone( const HB_AST_MACRO_TRACE
                                                         HB_SIZE * pnCount,
                                                         HB_SIZE * pnCapacity );
 
+/* Construct an incremental lexer instance. When pSource is non-NULL the lexer
+   immediately initialises itself via hb_astLexerReset(), using the members of
+   HB_AST_LEXER_SOURCE to determine the module label, buffer/path, ownership,
+   and whether to load from disk. Passing NULL leaves the instance empty so the
+   caller can provide a source later with hb_astLexerReset(). */
 HB_AST_LEXER * hb_astLexerNew( const HB_AST_LEXER_SOURCE * pSource )
 {
    HB_AST_LEXER * pLexer = ( HB_AST_LEXER * ) hb_xgrabz( sizeof( HB_AST_LEXER ) );
