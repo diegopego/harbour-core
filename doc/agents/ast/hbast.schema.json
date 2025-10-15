@@ -150,7 +150,8 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/nodeEntry"
-          }
+          },
+          "default": []
         },
         "token_stream": {
           "$ref": "#/$defs/tokenStream"

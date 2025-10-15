@@ -43,8 +43,9 @@
   "path": "src/foo.prg",
   "hash": "sha256:...",
   "ast": {
-    "root": 1001,
-    "nodes": [ /* NodeEntry[] */ ]
+    "root": 0,
+    "nodes": [ /* NodeEntry[] (pode estar vazio enquanto o builder não estiver pronto) */ ],
+    "token_stream": { /* ... */ }
   },
   "macros": {
     "expansions": [ /* MacroExpansion[] */ ]

@@ -142,6 +142,8 @@ int main( int argc, char * argv[] )
 
          if( rc == 0 )
          {
+            /* TODO: once AST nodes/metadata are available, populate the fields listed in
+               doc/agents/ast/serialization-format.md (ast.nodes, ast.root, hash, etc.). */
             fputs( "{\"format_version\":\"0.0.1\",\"schema_revision\":1,"
                    "\"generator\":{\"name\":\"hbast\",\"version\":\"0.0.1\"},"
                    "\"files\":[{\"file_id\":1,\"path\":", hOut );
