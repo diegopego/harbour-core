@@ -21,7 +21,7 @@ static int report_failure_fmt( const char * pszMessage, const char * pszDetail )
 
 int main( void )
 {
-   HB_AST_LEXER_SOURCE cfg = { "demo.prg", "tests/ast/demo.prg", 0, HB_FALSE, HB_TRUE };
+   HB_AST_LEXER_SOURCE cfg = { "tests/ast/demo.prg", "tests/ast/demo.prg", 0, HB_FALSE, HB_TRUE };
    HB_AST_LEXER * pLexer = hb_astLexerNew( &cfg );
    HB_AST_TOKEN token;
    int fSawMacroLiteral = 0;
@@ -132,6 +132,8 @@ int main( void )
                rc = report_failure( "failed to serialize macro graph to json" );
             else if( nJsonLen == 0 )
                rc = report_failure( "macro graph json has zero length" );
+            else if( strstr( pszJson, "\"expansions\"" ) == NULL )
+               rc = report_failure( "macro graph json missing expansions array" );
             else if( strstr( pszJson, "\"macro_name\":\"VALUE\"" ) == NULL )
                rc = report_failure( "macro graph json missing macro name" );
             else if( strstr( pszJson, "\"expansion_id\":0" ) == NULL )
@@ -175,16 +177,18 @@ int main( void )
          if( rc == 0 )
          {
             HB_SIZE nFullLen = 0;
-            char * pszFull = hb_astTokenStreamSerializeSnapshotJson( pSnapshot, &nFullLen );
+            char * pszFull = hb_astTokenStreamSerializeSnapshotJson( pSnapshot, cfg.pszModule, &nFullLen );
 
             if( pszFull == NULL )
                rc = report_failure( "failed to serialize snapshot json" );
             else if( nFullLen == 0 )
                rc = report_failure( "snapshot json has zero length" );
+            else if( strstr( pszFull, "\"nodes\"") == NULL )
+               rc = report_failure( "snapshot json missing nodes array" );
             else if( strstr( pszFull, "\"token_stream\"") == NULL )
                rc = report_failure( "snapshot json missing token_stream" );
-            else if( strstr( pszFull, "\"macros\":{\"expansions\"") == NULL )
-               rc = report_failure( "snapshot json missing macro section" );
+            else if( strstr( pszFull, "\"ProcDecl\"" ) == NULL )
+               rc = report_failure( "snapshot json missing procedure node" );
 
             hb_astTokenStreamSerializeSnapshotJsonFree( pszFull );
          }
@@ -193,24 +197,116 @@ int main( void )
          {
             const char * pszSnapPath = "tests/ast/out_snapshot.json";
             FILE * pSnap;
-            size_t nSnapRead;
-            char snapBuffer[ 512 ];
+            long nSnapSize;
+            char * snapBuffer = NULL;
 
-            if( ! hb_astTokenStreamWriteSnapshotJson( pSnapshot, pszSnapPath ) )
+            if( ! hb_astTokenStreamWriteSnapshotJson( pSnapshot, cfg.pszModule, pszSnapPath ) )
                rc = report_failure( "failed to write snapshot json file" );
             else if( ( pSnap = fopen( pszSnapPath, "rb" ) ) == NULL )
                rc = report_failure( "unable to reopen snapshot json file" );
             else
             {
-               nSnapRead = fread( snapBuffer, 1, sizeof( snapBuffer ) - 1, pSnap );
-               snapBuffer[ nSnapRead ] = '\0';
-               fclose( pSnap );
+               if( fseek( pSnap, 0, SEEK_END ) != 0 )
+                  rc = report_failure( "failed to seek snapshot json file" );
+               else if( ( nSnapSize = ftell( pSnap ) ) < 0 )
+                  rc = report_failure( "failed to size snapshot json file" );
+               else if( nSnapSize > 65536 )
+                  rc = report_failure( "snapshot json file unexpectedly large" );
+               else if( fseek( pSnap, 0, SEEK_SET ) != 0 )
+                  rc = report_failure( "failed to rewind snapshot json file" );
+               else
+               {
+                  snapBuffer = ( char * ) malloc( ( size_t ) nSnapSize + 1 );
+                  if( snapBuffer == NULL )
+                     rc = report_failure( "unable to allocate buffer for snapshot json" );
+                  else
+                  {
+                     size_t nSnapRead = fread( snapBuffer, 1, ( size_t ) nSnapSize, pSnap );
+                     snapBuffer[ nSnapRead ] = '\0';
 
-               if( strstr( snapBuffer, "\"token_stream\"") == NULL )
-                  rc = report_failure( "snapshot json file missing token_stream" );
+                     if( strstr( snapBuffer, "\"token_stream\"") == NULL )
+                        rc = report_failure( "snapshot json file missing token_stream" );
+                     else if( strstr( snapBuffer, "\"nodes\"") == NULL )
+                        rc = report_failure( "snapshot json file missing nodes array" );
+                  }
+               }
+
+               fclose( pSnap );
+               if( snapBuffer )
+                  free( snapBuffer );
             }
 
             remove( pszSnapPath );
+         }
+
+         if( rc == 0 )
+         {
+            HB_SIZE nMacroCborLen = 0;
+            HB_BYTE * pMacroCbor = hb_astTokenStreamSerializeMacrosCbor( pSnapshot, &nMacroCborLen );
+
+            if( pMacroCbor == NULL )
+               rc = report_failure( "failed to serialize macros cbor" );
+            else if( nMacroCborLen == 0 )
+               rc = report_failure( "macros cbor has zero length" );
+            else if( ( pMacroCbor[ 0 ] & 0xE0 ) != 0xA0 )
+               rc = report_failure( "macros cbor unexpected type" );
+
+            hb_astTokenStreamSerializeMacrosCborFree( pMacroCbor );
+         }
+
+         if( rc == 0 )
+         {
+            HB_SIZE nAstCborLen = 0;
+            HB_BYTE * pAstCbor = hb_astTokenStreamSerializeSnapshotCbor( pSnapshot, cfg.pszModule, &nAstCborLen );
+
+            if( pAstCbor == NULL )
+               rc = report_failure( "failed to serialize snapshot cbor" );
+            else if( nAstCborLen == 0 )
+               rc = report_failure( "snapshot cbor has zero length" );
+            else if( ( pAstCbor[ 0 ] & 0xE0 ) != 0xA0 )
+               rc = report_failure( "snapshot cbor unexpected type" );
+
+            hb_astTokenStreamSerializeSnapshotCborFree( pAstCbor );
+         }
+
+         if( rc == 0 )
+         {
+            const char * pszMacroCborPath = "tests/ast/out_macro.cbor";
+            FILE * pMacroFile;
+
+            if( ! hb_astTokenStreamWriteMacrosCbor( pSnapshot, pszMacroCborPath ) )
+               rc = report_failure( "failed to write macro graph cbor file" );
+            else if( ( pMacroFile = fopen( pszMacroCborPath, "rb" ) ) == NULL )
+               rc = report_failure( "unable to reopen macro graph cbor file" );
+            else
+            {
+               int c = fgetc( pMacroFile );
+               if( c == EOF )
+                  rc = report_failure( "macro graph cbor file empty" );
+               fclose( pMacroFile );
+            }
+
+            remove( pszMacroCborPath );
+         }
+
+         if( rc == 0 )
+         {
+            const char * pszSnapshotCborPath = "tests/ast/out_snapshot.cbor";
+            FILE * pSnapCbor;
+
+            if( ! hb_astTokenStreamWriteSnapshotCbor( pSnapshot, cfg.pszModule, pszSnapshotCborPath ) )
+               rc = report_failure( "failed to write snapshot cbor file" );
+            else if( ( pSnapCbor = fopen( pszSnapshotCborPath, "rb" ) ) == NULL )
+               rc = report_failure( "unable to reopen snapshot cbor file" );
+            else
+            {
+               int c = fgetc( pSnapCbor );
+               if( c == EOF )
+                  rc = report_failure( "snapshot cbor file empty" );
+               fclose( pSnapCbor );
+            }
+
+            remove( pszSnapshotCborPath );
          }
 
          hb_astTokenStreamRelease( pSnapshot );

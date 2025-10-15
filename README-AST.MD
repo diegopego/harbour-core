@@ -47,7 +47,7 @@ Quando o lexer ganhar implementação real, esse binário poderá ser expandido 
   - `original`/`expanded`: coordenadas básicas (line/column/offset) atualizadas a partir do lexema; ainda ingênuas para casos de macro expansão.
   - `pszModule` e `original.start.nLine`: herdados do PP, preservando o módulo/arquivo e a linha original de cada token.
 - `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para inspeções manuais.
-- `tests/ast/snapshot` executa asserts automatizados garantindo que tokens e rastros de macro (`pMacroOrigin`) produzidos pelo snapshot representam corretamente o grafo de expansão e valida o JSON emitido por `hb_astTokenStreamSerialize*()` (`nodes` ainda é um stub vazio enquanto o builder não for integrado).
+- `tests/ast/snapshot` executa asserts automatizados garantindo que tokens e rastros de macro (`pMacroOrigin`) produzidos pelo snapshot representam corretamente o grafo de expansão e valida o JSON emitido por `hb_astTokenStreamSerialize*()` com nós reais (`nodes`) e paridade com o builder atual.
 
 ### `hbast` CLI
 

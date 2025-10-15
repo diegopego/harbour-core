@@ -17,7 +17,7 @@ LIBS     := -L$(LIBDIR) \
             -lharbour \
             -lm
 
-TARGETS := smoke snapshot
+TARGETS := smoke snapshot rename
 
 .PHONY: all clean
 
@@ -27,6 +27,9 @@ smoke: smoke.c
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
 
 snapshot: test_snapshot.c
+	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
+
+rename: test_rename.c
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
 
 clean:

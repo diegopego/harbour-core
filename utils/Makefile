@@ -3,6 +3,7 @@ ROOT := ../
 ifneq ($(HB_BUILD_PARTS),lib)
 
 DIRS := \
+   hbrename \
    hbmk2 \
    hbast \
 
@@ -10,6 +11,7 @@ ifneq ($(HB_BUILD_PARTS),compiler)
 
    DIRS := \
       hbtest \
+      hbrename \
       hbast \
       hbmk2 \
       hbi18n \
