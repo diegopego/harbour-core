@@ -141,7 +141,8 @@ static const char * const s_pp_szErrors[] =
    "Write error to intermediate file '%s'"                              /* C3029 */
 };
 
-static PHB_PP_TRACEINFO hb_pp_traceinfoNew( const char * szMacroName,
+static PHB_PP_TRACEINFO hb_pp_traceinfoNew( PHB_PP_STATE pState,
+                                            const char * szMacroName,
                                             const char * szCallModule,
                                             int iCallLine, int iCallColumn,
                                             int iCallEndLine, int iCallEndColumn,
@@ -389,7 +390,8 @@ static void hb_pp_traceinfoRelease( PHB_PP_TRACEINFO pInfo )
    }
 }
 
-static PHB_PP_TRACEINFO hb_pp_traceinfoNew( const char * szMacroName,
+static PHB_PP_TRACEINFO hb_pp_traceinfoNew( PHB_PP_STATE pState,
+                                            const char * szMacroName,
                                             const char * szCallModule,
                                             int iCallLine, int iCallColumn,
                                             int iCallEndLine, int iCallEndColumn,
@@ -399,6 +401,7 @@ static PHB_PP_TRACEINFO hb_pp_traceinfoNew( const char * szMacroName,
    PHB_PP_TRACEINFO pInfo = ( PHB_PP_TRACEINFO ) hb_xgrabz( sizeof( HB_PP_TRACEINFO ) );
 
    pInfo->nRefCount = 1;
+   pInfo->nExpansionId = pState ? ++pState->nTraceSequence : 0;
    if( szMacroName )
       pInfo->pszMacroName = hb_strdup( szMacroName );
    if( szCallModule )
@@ -4649,6 +4652,8 @@ static void hb_pp_patternReplace( PHB_PP_STATE pState, PHB_PP_RULE pRule,
 {
    PHB_PP_TOKEN pFinalResult = NULL, * pResultPtr, pSource;
    PHB_PP_TRACEINFO pTraceInfo = NULL;
+   char * pszSourceSnapshot = NULL;
+   char * pszResultSnapshot = NULL;
 
    pResultPtr = hb_pp_patternStuff( pState, pRule, 0, pRule->pResult, &pFinalResult );
 
@@ -4660,20 +4665,35 @@ static void hb_pp_patternReplace( PHB_PP_STATE pState, PHB_PP_RULE pRule,
    if( pFinalResult && pSource )
       pFinalResult->spaces = pSource->spaces;
 
-   /* Write trace information */
-   if( pState->fWriteTrace )
+   /* Write trace information / capture instrumentation snapshots */
+   if( pState->fWriteTrace || pState->pTraceCallback )
    {
-      fprintf( pState->file_trace, "%s(%d) >%s<\n",
-               pState->pFile && pState->pFile->szFileName ? pState->pFile->szFileName : "",
-               pState->pFile ? pState->pFile->iCurrentLine : 0,
-               /* the source string */
-               hb_pp_tokenListStr( pSource, pRule->pNextExpr, HB_TRUE,
-                                   pState->pBuffer, HB_TRUE, HB_FALSE ) );
-      fprintf( pState->file_trace, "#%s%s >%s<\n",
-               pRule->mode == HB_PP_CMP_STD ? "x" : "", szType,
-               /* the result string */
-               hb_pp_tokenListStr( pFinalResult, *pResultPtr, HB_TRUE,
-                                   pState->pBuffer, HB_TRUE, HB_FALSE ) );
+      const char * szSourceStr = hb_pp_tokenListStr( pSource, pRule->pNextExpr, HB_TRUE,
+                                                    pState->pBuffer, HB_TRUE, HB_FALSE );
+
+      if( pState->fWriteTrace )
+      {
+         fprintf( pState->file_trace, "%s(%d) >%s<\n",
+                  pState->pFile && pState->pFile->szFileName ? pState->pFile->szFileName : "",
+                  pState->pFile ? pState->pFile->iCurrentLine : 0,
+                  szSourceStr );
+      }
+
+      if( pState->pTraceCallback )
+         pszSourceSnapshot = hb_strdup( szSourceStr );
+
+      const char * szResultStr = hb_pp_tokenListStr( pFinalResult, *pResultPtr, HB_TRUE,
+                                                    pState->pBuffer, HB_TRUE, HB_FALSE );
+
+      if( pState->fWriteTrace )
+      {
+         fprintf( pState->file_trace, "#%s%s >%s<\n",
+                  pRule->mode == HB_PP_CMP_STD ? "x" : "", szType,
+                  szResultStr );
+      }
+
+      if( pState->pTraceCallback )
+         pszResultSnapshot = hb_strdup( szResultStr );
    }
 
    if( pFinalResult )
@@ -4745,12 +4765,63 @@ static void hb_pp_patternReplace( PHB_PP_STATE pState, PHB_PP_RULE pRule,
       if( szMacroName || szCallModule || pParentTrace || nCallOffset != ( HB_SIZE ) -1 ||
           nCallEndOffset != ( HB_SIZE ) -1 || iCallLine > 0 || iCallEndLine > 0 )
       {
-         pTraceInfo = hb_pp_traceinfoNew( szMacroName, szCallModule,
+         pTraceInfo = hb_pp_traceinfoNew( pState, szMacroName, szCallModule,
                                           iCallLine, iCallColumn,
                                           iCallEndLine, iCallEndColumn,
                                           nCallOffset, nCallEndOffset,
                                           pParentTrace );
       }
+   }
+
+   if( pState->pTraceCallback )
+   {
+      HB_PP_TRACE_EVENT event;
+
+      hb_xmemset( &event, 0, sizeof( event ) );
+      event.szRuleKind = szType;
+      event.pszSource = pszSourceSnapshot ? pszSourceSnapshot : "";
+      event.pszResult = pszResultSnapshot ? pszResultSnapshot : "";
+      event.pTraceInfo = pTraceInfo;
+
+      if( pTraceInfo )
+      {
+         event.szMacroName = pTraceInfo->pszMacroName ? pTraceInfo->pszMacroName :
+                              ( pRule->pMatch && pRule->pMatch->value ? pRule->pMatch->value : NULL );
+         event.szCallModule = pTraceInfo->pszCallModule ? pTraceInfo->pszCallModule :
+                               ( pState->pFile && pState->pFile->szFileName ? pState->pFile->szFileName : NULL );
+         event.iCallLine = pTraceInfo->iCallLine;
+         event.iCallColumn = pTraceInfo->iCallColumn;
+         event.iCallEndLine = pTraceInfo->iCallEndLine;
+         event.iCallEndColumn = pTraceInfo->iCallEndColumn;
+         event.nCallOffset = pTraceInfo->nCallOffset;
+         event.nCallEndOffset = pTraceInfo->nCallEndOffset;
+         event.nExpansionId = pTraceInfo->nExpansionId;
+      }
+      else
+      {
+         event.szMacroName = ( pRule->pMatch && pRule->pMatch->value ) ? pRule->pMatch->value : NULL;
+         event.szCallModule = pState->pFile && pState->pFile->szFileName ? pState->pFile->szFileName : NULL;
+         event.iCallLine = pState->pFile ? pState->pFile->iCurrentLine : 0;
+         event.iCallColumn = 0;
+         event.iCallEndLine = event.iCallLine;
+         event.iCallEndColumn = 0;
+         event.nCallOffset = ( HB_SIZE ) -1;
+         event.nCallEndOffset = ( HB_SIZE ) -1;
+         event.nExpansionId = 0;
+      }
+
+      pState->pTraceCallback( pState->pTraceCargo, &event );
+   }
+
+   if( pszSourceSnapshot )
+   {
+      hb_xfree( pszSourceSnapshot );
+      pszSourceSnapshot = NULL;
+   }
+   if( pszResultSnapshot )
+   {
+      hb_xfree( pszResultSnapshot );
+      pszResultSnapshot = NULL;
    }
 
    /* Replace matched tokens with result pattern */
@@ -5939,6 +6010,7 @@ void hb_pp_reset( PHB_PP_STATE pState )
    pState->iCondCompile  = 0;
    pState->iCondCount    = 0;
    pState->iStreamDump   = HB_PP_STREAM_OFF;
+   pState->nTraceSequence = 0;
 
    hb_pp_tokenListFree( &pState->pFuncOut );
    hb_pp_tokenListFree( &pState->pFuncEnd );
@@ -6223,6 +6295,15 @@ HB_BOOL hb_pp_traceFile( PHB_PP_STATE pState, const char * szTraceFileName, FILE
       }
    }
    return ! pState->fError;
+}
+
+void hb_pp_setTraceCallback( PHB_PP_STATE pState, PHB_PP_TRACE_EMIT_FUNC pTraceFunc, void * cargo )
+{
+   if( pState )
+   {
+      pState->pTraceCallback = pTraceFunc;
+      pState->pTraceCargo = cargo;
+   }
 }
 
 /*

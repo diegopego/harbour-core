@@ -384,6 +384,7 @@ typedef HB_PP_MSG_FUNC_( ( * PHB_PP_MSG_FUNC ) );
 typedef struct _HB_PP_TRACEINFO
 {
    HB_SIZE              nRefCount;
+   HB_SIZE              nExpansionId;
    char *               pszMacroName;
    char *               pszCallModule;
    int                  iCallLine;
@@ -394,6 +395,25 @@ typedef struct _HB_PP_TRACEINFO
    HB_SIZE              nCallEndOffset;
    struct _HB_PP_TRACEINFO * pParent;
 } HB_PP_TRACEINFO, * PHB_PP_TRACEINFO;
+
+typedef struct _HB_PP_TRACE_EVENT
+{
+   const char *           szRuleKind;
+   const char *           szMacroName;
+   const char *           szCallModule;
+   int                    iCallLine;
+   int                    iCallColumn;
+   int                    iCallEndLine;
+   int                    iCallEndColumn;
+   HB_SIZE                nCallOffset;
+   HB_SIZE                nCallEndOffset;
+   HB_SIZE                nExpansionId;
+   const char *           pszSource;
+   const char *           pszResult;
+   const HB_PP_TRACEINFO *pTraceInfo;
+} HB_PP_TRACE_EVENT, * PHB_PP_TRACE_EVENT;
+
+typedef void ( * PHB_PP_TRACE_EMIT_FUNC )( void * cargo, const HB_PP_TRACE_EVENT * pEvent );
 
 typedef struct _HB_PP_TOKEN
 {
@@ -655,6 +675,9 @@ typedef struct
    PHB_PP_INC_FUNC    pIncFunc;     /* function to register included files */
    PHB_PP_INLINE_FUNC pInLineFunc;  /* function for hb_inLine(...) {...} blocks */
    PHB_PP_SWITCH_FUNC pSwitchFunc;  /* function for compiler switches with #pragma ... */
+   PHB_PP_TRACE_EMIT_FUNC pTraceCallback; /* instrumentation hook */
+   void *   pTraceCargo;           /* user data for instrumentation */
+   HB_SIZE  nTraceSequence;        /* monotonic expansion id */
 }
 HB_PP_STATE, * PHB_PP_STATE;
 
@@ -689,6 +712,7 @@ extern HB_EXPORT HB_BOOL hb_pp_inBuffer( PHB_PP_STATE pState, const char * szFil
 extern HB_EXPORT HB_BOOL hb_pp_inFile( PHB_PP_STATE pState, const char * szFileName, HB_BOOL fSearchPath, FILE * file_in, HB_BOOL fError );
 extern HB_EXPORT HB_BOOL hb_pp_outFile( PHB_PP_STATE pState, const char * szOutFileName, FILE * file_out );
 extern HB_EXPORT HB_BOOL hb_pp_traceFile( PHB_PP_STATE pState, const char * szTraceFileName, FILE * file_trace );
+extern HB_EXPORT void    hb_pp_setTraceCallback( PHB_PP_STATE pState, PHB_PP_TRACE_EMIT_FUNC pTraceFunc, void * cargo );
 extern HB_EXPORT char *  hb_pp_fileName( PHB_PP_STATE pState );
 extern HB_EXPORT int     hb_pp_line( PHB_PP_STATE pState );
 extern HB_EXPORT HB_BOOL hb_pp_eof( PHB_PP_STATE pState );

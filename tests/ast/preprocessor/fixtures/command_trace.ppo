@@ -1,0 +1,37 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+STATIC FUNCTION __Dispatch__( cName, aArgs, nLine )
+
+   RETURN { cName, aArgs, nLine }
+
+
+
+PROCEDURE Main()
+
+   __Dispatch__( "<name>", {}, __LINE__ )
+
+   __Dispatch__( "<name>", { 1, 2, 3 }, __LINE__ )
+
+RETURN
+
+

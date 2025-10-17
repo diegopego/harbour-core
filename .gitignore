@@ -44,3 +44,4 @@ tests/ast/demo.hbast.json
 tests/ast/rename
 tests/ast/builder-test
 tests/tooling/cmocka/a.out
+tests/ast/pp-trace

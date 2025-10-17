@@ -20,7 +20,7 @@ LIBS     := -L$(LIBDIR) \
 CMOCKA_INC  ?= -I/usr/local/include
 CMOCKA_LIBS ?= -L/usr/local/lib -lcmocka
 
-TARGETS := smoke snapshot rename builder-test
+TARGETS := smoke snapshot rename builder-test pp-trace
 
 .PHONY: all clean build tests suite
 
@@ -38,6 +38,9 @@ rename: ast_rename_test.c
 builder-test: ast_builder_test.c
 	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
+pp-trace: ast_preprocessor_trace_test.c
+	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
+
 clean:
 	rm -f $(TARGETS)
 
@@ -48,3 +51,4 @@ tests: build
 	(cd $(ROOT) && ./tests/ast/rename)
 	(cd $(ROOT) && ./tests/ast/snapshot)
 	(cd $(ROOT) && ./tests/ast/builder-test)
+	(cd $(ROOT) && ./tests/ast/pp-trace)

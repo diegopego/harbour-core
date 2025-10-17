@@ -9,6 +9,10 @@ This fork exists to accelerate Harbour into a modern, tooling-first language pla
 - Provide first-class support for test-driven development, coverage tracking, and static analysis.
 - Enable powerful refactoring and navigation workflows that feel native to modern IDEs.
 - Maintain backwards compatibility where practical while opening a path to gradual typing and new language features.
+- use cmocka and TDD when possible.
+- create instrumentation on harbour code and use this instrumentation on the tests created for this language extensions.
+- consider using .ppo files when needed to understand the code and validate the ast and refactoring tools.
+- any prg level code should, including any test fixtures should first be compiled with hbmk2 and -w3 flag to ensure that it is a valid code before any further processing.
 
 ## Guiding Principles
 
