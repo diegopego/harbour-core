@@ -1,106 +1,94 @@
 // tests/ast/smoke.c
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmocka.h>
 #include "ast/lexer/hbast_lexer.h"
-#include <stdio.h>
+#include "hbapi.h"
+#include <string.h>
 
-/*
- * Debug output format
- *
- * Example line:
- *   [   1] kind=2 pp=21 span=(3:1:0 -> 3:9:8) module=tests/ast/helpers.ch text="FUNCTION"
- *
- * - Sequence (`[   1]`): local counter emitted by this harness.
- * - `kind`: token category (`HB_AST_TOKEN_KIND_*`). Values: 0 unknown, 1 eof, 2 keyword, 3 identifier,
- *   4 literal, 5 operator, 6 punctuation, 7 directive, 8 macro, 9 newline.
- * - `pp`: raw preprocessor token type (`HB_PP_TOKEN_*`). E.g. 21 KEYWORD, 41 STRING, 42 NUMBER, etc.
- * - `span`: `line:column:offset` start → end (exclusive). Columns are 1-based; the offset is the byte position
- *   in the originating module (exclusive end).
- * - `module`: source file captured by the preprocessor; includes and macro expansions carry their original module.
- * - `text`: lexeme as emitted by the PP after macro/include processing.
- */
+static const char * HB_AST_SMOKE_MODULE = "tests/ast/demo.prg";
+
+static HB_AST_TOKEN_STREAM * hb_astSmokeCreateSnapshot( void )
+{
+   HB_AST_LEXER_SOURCE cfg = { HB_AST_SMOKE_MODULE, HB_AST_SMOKE_MODULE, 0, HB_FALSE, HB_TRUE };
+   HB_AST_LEXER * pLexer = hb_astLexerNew( &cfg );
+   HB_AST_TOKEN token;
+   HB_AST_TOKEN_STREAM * pSnapshot;
+
+   assert_non_null( pLexer );
+
+   while( hb_astLexerNextToken( pLexer, &token ) )
+      ;
+
+   pSnapshot = hb_astTokenStreamSnapshot( pLexer );
+   hb_astLexerFree( pLexer );
+
+   return pSnapshot;
+}
+
+static void test_smoke_lexer_emits_tokens_with_macro_info( void ** state )
+{
+   HB_AST_LEXER_SOURCE cfg = { HB_AST_SMOKE_MODULE, HB_AST_SMOKE_MODULE, 0, HB_FALSE, HB_TRUE };
+   HB_AST_LEXER * pLexer = hb_astLexerNew( &cfg );
+   HB_AST_TOKEN token;
+   HB_SIZE nTokenCount = 0;
+   int fSawProcKeyword = 0;
+   int fSawMacroOrigin = 0;
+
+   ( void ) state;
+
+   assert_non_null( pLexer );
+
+   while( hb_astLexerNextToken( pLexer, &token ) )
+   {
+      ++nTokenCount;
+      assert_true( token.kind != HB_AST_TOKEN_KIND_UNKNOWN );
+
+      if( token.kind == HB_AST_TOKEN_KIND_KEYWORD &&
+          token.pszLexeme &&
+          hb_stricmp( token.pszLexeme, "PROC" ) == 0 )
+      {
+         fSawProcKeyword = 1;
+      }
+
+      if( token.pMacroOrigin != NULL )
+         fSawMacroOrigin = 1;
+   }
+
+   assert_true( nTokenCount > 0 );
+   assert_true( fSawProcKeyword );
+   assert_true( fSawMacroOrigin );
+
+   hb_astLexerFree( pLexer );
+}
+
+static void test_smoke_snapshot_contains_tokens_and_traces( void ** state )
+{
+   HB_AST_TOKEN_STREAM * pSnapshot = hb_astSmokeCreateSnapshot();
+   HB_SIZE nTokenCount;
+   HB_SIZE nTraceCount;
+
+   ( void ) state;
+
+   assert_non_null( pSnapshot );
+
+   nTokenCount = hb_astTokenStreamCount( pSnapshot );
+   nTraceCount = hb_astTokenStreamMacroTraceCount( pSnapshot );
+
+   assert_true( nTokenCount > 0 );
+   assert_true( nTraceCount > 0 );
+
+   hb_astTokenStreamRelease( pSnapshot );
+}
 
 int main( void )
 {
-   HB_AST_LEXER_SOURCE cfg = { "tests/ast/demo.prg", "tests/ast/demo.prg", 0, HB_FALSE, HB_TRUE };
-   HB_AST_LEXER *lex = hb_astLexerNew( &cfg );
-   HB_AST_TOKEN tok;
-
-   while( hb_astLexerNextToken( lex, &tok ) )  /* hoje sai imediatamente */
+   const struct CMUnitTest tests[] =
    {
-      printf( "[%4u] kind=%d pp=%u span=(%lu:%lu:%lu -> %lu:%lu:%lu) module=%s text=\"%.*s\"",
-              ( unsigned ) tok.id.uHash,
-              ( int ) tok.kind,
-              ( unsigned ) tok.uPPType,
-              ( unsigned long ) tok.original.start.nLine,
-              ( unsigned long ) tok.original.start.nColumn,
-              ( unsigned long ) tok.original.start.nOffset,
-              ( unsigned long ) tok.original.end.nLine,
-              ( unsigned long ) tok.original.end.nColumn,
-              ( unsigned long ) tok.original.end.nOffset,
-              tok.pszModule ? tok.pszModule : "<none>",
-              ( int ) tok.nLexemeLength,
-              tok.pszLexeme ? tok.pszLexeme : "" );
+      cmocka_unit_test( test_smoke_lexer_emits_tokens_with_macro_info ),
+      cmocka_unit_test( test_smoke_snapshot_contains_tokens_and_traces ),
+   };
 
-      if( tok.pMacroOrigin )
-      {
-         HB_AST_SOURCE_RANGE call = hb_astMacroTraceCallRange( tok.pMacroOrigin );
-         const char * pszCallModule = hb_astMacroTraceCallModule( tok.pMacroOrigin );
-         const char * pszMacroName = hb_astMacroTraceName( tok.pMacroOrigin );
-         HB_SIZE nDepth = hb_astMacroTraceDepth( tok.pMacroOrigin );
-         HB_SIZE nMacroId = hb_astMacroTraceId( tok.pMacroOrigin );
-
-         if( nMacroId != HB_SIZE_MAX )
-            printf( " macroId=%lu", ( unsigned long ) nMacroId );
-
-         printf( " macroDepth=%lu macro=\"%s\" caller=%s call=(%lu:%lu:%lu -> %lu:%lu:%lu)",
-                 ( unsigned long ) nDepth,
-                 pszMacroName ? pszMacroName : "<anon>",
-                 pszCallModule ? pszCallModule : "<unknown>",
-                 ( unsigned long ) call.start.nLine,
-                 ( unsigned long ) call.start.nColumn,
-                 ( unsigned long ) call.start.nOffset,
-                 ( unsigned long ) call.end.nLine,
-                 ( unsigned long ) call.end.nColumn,
-                 ( unsigned long ) call.end.nOffset );
-      }
-
-      putchar( '\n' );
-   }
-
-   puts( "[done] EOF reached" );
-
-   {
-      HB_AST_TOKEN_STREAM * snapshot = hb_astTokenStreamSnapshot( lex );
-
-      if( snapshot )
-      {
-         HB_SIZE nCount = hb_astTokenStreamMacroTraceCount( snapshot );
-         HB_SIZE i;
-
-         for( i = 0; i < nCount; ++i )
-         {
-            const void * pTrace = hb_astTokenStreamMacroTrace( snapshot, i );
-            HB_AST_SOURCE_RANGE call = hb_astMacroTraceCallRange( pTrace );
-            const char * pszCallModule = hb_astMacroTraceCallModule( pTrace );
-            const char * pszMacroName = hb_astMacroTraceName( pTrace );
-
-            printf( "[macro %3lu] id=%lu depth=%lu macro=\"%s\" caller=%s call=(%lu:%lu:%lu -> %lu:%lu:%lu)\n",
-                    ( unsigned long ) i,
-                    ( unsigned long ) hb_astMacroTraceId( pTrace ),
-                    ( unsigned long ) hb_astMacroTraceDepth( pTrace ),
-                    pszMacroName ? pszMacroName : "<anon>",
-                    pszCallModule ? pszCallModule : "<unknown>",
-                    ( unsigned long ) call.start.nLine,
-                    ( unsigned long ) call.start.nColumn,
-                    ( unsigned long ) call.start.nOffset,
-                    ( unsigned long ) call.end.nLine,
-                    ( unsigned long ) call.end.nColumn,
-                    ( unsigned long ) call.end.nOffset );
-         }
-
-         hb_astTokenStreamRelease( snapshot );
-      }
-   }
-
-   hb_astLexerFree( lex );
-   return 0;
+   return cmocka_run_group_tests( tests, NULL, NULL );
 }

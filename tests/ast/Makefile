@@ -17,6 +17,9 @@ LIBS     := -L$(LIBDIR) \
             -lharbour \
             -lm
 
+CMOCKA_INC  ?= -I/usr/local/include
+CMOCKA_LIBS ?= -L/usr/local/lib -lcmocka
+
 TARGETS := smoke snapshot rename builder-test
 
 .PHONY: all clean build tests suite
@@ -24,16 +27,16 @@ TARGETS := smoke snapshot rename builder-test
 all: build
 
 smoke: smoke.c
-	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
 snapshot: test_snapshot.c
-	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
 rename: test_rename.c
-	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
 builder-test: test_builder.c
-	$(CC) $(CFLAGS) $(INCLUDES) -I/usr/local/include $< $(LIBS) -L/usr/local/lib -lcmocka $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
 clean:
 	rm -f $(TARGETS)
