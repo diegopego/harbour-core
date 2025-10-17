@@ -17,11 +17,11 @@ LIBS     := -L$(LIBDIR) \
             -lharbour \
             -lm
 
-TARGETS := smoke snapshot rename
+TARGETS := smoke snapshot rename builder-test
 
-.PHONY: all clean
+.PHONY: all clean build tests suite
 
-all: $(TARGETS)
+all: build
 
 smoke: smoke.c
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
@@ -32,5 +32,16 @@ snapshot: test_snapshot.c
 rename: test_rename.c
 	$(CC) $(CFLAGS) $(INCLUDES) $< $(LIBS) $(LDFLAGS) -o $@
 
+builder-test: test_builder.c
+	$(CC) $(CFLAGS) $(INCLUDES) -I/usr/local/include $< $(LIBS) -L/usr/local/lib -lcmocka $(LDFLAGS) -o $@
+
 clean:
 	rm -f $(TARGETS)
+
+build: $(TARGETS)
+
+tests: build
+	(cd $(ROOT) && ./tests/ast/smoke)
+	(cd $(ROOT) && ./tests/ast/rename)
+	(cd $(ROOT) && ./tests/ast/snapshot)
+	(cd $(ROOT) && ./tests/ast/builder-test)

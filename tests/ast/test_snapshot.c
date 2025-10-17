@@ -66,8 +66,8 @@ int main( void )
          }
 
          callRange = hb_astMacroTraceCallRange( pTrace );
-         if( callRange.start.nLine != 4 ||
-             callRange.end.nLine != 4 ||
+         if( callRange.start.nLine != 5 ||
+             callRange.end.nLine != 5 ||
              callRange.start.nColumn != 15 ||
              callRange.end.nColumn != 20 )
          {
@@ -113,8 +113,8 @@ int main( void )
             else
             {
                callRange = hb_astMacroTraceCallRange( pTrace );
-               if( callRange.start.nLine != 4 ||
-                   callRange.end.nLine != 4 ||
+               if( callRange.start.nLine != 5 ||
+                   callRange.end.nLine != 5 ||
                    callRange.start.nColumn != 15 ||
                    callRange.end.nColumn != 20 )
                {
@@ -189,6 +189,8 @@ int main( void )
                rc = report_failure( "snapshot json missing token_stream" );
             else if( strstr( pszFull, "\"ProcDecl\"" ) == NULL )
                rc = report_failure( "snapshot json missing procedure node" );
+            else if( strstr( pszFull, "\"FunctionDecl\"" ) == NULL )
+               rc = report_failure( "snapshot json missing function node" );
 
             hb_astTokenStreamSerializeSnapshotJsonFree( pszFull );
          }
@@ -228,8 +230,10 @@ int main( void )
                         rc = report_failure( "snapshot json file missing token_stream" );
                      else if( strstr( snapBuffer, "\"nodes\"") == NULL )
                         rc = report_failure( "snapshot json file missing nodes array" );
-                  }
-               }
+                     else if( strstr( snapBuffer, "\"FunctionDecl\"" ) == NULL )
+                        rc = report_failure( "snapshot json file missing function node" );
+                 }
+              }
 
                fclose( pSnap );
                if( snapBuffer )
@@ -237,10 +241,26 @@ int main( void )
             }
 
             remove( pszSnapPath );
-         }
+        }
 
-         if( rc == 0 )
-         {
+        if( rc == 0 )
+        {
+           HB_SIZE nSymbolsLen = 0;
+           char * pszSymbols = hb_astTokenStreamSerializeSymbolsJson( pSnapshot, cfg.pszModule, &nSymbolsLen );
+
+           if( pszSymbols == NULL )
+              rc = report_failure( "failed to serialize symbols json" );
+           else if( nSymbolsLen == 0 )
+              rc = report_failure( "symbols json has zero length" );
+           else if( strstr( pszSymbols, "\"symbol_id\"") == NULL )
+              rc = report_failure( "symbols json missing symbol_id" );
+           else if( strstr( pszSymbols, "\"name\":\"Demo\"") == NULL )
+              rc = report_failure( "symbols json missing Demo symbol" );
+           hb_astTokenStreamSerializeSymbolsJsonFree( pszSymbols );
+        }
+
+        if( rc == 0 )
+        {
             HB_SIZE nMacroCborLen = 0;
             HB_BYTE * pMacroCbor = hb_astTokenStreamSerializeMacrosCbor( pSnapshot, &nMacroCborLen );
 
@@ -254,8 +274,8 @@ int main( void )
             hb_astTokenStreamSerializeMacrosCborFree( pMacroCbor );
          }
 
-         if( rc == 0 )
-         {
+        if( rc == 0 )
+        {
             HB_SIZE nAstCborLen = 0;
             HB_BYTE * pAstCbor = hb_astTokenStreamSerializeSnapshotCbor( pSnapshot, cfg.pszModule, &nAstCborLen );
 
@@ -267,7 +287,22 @@ int main( void )
                rc = report_failure( "snapshot cbor unexpected type" );
 
             hb_astTokenStreamSerializeSnapshotCborFree( pAstCbor );
-         }
+        }
+
+        if( rc == 0 )
+        {
+           HB_SIZE nSymCborLen = 0;
+           HB_BYTE * pSymCbor = hb_astTokenStreamSerializeSymbolsCbor( pSnapshot, cfg.pszModule, &nSymCborLen );
+
+           if( pSymCbor == NULL )
+              rc = report_failure( "failed to serialize symbols cbor" );
+           else if( nSymCborLen == 0 )
+              rc = report_failure( "symbols cbor has zero length" );
+           else if( ( pSymCbor[ 0 ] & 0xE0 ) != 0x80 )
+              rc = report_failure( "symbols cbor unexpected type" );
+
+           hb_astTokenStreamSerializeSymbolsCborFree( pSymCbor );
+        }
 
          if( rc == 0 )
          {

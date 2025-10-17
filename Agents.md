@@ -137,6 +137,13 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 - **Quality gates**: no agent ships without automated tests, coverage targets, and documentation updates.
 - **Community feedback**: schedule regular feedback sessions with Harbour users to validate tooling ergonomics.
 
+### Pipeline `make test-ast`
+
+- `make test-ast` é agora o ponto único de automação para o projeto de extensão AST. Ele simplesmente delega para `scripts/test-ast.sh`, que recompila `libhbastlex` (`src/ast/lexer/`), reconstrói a CLI `hbast` (`utils/hbast/`) e aciona `tests/ast/Makefile` (`make tests`) para recompilar e rodar os binários auxiliares.
+- A receita executa em sequência `tests/ast/smoke`, `tests/ast/rename`, `tests/ast/snapshot` e `tests/ast/builder-test`, garantindo que o lexer, o construtor de nós e o pipeline de serialização sigam consistentes após cada alteração.
+- Ao final é impresso o caminho da CLI recompilada (`./bin/<plat>/<compiler>/hbast`) para quem desejar serializar fixtures ou rodar provas manuais.
+- Sugestão: exporte `HB_PLATFORM`/`HB_COMPILER` conforme o ambiente local antes de rodar `make test-ast` para evitar recompilações redundantes; utilize `make -j` se desejar paralelizar compilação nos subprojetos.
+
 ## Next Steps
 
 1. Instrumentar o pré-processador para produzir coordenadas originais/expandidas precisas e diferenciar trivia (comentários, espaços) sem heurísticas.

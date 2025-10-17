@@ -1,3 +1,4 @@
+#include "ast/hbast_builder.h"
 #include "ast/lexer/hbast_lexer.h"
 #include "hbapi.h"
 #include "hbapifs.h"
@@ -9,29 +10,6 @@ typedef struct _HB_AST_JSON_BUFFER
    HB_SIZE nLen;
    HB_SIZE nCapacity;
 } HB_AST_JSON_BUFFER;
-
-typedef struct _HB_AST_NODE_SERIAL
-{
-   HB_SIZE id;
-   char *  pszKind;
-   char *  pszStableId;
-   HB_AST_SOURCE_RANGE range;
-   HB_SIZE parentId;
-   HB_SIZE * pChildren;
-   HB_SIZE nChildCount;
-   HB_SIZE nChildCapacity;
-   HB_SIZE * pTokens;
-   HB_SIZE nTokenCount;
-   HB_SIZE nTokenCapacity;
-} HB_AST_NODE_SERIAL;
-
-typedef struct _HB_AST_NODE_LIST
-{
-   HB_AST_NODE_SERIAL * pNodes;
-   HB_SIZE nCount;
-   HB_SIZE nCapacity;
-   HB_SIZE nRootId;
-} HB_AST_NODE_LIST;
 
 static void hb_astJsonBufferInit( HB_AST_JSON_BUFFER * pBuf )
 {
@@ -155,375 +133,14 @@ static void hb_astJsonAppendRange( HB_AST_JSON_BUFFER * pBuf, const HB_AST_SOURC
    hb_astJsonBufferAddChar( pBuf, '}' );
 }
 
-static void hb_astNodeListInit( HB_AST_NODE_LIST * pList )
-{
-   hb_xmemset( pList, 0, sizeof( *pList ) );
-}
-
-static void hb_astNodeRelease( HB_AST_NODE_SERIAL * pNode )
-{
-   if( pNode->pszKind )
-      hb_xfree( pNode->pszKind );
-   if( pNode->pszStableId )
-      hb_xfree( pNode->pszStableId );
-   if( pNode->pChildren )
-      hb_xfree( pNode->pChildren );
-   if( pNode->pTokens )
-      hb_xfree( pNode->pTokens );
-}
-
-static void hb_astNodeListRelease( HB_AST_NODE_LIST * pList )
-{
-   if( pList->pNodes )
-   {
-      HB_SIZE i;
-
-      for( i = 0; i < pList->nCount; ++i )
-         hb_astNodeRelease( &pList->pNodes[ i ] );
-
-      hb_xfree( pList->pNodes );
-   }
-
-   hb_xmemset( pList, 0, sizeof( *pList ) );
-}
-
-static HB_AST_NODE_SERIAL * hb_astNodeListAdd( HB_AST_NODE_LIST * pList, HB_SIZE nId, const char * pszKind )
-{
-   HB_AST_NODE_SERIAL * pNode;
-
-   if( pList->nCount == pList->nCapacity )
-   {
-      HB_SIZE nNewCap = pList->nCapacity == 0 ? 8 : pList->nCapacity << 1;
-
-      if( pList->pNodes )
-         pList->pNodes = ( HB_AST_NODE_SERIAL * ) hb_xrealloc( pList->pNodes, nNewCap * sizeof( HB_AST_NODE_SERIAL ) );
-      else
-         pList->pNodes = ( HB_AST_NODE_SERIAL * ) hb_xgrab( nNewCap * sizeof( HB_AST_NODE_SERIAL ) );
-
-      hb_xmemset( pList->pNodes + pList->nCapacity, 0,
-                  ( nNewCap - pList->nCapacity ) * sizeof( HB_AST_NODE_SERIAL ) );
-
-      pList->nCapacity = nNewCap;
-   }
-
-   pNode = &pList->pNodes[ pList->nCount++ ];
-   hb_xmemset( pNode, 0, sizeof( HB_AST_NODE_SERIAL ) );
-   pNode->id = nId;
-   pNode->parentId = HB_SIZE_MAX;
-   if( pszKind )
-      pNode->pszKind = hb_strdup( pszKind );
-
-   return pNode;
-}
-
-static void hb_astNodeAddChild( HB_AST_NODE_SERIAL * pNode, HB_SIZE nChildId )
-{
-   if( pNode == NULL )
-      return;
-
-   if( pNode->nChildCount == pNode->nChildCapacity )
-   {
-      HB_SIZE nNewCap = pNode->nChildCapacity == 0 ? 4 : pNode->nChildCapacity << 1;
-
-      if( pNode->pChildren )
-         pNode->pChildren = ( HB_SIZE * ) hb_xrealloc( pNode->pChildren, nNewCap * sizeof( HB_SIZE ) );
-      else
-         pNode->pChildren = ( HB_SIZE * ) hb_xgrab( nNewCap * sizeof( HB_SIZE ) );
-
-      pNode->nChildCapacity = nNewCap;
-   }
-
-   pNode->pChildren[ pNode->nChildCount++ ] = nChildId;
-}
-
-static void hb_astNodeAddToken( HB_AST_NODE_SERIAL * pNode, HB_SIZE nTokenId )
-{
-   if( pNode == NULL )
-      return;
-
-   if( pNode->nTokenCount == pNode->nTokenCapacity )
-   {
-      HB_SIZE nNewCap = pNode->nTokenCapacity == 0 ? 8 : pNode->nTokenCapacity << 1;
-
-      if( pNode->pTokens )
-         pNode->pTokens = ( HB_SIZE * ) hb_xrealloc( pNode->pTokens, nNewCap * sizeof( HB_SIZE ) );
-      else
-         pNode->pTokens = ( HB_SIZE * ) hb_xgrab( nNewCap * sizeof( HB_SIZE ) );
-
-      pNode->nTokenCapacity = nNewCap;
-   }
-
-   pNode->pTokens[ pNode->nTokenCount++ ] = nTokenId;
-}
-
-static HB_BOOL hb_astModulesEqual( const char * pszA, const char * pszB )
-{
-   if( pszA == NULL || pszB == NULL )
-      return HB_FALSE;
-
-   return hb_stricmp( pszA, pszB ) == 0;
-}
-
-static HB_BOOL hb_astTokenBelongsToModule( const HB_AST_TOKEN * pToken, const char * pszModule )
-{
-   if( pszModule == NULL || *pszModule == '\0' )
-      return HB_TRUE;
-
-   if( pToken->pszModule && hb_astModulesEqual( pToken->pszModule, pszModule ) )
-      return HB_TRUE;
-
-   if( pToken->pMacroOrigin )
-   {
-      const char * pszCallModule = hb_astMacroTraceCallModule( pToken->pMacroOrigin );
-      if( pszCallModule && hb_astModulesEqual( pszCallModule, pszModule ) )
-         return HB_TRUE;
-   }
-
-   return HB_FALSE;
-}
-
-static void hb_astNodeSetRangeFromIndices( HB_AST_NODE_SERIAL * pNode,
-                                           const HB_AST_TOKEN_STREAM * pStream,
-                                           HB_SIZE nStart,
-                                           HB_SIZE nEnd )
-{
-   const HB_AST_TOKEN * pStart;
-   const HB_AST_TOKEN * pEnd;
-
-   if( pNode == NULL || pStream == NULL || nStart >= hb_astTokenStreamCount( pStream ) ||
-       nEnd >= hb_astTokenStreamCount( pStream ) || nStart > nEnd )
-   {
-      hb_xmemset( &pNode->range, 0, sizeof( pNode->range ) );
-      return;
-   }
-
-   pStart = hb_astTokenStreamToken( pStream, nStart );
-   pEnd   = hb_astTokenStreamToken( pStream, nEnd );
-
-   if( pStart )
-      pNode->range.start = pStart->original.start;
-   else
-      hb_xmemset( &pNode->range.start, 0, sizeof( pNode->range.start ) );
-
-   if( pEnd )
-      pNode->range.end = pEnd->original.end;
-   else
-      hb_xmemset( &pNode->range.end, 0, sizeof( pNode->range.end ) );
-}
-
-static void hb_astNodeAssignStableId( HB_AST_NODE_SERIAL * pNode, const char * pszModule )
-{
-   char buffer[ 512 ];
-   const char * pszKind = pNode->pszKind ? pNode->pszKind : "Node";
-   HB_SIZE nOffset = pNode->range.start.nOffset;
-
-   hb_snprintf( buffer, sizeof( buffer ), "%s:%" HB_PFS "u:%s@%08" HB_PFS "u",
-                pszModule ? pszModule : "", nOffset, pszKind, pNode->id );
-
-   if( pNode->pszStableId )
-      hb_xfree( pNode->pszStableId );
-   pNode->pszStableId = hb_strdup( buffer );
-}
-
-static HB_BOOL hb_astIsKeyword( const HB_AST_TOKEN * pToken, const char * pszKeyword )
-{
-   return pToken &&
-          pToken->kind == HB_AST_TOKEN_KIND_KEYWORD &&
-          pToken->pszLexeme &&
-          hb_stricmp( pToken->pszLexeme, pszKeyword ) == 0;
-}
-
-static void hb_astBuildNodes( const HB_AST_TOKEN_STREAM * pStream,
-                              const char * pszModule,
-                              HB_AST_NODE_LIST * pNodes )
-{
-   HB_AST_NODE_SERIAL * pRoot;
-   HB_SIZE nTokenCount;
-   HB_SIZE nFirstIdx = HB_SIZE_MAX;
-   HB_SIZE nLastIdx  = 0;
-   HB_SIZE nNextId = 1;
-   HB_SIZE i;
-
-   hb_astNodeListInit( pNodes );
-
-   pRoot = hb_astNodeListAdd( pNodes, 0, "File" );
-   pNodes->nRootId = pRoot->id;
-
-   if( pStream == NULL )
-   {
-      hb_astNodeAssignStableId( pRoot, pszModule );
-      return;
-   }
-
-   nTokenCount = hb_astTokenStreamCount( pStream );
-
-   for( i = 0; i < nTokenCount; ++i )
-   {
-      const HB_AST_TOKEN * pToken = hb_astTokenStreamToken( pStream, i );
-
-      if( pToken && hb_astTokenBelongsToModule( pToken, pszModule ) )
-      {
-         if( nFirstIdx == HB_SIZE_MAX )
-            nFirstIdx = i;
-         nLastIdx = i;
-         hb_astNodeAddToken( pRoot, pToken->id.uHash );
-      }
-   }
-
-   if( nFirstIdx != HB_SIZE_MAX )
-      hb_astNodeSetRangeFromIndices( pRoot, pStream, nFirstIdx, nLastIdx );
-   else
-      hb_xmemset( &pRoot->range, 0, sizeof( pRoot->range ) );
-
-   hb_astNodeAssignStableId( pRoot, pszModule );
-
-   if( nFirstIdx == HB_SIZE_MAX )
-      return;
-
-   i = nFirstIdx;
-   while( i <= nLastIdx && i < nTokenCount )
-   {
-      const HB_AST_TOKEN * pToken = hb_astTokenStreamToken( pStream, i );
-
-      if( pToken == NULL || ! hb_astTokenBelongsToModule( pToken, pszModule ) )
-      {
-         ++i;
-         continue;
-      }
-
-      if( hb_astIsKeyword( pToken, "PROC" ) || hb_astIsKeyword( pToken, "FUNCTION" ) )
-      {
-         HB_AST_NODE_SERIAL * pProcNode;
-         const char * pszKind = hb_astIsKeyword( pToken, "PROC" ) ? "ProcDecl" : "FunctionDecl";
-         HB_SIZE nStart = i;
-         HB_SIZE nHeaderEnd = i;
-         HB_SIZE nEnd = nLastIdx;
-         HB_SIZE j;
-
-         for( j = i; j <= nLastIdx && j < nTokenCount; ++j )
-         {
-            const HB_AST_TOKEN * pTemp = hb_astTokenStreamToken( pStream, j );
-            if( pTemp && pTemp->kind == HB_AST_TOKEN_KIND_NEWLINE &&
-                hb_astTokenBelongsToModule( pTemp, pszModule ) )
-            {
-               nHeaderEnd = j;
-               break;
-            }
-         }
-
-         for( j = i + 1; j <= nLastIdx && j < nTokenCount; ++j )
-         {
-            const HB_AST_TOKEN * pTemp = hb_astTokenStreamToken( pStream, j );
-            if( pTemp && hb_astTokenBelongsToModule( pTemp, pszModule ) &&
-                ( hb_astIsKeyword( pTemp, "PROC" ) || hb_astIsKeyword( pTemp, "FUNCTION" ) ) )
-            {
-               nEnd = j > 0 ? j - 1 : j;
-               break;
-            }
-         }
-
-         if( nEnd < nStart )
-            nEnd = nStart;
-
-         pProcNode = hb_astNodeListAdd( pNodes, nNextId++, pszKind );
-         pProcNode->parentId = pRoot->id;
-         hb_astNodeAddChild( pRoot, pProcNode->id );
-
-         for( j = nStart; j <= nEnd && j < nTokenCount; ++j )
-         {
-            const HB_AST_TOKEN * pTemp = hb_astTokenStreamToken( pStream, j );
-            if( pTemp && hb_astTokenBelongsToModule( pTemp, pszModule ) )
-               hb_astNodeAddToken( pProcNode, pTemp->id.uHash );
-         }
-
-         hb_astNodeSetRangeFromIndices( pProcNode, pStream, nStart, nEnd );
-         hb_astNodeAssignStableId( pProcNode, pszModule );
-
-         if( nHeaderEnd < nEnd )
-         {
-            HB_SIZE nBodyIdx = nHeaderEnd + 1;
-
-            while( nBodyIdx <= nEnd && nBodyIdx < nTokenCount )
-            {
-               const HB_AST_TOKEN * pBodyTok = hb_astTokenStreamToken( pStream, nBodyIdx );
-
-               if( pBodyTok == NULL || ! hb_astTokenBelongsToModule( pBodyTok, pszModule ) )
-               {
-                  ++nBodyIdx;
-                  continue;
-               }
-
-               if( hb_astIsKeyword( pBodyTok, "LOCAL" ) || hb_astIsKeyword( pBodyTok, "RETURN" ) )
-               {
-                  const char * pszStmtKind = hb_astIsKeyword( pBodyTok, "LOCAL" ) ?
-                                             "LocalDecl" : "ReturnStmt";
-                  HB_AST_NODE_SERIAL * pStmtNode;
-                  HB_SIZE nStmtStart = nBodyIdx;
-                  HB_SIZE nStmtEnd = nBodyIdx;
-                  HB_SIZE nScan;
-
-                  for( nScan = nBodyIdx; nScan <= nEnd && nScan < nTokenCount; ++nScan )
-                  {
-                     const HB_AST_TOKEN * pScanTok = hb_astTokenStreamToken( pStream, nScan );
-
-                     if( pScanTok && pScanTok->kind == HB_AST_TOKEN_KIND_NEWLINE &&
-                         hb_astTokenBelongsToModule( pScanTok, pszModule ) )
-                     {
-                        nStmtEnd = nScan;
-                        break;
-                     }
-                  }
-
-                  if( nStmtEnd < nStmtStart )
-                     nStmtEnd = nStmtStart;
-                  if( nStmtEnd > nEnd )
-                     nStmtEnd = nEnd;
-
-                  pStmtNode = hb_astNodeListAdd( pNodes, nNextId++, pszStmtKind );
-                  pStmtNode->parentId = pProcNode->id;
-                  hb_astNodeAddChild( pProcNode, pStmtNode->id );
-
-                  for( nScan = nStmtStart; nScan <= nStmtEnd && nScan < nTokenCount; ++nScan )
-                  {
-                     const HB_AST_TOKEN * pStmtTok = hb_astTokenStreamToken( pStream, nScan );
-
-                     if( pStmtTok && hb_astTokenBelongsToModule( pStmtTok, pszModule ) )
-                        hb_astNodeAddToken( pStmtNode, pStmtTok->id.uHash );
-                     else if( pStmtTok && pStmtTok->pMacroOrigin )
-                     {
-                        const char * pszCall = hb_astMacroTraceCallModule( pStmtTok->pMacroOrigin );
-                        if( pszCall && pszModule && hb_astModulesEqual( pszCall, pszModule ) )
-                           hb_astNodeAddToken( pStmtNode, pStmtTok->id.uHash );
-                     }
-                  }
-
-                  hb_astNodeSetRangeFromIndices( pStmtNode, pStream, nStmtStart, nStmtEnd );
-                  hb_astNodeAssignStableId( pStmtNode, pszModule );
-
-                  nBodyIdx = nStmtEnd + 1;
-                  continue;
-               }
-
-               ++nBodyIdx;
-            }
-         }
-
-         i = ( nEnd < nLastIdx ) ? nEnd + 1 : nLastIdx + 1;
-         continue;
-      }
-
-      ++i;
-   }
-}
-
-static void hb_astJsonAppendNodes( HB_AST_JSON_BUFFER * pBuf, const HB_AST_NODE_LIST * pNodes )
+static void hb_astJsonAppendNodes( HB_AST_JSON_BUFFER * pBuf, const HB_AST_BUILD_RESULT * pBuild )
 {
    HB_SIZE i, j;
 
    hb_astJsonBufferAddCStr( pBuf, "\"nodes\":[" );
-   for( i = 0; i < pNodes->nCount; ++i )
+   for( i = 0; i < pBuild->nNodeCount; ++i )
    {
-      const HB_AST_NODE_SERIAL * pNode = &pNodes->pNodes[ i ];
+      const HB_AST_NODE_INFO * pNode = &pBuild->pNodes[ i ];
 
       if( i > 0 )
          hb_astJsonBufferAddChar( pBuf, ',' );
@@ -565,6 +182,125 @@ static void hb_astJsonAppendNodes( HB_AST_JSON_BUFFER * pBuf, const HB_AST_NODE_
       }
       hb_astJsonBufferAddChar( pBuf, ']' );
 
+      hb_astJsonBufferAddCStr( pBuf, ",\"symbol\":" );
+      if( pNode->symbolId == HB_SIZE_MAX )
+         hb_astJsonBufferAddCStr( pBuf, "null" );
+      else
+         hb_astJsonBufferAddUnsigned( pBuf, pNode->symbolId );
+
+      hb_astJsonBufferAddChar( pBuf, '}' );
+   }
+   hb_astJsonBufferAddChar( pBuf, ']' );
+}
+
+static void hb_astJsonAppendTokenStream( HB_AST_JSON_BUFFER * pBuf, const HB_AST_TOKEN_STREAM * pStream )
+{
+   HB_SIZE nTokenCount, i;
+
+   hb_astJsonBufferAddCStr( pBuf, "\"token_stream\":{\"tokens\":[" );
+
+   nTokenCount = hb_astTokenStreamCount( pStream );
+   for( i = 0; i < nTokenCount; ++i )
+   {
+      const HB_AST_TOKEN * pToken = hb_astTokenStreamToken( pStream, i );
+      const void * pTrace = pToken ? pToken->pMacroOrigin : NULL;
+
+      if( i > 0 )
+         hb_astJsonBufferAddChar( pBuf, ',' );
+
+      hb_astJsonBufferAddChar( pBuf, '{' );
+      hb_astJsonBufferAddCStr( pBuf, "\"id\":" );
+      hb_astJsonBufferAddUnsigned( pBuf, pToken->id.uHash );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"kind\":" );
+      hb_astJsonBufferAddUnsigned( pBuf, pToken->kind );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"pp_type\":" );
+      hb_astJsonBufferAddUnsigned( pBuf, pToken->uPPType );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"channel\":" );
+      hb_astJsonBufferAddUnsigned( pBuf, pToken->uChannel );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"macro_depth\":" );
+      hb_astJsonBufferAddUnsigned( pBuf, pToken->id.nMacroDepth );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"lexeme\":" );
+      hb_astJsonAddEscapedString( pBuf, pToken->pszLexeme );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"length\":" );
+      hb_astJsonBufferAddUnsigned( pBuf, pToken->nLexemeLength );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"module\":" );
+      hb_astJsonAddEscapedString( pBuf, pToken->pszModule );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"original\":" );
+      hb_astJsonAppendRange( pBuf, &pToken->original );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"expanded\":" );
+      hb_astJsonAppendRange( pBuf, &pToken->expanded );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"macro_expansion_id\":" );
+      if( pTrace )
+      {
+         HB_SIZE nId = hb_astMacroTraceId( pTrace );
+         if( nId == HB_SIZE_MAX )
+            nId = i;
+         hb_astJsonBufferAddUnsigned( pBuf, nId );
+      }
+      else
+         hb_astJsonBufferAddCStr( pBuf, "null" );
+
+      hb_astJsonBufferAddChar( pBuf, '}' );
+   }
+
+   hb_astJsonBufferAddCStr( pBuf, "]}" );
+}
+
+static void hb_astJsonWriteSymbolsArray( HB_AST_JSON_BUFFER * pBuf, const HB_AST_BUILD_RESULT * pBuild )
+{
+   HB_SIZE i, j;
+
+   hb_astJsonBufferAddChar( pBuf, '[' );
+   for( i = 0; i < pBuild->nSymbolCount; ++i )
+   {
+      const HB_AST_SYMBOL_INFO * pSymbol = &pBuild->pSymbols[ i ];
+
+      if( i > 0 )
+         hb_astJsonBufferAddChar( pBuf, ',' );
+
+      hb_astJsonBufferAddChar( pBuf, '{' );
+      hb_astJsonBufferAddCStr( pBuf, "\"symbol_id\":" );
+      hb_astJsonBufferAddUnsigned( pBuf, pSymbol->symbolId );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"kind\":" );
+      hb_astJsonAddEscapedString( pBuf, pSymbol->pszKind );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"name\":" );
+      hb_astJsonAddEscapedString( pBuf, pSymbol->pszName );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"qualified_name\":" );
+      hb_astJsonAddEscapedString( pBuf, pSymbol->pszQualifiedName );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"declarations\":[" );
+      for( j = 0; j < pSymbol->nDeclarationCount; ++j )
+      {
+         if( j > 0 )
+            hb_astJsonBufferAddChar( pBuf, ',' );
+         hb_astJsonBufferAddUnsigned( pBuf, pSymbol->pDeclarations[ j ] );
+      }
+      hb_astJsonBufferAddChar( pBuf, ']' );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"references\":[" );
+      for( j = 0; j < pSymbol->nReferenceCount; ++j )
+      {
+         if( j > 0 )
+            hb_astJsonBufferAddChar( pBuf, ',' );
+         hb_astJsonBufferAddUnsigned( pBuf, pSymbol->pReferences[ j ] );
+      }
+      hb_astJsonBufferAddChar( pBuf, ']' );
+
+      hb_astJsonBufferAddCStr( pBuf, ",\"scope\":{\"parent\":0,\"kind\":\"Module\"}" );
+      hb_astJsonBufferAddCStr( pBuf, ",\"annotations\":[]" );
       hb_astJsonBufferAddChar( pBuf, '}' );
    }
    hb_astJsonBufferAddChar( pBuf, ']' );
@@ -683,86 +419,31 @@ char * hb_astTokenStreamSerializeSnapshotJson( const HB_AST_TOKEN_STREAM * pStre
                                                HB_SIZE * pnLength )
 {
    HB_AST_JSON_BUFFER buffer;
-   HB_AST_NODE_LIST nodes;
-   HB_SIZE nTokenCount, i;
+   HB_AST_BUILD_RESULT build;
 
    if( pStream == NULL )
       return NULL;
 
+   if( ! hb_astBuildFromStream( pStream, pszModule, &build ) )
+      return NULL;
+
    hb_astJsonBufferInit( &buffer );
-   hb_astBuildNodes( pStream, pszModule, &nodes );
 
    hb_astJsonBufferAddChar( &buffer, '{' );
    hb_astJsonBufferAddCStr( &buffer, "\"root\":" );
-   hb_astJsonBufferAddUnsigned( &buffer, nodes.nRootId );
+   hb_astJsonBufferAddUnsigned( &buffer, build.nRootId );
    hb_astJsonBufferAddChar( &buffer, ',' );
-   hb_astJsonAppendNodes( &buffer, &nodes );
+   hb_astJsonAppendNodes( &buffer, &build );
    hb_astJsonBufferAddChar( &buffer, ',' );
 
-   hb_astJsonBufferAddCStr( &buffer, "\"token_stream\":{\"tokens\":[" );
-
-   nTokenCount = hb_astTokenStreamCount( pStream );
-   for( i = 0; i < nTokenCount; ++i )
-   {
-      const HB_AST_TOKEN * pToken = hb_astTokenStreamToken( pStream, i );
-      const void * pTrace = pToken ? pToken->pMacroOrigin : NULL;
-
-      if( i > 0 )
-         hb_astJsonBufferAddChar( &buffer, ',' );
-
-      hb_astJsonBufferAddChar( &buffer, '{' );
-      hb_astJsonBufferAddCStr( &buffer, "\"id\":" );
-      hb_astJsonBufferAddUnsigned( &buffer, pToken->id.uHash );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"kind\":" );
-      hb_astJsonBufferAddUnsigned( &buffer, pToken->kind );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"pp_type\":" );
-      hb_astJsonBufferAddUnsigned( &buffer, pToken->uPPType );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"channel\":" );
-      hb_astJsonBufferAddUnsigned( &buffer, pToken->uChannel );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"macro_depth\":" );
-      hb_astJsonBufferAddUnsigned( &buffer, pToken->id.nMacroDepth );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"lexeme\":" );
-      hb_astJsonAddEscapedString( &buffer, pToken->pszLexeme );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"length\":" );
-      hb_astJsonBufferAddUnsigned( &buffer, pToken->nLexemeLength );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"module\":" );
-      hb_astJsonAddEscapedString( &buffer, pToken->pszModule );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"original\":" );
-      hb_astJsonAppendRange( &buffer, &pToken->original );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"expanded\":" );
-      hb_astJsonAppendRange( &buffer, &pToken->expanded );
-
-      hb_astJsonBufferAddCStr( &buffer, ",\"macro_expansion_id\":" );
-      if( pTrace )
-      {
-         HB_SIZE nId = hb_astMacroTraceId( pTrace );
-         if( nId == HB_SIZE_MAX )
-            nId = i;
-         hb_astJsonBufferAddUnsigned( &buffer, nId );
-      }
-      else
-         hb_astJsonBufferAddCStr( &buffer, "null" );
-
-      hb_astJsonBufferAddChar( &buffer, '}' );
-   }
-
-   hb_astJsonBufferAddCStr( &buffer, "]}" );
+   hb_astJsonAppendTokenStream( &buffer, pStream );
    hb_astJsonBufferAddChar( &buffer, '}' );
    hb_astJsonBufferAddChar( &buffer, '\0' );
 
    if( pnLength )
       *pnLength = buffer.nLen - 1;
 
-   hb_astNodeListRelease( &nodes );
+   hb_astBuildResultRelease( &build );
 
    return buffer.pszData;
 }
@@ -801,6 +482,38 @@ HB_BOOL hb_astTokenStreamWriteSnapshotJson( const HB_AST_TOKEN_STREAM * pStream,
 
    hb_astTokenStreamSerializeSnapshotJsonFree( pszJson );
    return fResult;
+}
+
+char * hb_astTokenStreamSerializeSymbolsJson( const HB_AST_TOKEN_STREAM * pStream,
+                                              const char * pszModule,
+                                              HB_SIZE * pnLength )
+{
+   HB_AST_BUILD_RESULT build;
+   HB_AST_JSON_BUFFER buffer;
+   char * pszResult = NULL;
+
+   if( pStream == NULL )
+      return NULL;
+
+   if( ! hb_astBuildFromStream( pStream, pszModule, &build ) )
+      return NULL;
+
+   hb_astJsonBufferInit( &buffer );
+   hb_astJsonWriteSymbolsArray( &buffer, &build );
+   hb_astJsonBufferAddChar( &buffer, '\0' );
+
+   if( pnLength )
+      *pnLength = buffer.nLen - 1;
+
+   pszResult = buffer.pszData;
+   hb_astBuildResultRelease( &build );
+   return pszResult;
+}
+
+void hb_astTokenStreamSerializeSymbolsJsonFree( char * pszJson )
+{
+   if( pszJson )
+      hb_xfree( pszJson );
 }
 
 typedef struct _HB_AST_CBOR_BUFFER
@@ -936,54 +649,13 @@ static void hb_astCborEncodeRange( HB_AST_CBOR_BUFFER * pBuf, const HB_AST_SOURC
    hb_astCborEncodeUnsigned( pBuf, pRange->end.nOffset );
 }
 
-static void hb_astCborEncodeNodes( HB_AST_CBOR_BUFFER * pBuf, const HB_AST_NODE_LIST * pNodes )
-{
-   HB_SIZE i, j;
-
-   hb_astCborEncodeArrayStart( pBuf, pNodes->nCount );
-   for( i = 0; i < pNodes->nCount; ++i )
-   {
-      const HB_AST_NODE_SERIAL * pNode = &pNodes->pNodes[ i ];
-
-      hb_astCborEncodeMapStart( pBuf, 7 );
-      hb_astCborEncodeText( pBuf, "id" );
-      hb_astCborEncodeUnsigned( pBuf, pNode->id );
-
-      hb_astCborEncodeText( pBuf, "kind" );
-      hb_astCborEncodeText( pBuf, pNode->pszKind );
-
-      hb_astCborEncodeText( pBuf, "range" );
-      hb_astCborEncodeRange( pBuf, &pNode->range );
-
-      hb_astCborEncodeText( pBuf, "stable_id" );
-      hb_astCborEncodeText( pBuf, pNode->pszStableId );
-
-      hb_astCborEncodeText( pBuf, "parent" );
-      if( pNode->parentId == HB_SIZE_MAX )
-         hb_astCborEncodeNull( pBuf );
-      else
-         hb_astCborEncodeUnsigned( pBuf, pNode->parentId );
-
-      hb_astCborEncodeText( pBuf, "children" );
-      hb_astCborEncodeArrayStart( pBuf, pNode->nChildCount );
-      for( j = 0; j < pNode->nChildCount; ++j )
-         hb_astCborEncodeUnsigned( pBuf, pNode->pChildren[ j ] );
-
-      hb_astCborEncodeText( pBuf, "tokens" );
-      hb_astCborEncodeArrayStart( pBuf, pNode->nTokenCount );
-      for( j = 0; j < pNode->nTokenCount; ++j )
-         hb_astCborEncodeUnsigned( pBuf, pNode->pTokens[ j ] );
-   }
-}
-
 static void hb_astCborEncodeTokenStream( HB_AST_CBOR_BUFFER * pBuf, const HB_AST_TOKEN_STREAM * pStream )
 {
-   HB_SIZE nTokenCount, i;
+   HB_SIZE nTokenCount = hb_astTokenStreamCount( pStream );
+   HB_SIZE i;
 
    hb_astCborEncodeMapStart( pBuf, 1 );
    hb_astCborEncodeText( pBuf, "tokens" );
-
-   nTokenCount = hb_astTokenStreamCount( pStream );
    hb_astCborEncodeArrayStart( pBuf, nTokenCount );
 
    for( i = 0; i < nTokenCount; ++i )
@@ -1033,6 +705,97 @@ static void hb_astCborEncodeTokenStream( HB_AST_CBOR_BUFFER * pBuf, const HB_AST
       }
       else
          hb_astCborEncodeNull( pBuf );
+   }
+}
+
+static void hb_astCborEncodeNodes( HB_AST_CBOR_BUFFER * pBuf, const HB_AST_BUILD_RESULT * pBuild )
+{
+   HB_SIZE i, j;
+
+   hb_astCborEncodeArrayStart( pBuf, pBuild->nNodeCount );
+   for( i = 0; i < pBuild->nNodeCount; ++i )
+   {
+      const HB_AST_NODE_INFO * pNode = &pBuild->pNodes[ i ];
+
+      hb_astCborEncodeMapStart( pBuf, 8 );
+      hb_astCborEncodeText( pBuf, "id" );
+      hb_astCborEncodeUnsigned( pBuf, pNode->id );
+
+      hb_astCborEncodeText( pBuf, "kind" );
+      hb_astCborEncodeText( pBuf, pNode->pszKind );
+
+      hb_astCborEncodeText( pBuf, "range" );
+      hb_astCborEncodeRange( pBuf, &pNode->range );
+
+      hb_astCborEncodeText( pBuf, "stable_id" );
+      hb_astCborEncodeText( pBuf, pNode->pszStableId );
+
+      hb_astCborEncodeText( pBuf, "parent" );
+      if( pNode->parentId == HB_SIZE_MAX )
+         hb_astCborEncodeNull( pBuf );
+      else
+         hb_astCborEncodeUnsigned( pBuf, pNode->parentId );
+
+      hb_astCborEncodeText( pBuf, "children" );
+      hb_astCborEncodeArrayStart( pBuf, pNode->nChildCount );
+      for( j = 0; j < pNode->nChildCount; ++j )
+         hb_astCborEncodeUnsigned( pBuf, pNode->pChildren[ j ] );
+
+      hb_astCborEncodeText( pBuf, "tokens" );
+      hb_astCborEncodeArrayStart( pBuf, pNode->nTokenCount );
+      for( j = 0; j < pNode->nTokenCount; ++j )
+         hb_astCborEncodeUnsigned( pBuf, pNode->pTokens[ j ] );
+
+      hb_astCborEncodeText( pBuf, "symbol" );
+      if( pNode->symbolId == HB_SIZE_MAX )
+         hb_astCborEncodeNull( pBuf );
+      else
+         hb_astCborEncodeUnsigned( pBuf, pNode->symbolId );
+   }
+}
+
+static void hb_astCborEncodeSymbols( HB_AST_CBOR_BUFFER * pBuf, const HB_AST_BUILD_RESULT * pBuild )
+{
+   HB_SIZE i, j;
+
+   hb_astCborEncodeArrayStart( pBuf, pBuild->nSymbolCount );
+   for( i = 0; i < pBuild->nSymbolCount; ++i )
+   {
+      const HB_AST_SYMBOL_INFO * pSymbol = &pBuild->pSymbols[ i ];
+
+      hb_astCborEncodeMapStart( pBuf, 8 );
+
+      hb_astCborEncodeText( pBuf, "symbol_id" );
+      hb_astCborEncodeUnsigned( pBuf, pSymbol->symbolId );
+
+      hb_astCborEncodeText( pBuf, "kind" );
+      hb_astCborEncodeText( pBuf, pSymbol->pszKind );
+
+      hb_astCborEncodeText( pBuf, "name" );
+      hb_astCborEncodeText( pBuf, pSymbol->pszName );
+
+      hb_astCborEncodeText( pBuf, "qualified_name" );
+      hb_astCborEncodeText( pBuf, pSymbol->pszQualifiedName );
+
+      hb_astCborEncodeText( pBuf, "declarations" );
+      hb_astCborEncodeArrayStart( pBuf, pSymbol->nDeclarationCount );
+      for( j = 0; j < pSymbol->nDeclarationCount; ++j )
+         hb_astCborEncodeUnsigned( pBuf, pSymbol->pDeclarations[ j ] );
+
+      hb_astCborEncodeText( pBuf, "references" );
+      hb_astCborEncodeArrayStart( pBuf, pSymbol->nReferenceCount );
+      for( j = 0; j < pSymbol->nReferenceCount; ++j )
+         hb_astCborEncodeUnsigned( pBuf, pSymbol->pReferences[ j ] );
+
+      hb_astCborEncodeText( pBuf, "scope" );
+      hb_astCborEncodeMapStart( pBuf, 2 );
+      hb_astCborEncodeText( pBuf, "parent" );
+      hb_astCborEncodeUnsigned( pBuf, 0 );
+      hb_astCborEncodeText( pBuf, "kind" );
+      hb_astCborEncodeText( pBuf, "Module" );
+
+      hb_astCborEncodeText( pBuf, "annotations" );
+      hb_astCborEncodeArrayStart( pBuf, 0 );
    }
 }
 
@@ -1092,31 +855,65 @@ HB_BYTE * hb_astTokenStreamSerializeSnapshotCbor( const HB_AST_TOKEN_STREAM * pS
                                                   HB_SIZE * pnLength )
 {
    HB_AST_CBOR_BUFFER buffer;
-   HB_AST_NODE_LIST nodes;
+   HB_AST_BUILD_RESULT build;
+   HB_BYTE * pResult = NULL;
 
    if( pStream == NULL )
       return NULL;
 
+   if( ! hb_astBuildFromStream( pStream, pszModule, &build ) )
+      return NULL;
+
    hb_astCborBufferInit( &buffer );
-   hb_astBuildNodes( pStream, pszModule, &nodes );
 
    hb_astCborEncodeMapStart( &buffer, 3 );
    hb_astCborEncodeText( &buffer, "root" );
-   hb_astCborEncodeUnsigned( &buffer, nodes.nRootId );
+   hb_astCborEncodeUnsigned( &buffer, build.nRootId );
    hb_astCborEncodeText( &buffer, "nodes" );
-   hb_astCborEncodeNodes( &buffer, &nodes );
+   hb_astCborEncodeNodes( &buffer, &build );
    hb_astCborEncodeText( &buffer, "token_stream" );
    hb_astCborEncodeTokenStream( &buffer, pStream );
-
-   hb_astNodeListRelease( &nodes );
 
    if( pnLength )
       *pnLength = buffer.nLen;
 
-   return buffer.pData;
+   pResult = buffer.pData;
+   hb_astBuildResultRelease( &build );
+   return pResult;
 }
 
 void hb_astTokenStreamSerializeSnapshotCborFree( HB_BYTE * pBuffer )
+{
+   if( pBuffer )
+      hb_xfree( pBuffer );
+}
+
+HB_BYTE * hb_astTokenStreamSerializeSymbolsCbor( const HB_AST_TOKEN_STREAM * pStream,
+                                                 const char * pszModule,
+                                                 HB_SIZE * pnLength )
+{
+   HB_AST_BUILD_RESULT build;
+   HB_AST_CBOR_BUFFER buffer;
+   HB_BYTE * pResult = NULL;
+
+   if( pStream == NULL )
+      return NULL;
+
+   if( ! hb_astBuildFromStream( pStream, pszModule, &build ) )
+      return NULL;
+
+   hb_astCborBufferInit( &buffer );
+   hb_astCborEncodeSymbols( &buffer, &build );
+
+   if( pnLength )
+      *pnLength = buffer.nLen;
+
+   pResult = buffer.pData;
+   hb_astBuildResultRelease( &build );
+   return pResult;
+}
+
+void hb_astTokenStreamSerializeSymbolsCborFree( HB_BYTE * pBuffer )
 {
    if( pBuffer )
       hb_xfree( pBuffer );

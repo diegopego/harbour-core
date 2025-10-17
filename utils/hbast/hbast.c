@@ -118,7 +118,8 @@ static HB_BYTE * hb_astBuildPayloadCbor( const HB_AST_TOKEN_STREAM * pStream,
    HB_AST_PAYLOAD_CBOR_BUFFER buffer;
    HB_BYTE * pAst = NULL;
    HB_BYTE * pMacros = NULL;
-   HB_SIZE nAstLen = 0, nMacrosLen = 0;
+   HB_BYTE * pSymbols = NULL;
+   HB_SIZE nAstLen = 0, nMacrosLen = 0, nSymbolsLen = 0;
    HB_BOOL fOk = HB_TRUE;
 
    if( pStream == NULL )
@@ -128,8 +129,9 @@ static HB_BYTE * hb_astBuildPayloadCbor( const HB_AST_TOKEN_STREAM * pStream,
 
    pAst = hb_astTokenStreamSerializeSnapshotCbor( pStream, pszModule, &nAstLen );
    pMacros = hb_astTokenStreamSerializeMacrosCbor( pStream, &nMacrosLen );
+   pSymbols = hb_astTokenStreamSerializeSymbolsCbor( pStream, pszModule, &nSymbolsLen );
 
-   if( pAst == NULL || pMacros == NULL )
+   if( pAst == NULL || pMacros == NULL || pSymbols == NULL )
    {
       fOk = HB_FALSE;
    }
@@ -137,7 +139,7 @@ static HB_BYTE * hb_astBuildPayloadCbor( const HB_AST_TOKEN_STREAM * pStream,
    {
       hb_astCliCborInit( &buffer );
 
-      hb_astCliCborEncodeMapStart( &buffer, 5 );
+      hb_astCliCborEncodeMapStart( &buffer, 6 );
 
       hb_astCliCborEncodeText( &buffer, "format_version" );
       hb_astCliCborEncodeText( &buffer, "0.1.0" );
@@ -179,12 +181,17 @@ static HB_BYTE * hb_astBuildPayloadCbor( const HB_AST_TOKEN_STREAM * pStream,
 
       hb_astCliCborEncodeText( &buffer, "macros" );
       hb_astCliCborAddData( &buffer, pMacros, nMacrosLen );
+
+      hb_astCliCborEncodeText( &buffer, "symbols" );
+      hb_astCliCborAddData( &buffer, pSymbols, nSymbolsLen );
    }
 
    if( pAst )
       hb_astTokenStreamSerializeSnapshotCborFree( pAst );
    if( pMacros )
       hb_astTokenStreamSerializeMacrosCborFree( pMacros );
+   if( pSymbols )
+      hb_astTokenStreamSerializeSymbolsCborFree( pSymbols );
 
    if( ! fOk )
    {
@@ -326,11 +333,13 @@ int main( int argc, char * argv[] )
    {
       HB_SIZE nAstLen = 0;
       HB_SIZE nMacrosLen = 0;
+      HB_SIZE nSymbolsLen = 0;
       char * pszAstJson = hb_astTokenStreamSerializeSnapshotJson( pStream, cfg.pszModule, &nAstLen );
       char * pszMacrosJson = hb_astTokenStreamSerializeMacrosJson( pStream, &nMacrosLen );
+      char * pszSymbolsJson = hb_astTokenStreamSerializeSymbolsJson( pStream, cfg.pszModule, &nSymbolsLen );
       FILE * hOut = stdout;
 
-      if( pszAstJson == NULL || pszMacrosJson == NULL )
+      if( pszAstJson == NULL || pszMacrosJson == NULL || pszSymbolsJson == NULL )
       {
          fprintf( stderr, "hbast: serialization error\n" );
          rc = 1;
@@ -364,7 +373,13 @@ int main( int argc, char * argv[] )
                fwrite( pszMacrosJson, 1, nMacrosLen, hOut );
             else
                fputs( "{}", hOut );
-            fputs( "}}]}", hOut );
+            fputs( "}", hOut ); /* close file entry */
+            fputs( "],\"symbols\":", hOut );
+            if( nSymbolsLen > 0 )
+               fwrite( pszSymbolsJson, 1, nSymbolsLen, hOut );
+            else
+               fputs( "[]", hOut );
+            fputs( "}", hOut );
             if( hOut == stdout )
                fputc( '\n', hOut );
          }
@@ -375,6 +390,7 @@ int main( int argc, char * argv[] )
 
       hb_astTokenStreamSerializeSnapshotJsonFree( pszAstJson );
       hb_astTokenStreamSerializeMacrosJsonFree( pszMacrosJson );
+      hb_astTokenStreamSerializeSymbolsJsonFree( pszSymbolsJson );
    }
 
    if( rc == 0 && pszOutputCbor )

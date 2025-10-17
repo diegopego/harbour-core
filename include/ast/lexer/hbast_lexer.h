@@ -146,12 +146,16 @@ HB_BOOL hb_astTokenStreamWriteMacrosJson( const HB_AST_TOKEN_STREAM * pStream, c
 char * hb_astTokenStreamSerializeSnapshotJson( const HB_AST_TOKEN_STREAM * pStream, const char * pszModule, HB_SIZE * pnLength );
 void hb_astTokenStreamSerializeSnapshotJsonFree( char * pszJson );
 HB_BOOL hb_astTokenStreamWriteSnapshotJson( const HB_AST_TOKEN_STREAM * pStream, const char * pszModule, const char * pszPath );
+char * hb_astTokenStreamSerializeSymbolsJson( const HB_AST_TOKEN_STREAM * pStream, const char * pszModule, HB_SIZE * pnLength );
+void hb_astTokenStreamSerializeSymbolsJsonFree( char * pszJson );
 HB_BYTE * hb_astTokenStreamSerializeMacrosCbor( const HB_AST_TOKEN_STREAM * pStream, HB_SIZE * pnLength );
 void hb_astTokenStreamSerializeMacrosCborFree( HB_BYTE * pBuffer );
 HB_BOOL hb_astTokenStreamWriteMacrosCbor( const HB_AST_TOKEN_STREAM * pStream, const char * pszPath );
 HB_BYTE * hb_astTokenStreamSerializeSnapshotCbor( const HB_AST_TOKEN_STREAM * pStream, const char * pszModule, HB_SIZE * pnLength );
 void hb_astTokenStreamSerializeSnapshotCborFree( HB_BYTE * pBuffer );
 HB_BOOL hb_astTokenStreamWriteSnapshotCbor( const HB_AST_TOKEN_STREAM * pStream, const char * pszModule, const char * pszPath );
+HB_BYTE * hb_astTokenStreamSerializeSymbolsCbor( const HB_AST_TOKEN_STREAM * pStream, const char * pszModule, HB_SIZE * pnLength );
+void hb_astTokenStreamSerializeSymbolsCborFree( HB_BYTE * pBuffer );
 const char * hb_astMacroTraceName( const void * pMacroTrace );
 const char * hb_astMacroTraceCallModule( const void * pMacroTrace );
 HB_AST_SOURCE_RANGE hb_astMacroTraceCallRange( const void * pMacroTrace );

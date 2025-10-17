@@ -42,4 +42,5 @@ tests/ast/smoke
 tests/ast/snapshot
 tests/ast/demo.hbast.json
 tests/ast/rename
+tests/ast/builder-test
 tests/tooling/cmocka/a.out
