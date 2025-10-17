@@ -1,4 +1,4 @@
-// tests/ast/smoke.c
+// tests/ast/ast_smoke_test.c
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
@@ -7,7 +7,7 @@
 #include "hbapi.h"
 #include <string.h>
 
-static const char * HB_AST_SMOKE_MODULE = "tests/ast/demo.prg";
+static const char * HB_AST_SMOKE_MODULE = "tests/ast/fixture_demo.prg";
 
 static HB_AST_TOKEN_STREAM * hb_astSmokeCreateSnapshot( void )
 {

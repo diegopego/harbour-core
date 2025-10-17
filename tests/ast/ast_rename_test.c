@@ -52,7 +52,7 @@ static void hb_astRenameCollectStats( HB_AST_RENAME_FIXTURE * pFixture )
 static int hb_astRenameSetup( void ** state )
 {
    HB_AST_RENAME_FIXTURE * pFixture = ( HB_AST_RENAME_FIXTURE * ) calloc( 1, sizeof( HB_AST_RENAME_FIXTURE ) );
-   HB_AST_LEXER_SOURCE cfg = { "tests/ast/demo.prg", "tests/ast/demo.prg", 0, HB_FALSE, HB_TRUE };
+   HB_AST_LEXER_SOURCE cfg = { "tests/ast/fixture_demo.prg", "tests/ast/fixture_demo.prg", 0, HB_FALSE, HB_TRUE };
    HB_AST_LEXER * pLexer;
    HB_AST_TOKEN token;
 

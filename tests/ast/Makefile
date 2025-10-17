@@ -26,16 +26,16 @@ TARGETS := smoke snapshot rename builder-test
 
 all: build
 
-smoke: smoke.c
+smoke: ast_smoke_test.c
 	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
-snapshot: test_snapshot.c
+snapshot: ast_snapshot_test.c
 	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
-rename: test_rename.c
+rename: ast_rename_test.c
 	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
-builder-test: test_builder.c
+builder-test: ast_builder_test.c
 	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
 clean:

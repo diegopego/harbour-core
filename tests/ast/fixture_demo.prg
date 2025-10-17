@@ -1,5 +1,5 @@
-#include "helpers.ch"
-#include "extrahelpers.ch"
+#include "fixture_helpers.ch"
+#include "fixture_extrahelpers.ch"
 
 PROC Demo()
    LOCAL n := VALUE

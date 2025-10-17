@@ -9,7 +9,7 @@
 
 static HB_AST_TOKEN_STREAM * hb_astCreateSnapshot( void )
 {
-   HB_AST_LEXER_SOURCE cfg = { "tests/ast/demo.prg", "tests/ast/demo.prg", 0, HB_FALSE, HB_TRUE };
+   HB_AST_LEXER_SOURCE cfg = { "tests/ast/fixture_demo.prg", "tests/ast/fixture_demo.prg", 0, HB_FALSE, HB_TRUE };
    HB_AST_LEXER * pLexer = hb_astLexerNew( &cfg );
    HB_AST_TOKEN token;
    HB_AST_TOKEN_STREAM * pStream;
@@ -88,7 +88,7 @@ static void test_ast_builder_demo_module( void ** state )
 
    ( void ) state;
 
-   assert_true( hb_astBuildFromStream( pStream, "tests/ast/demo.prg", &result ) );
+   assert_true( hb_astBuildFromStream( pStream, "tests/ast/fixture_demo.prg", &result ) );
    assert_int_equal( result.nRootId, 0 );
    assert_true( result.nNodeCount >= 12 );
    assert_true( result.nSymbolCount >= 7 );
@@ -146,7 +146,7 @@ static void test_ast_builder_helpers_module( void ** state )
 
    ( void ) state;
 
-   assert_true( hb_astBuildFromStream( pStream, "tests/ast/helpers.ch", &result ) );
+   assert_true( hb_astBuildFromStream( pStream, "tests/ast/fixture_helpers.ch", &result ) );
    assert_int_equal( result.nRootId, 0 );
    assert_true( result.nNodeCount >= 3 );
 
@@ -168,7 +168,7 @@ static void test_ast_builder_extrahelpers_module( void ** state )
 
    ( void ) state;
 
-   assert_true( hb_astBuildFromStream( pStream, "tests/ast/extrahelpers.ch", &result ) );
+   assert_true( hb_astBuildFromStream( pStream, "tests/ast/fixture_extrahelpers.ch", &result ) );
    assert_int_equal( result.nRootId, 0 );
    assert_true( result.nNodeCount >= 3 );
 
@@ -194,18 +194,18 @@ static void test_ast_builder_serialization_snapshot( void ** state )
 
    ( void ) state;
 
-   pszJson = hb_astTokenStreamSerializeSnapshotJson( pStream, "tests/ast/demo.prg", &nJsonLen );
+   pszJson = hb_astTokenStreamSerializeSnapshotJson( pStream, "tests/ast/fixture_demo.prg", &nJsonLen );
    assert_non_null( pszJson );
    assert_true( nJsonLen > 0 );
    assert_non_null( strstr( pszJson, "\"FunctionDecl\"" ) );
    hb_astTokenStreamSerializeSnapshotJsonFree( pszJson );
 
-   pCbor = hb_astTokenStreamSerializeSnapshotCbor( pStream, "tests/ast/demo.prg", &nCborLen );
+   pCbor = hb_astTokenStreamSerializeSnapshotCbor( pStream, "tests/ast/fixture_demo.prg", &nCborLen );
    assert_non_null( pCbor );
    assert_true( nCborLen > 0 );
    hb_astTokenStreamSerializeSnapshotCborFree( pCbor );
 
-   pszSymbols = hb_astTokenStreamSerializeSymbolsJson( pStream, "tests/ast/demo.prg", &nSymbolsLen );
+   pszSymbols = hb_astTokenStreamSerializeSymbolsJson( pStream, "tests/ast/fixture_demo.prg", &nSymbolsLen );
    assert_non_null( pszSymbols );
    assert_true( nSymbolsLen > 0 );
    assert_non_null( strstr( pszSymbols, "\"name\":\"Demo\"" ) );

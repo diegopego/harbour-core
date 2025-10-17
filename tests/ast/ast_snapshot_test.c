@@ -30,7 +30,7 @@ static void hb_astSnapshotCleanupFiles( void )
 static int hb_astSnapshotSetup( void ** state )
 {
    HB_AST_SNAPSHOT_FIXTURE * pFixture = ( HB_AST_SNAPSHOT_FIXTURE * ) calloc( 1, sizeof( HB_AST_SNAPSHOT_FIXTURE ) );
-   HB_AST_LEXER_SOURCE cfg = { "tests/ast/demo.prg", "tests/ast/demo.prg", 0, HB_FALSE, HB_TRUE };
+   HB_AST_LEXER_SOURCE cfg = { "tests/ast/fixture_demo.prg", "tests/ast/fixture_demo.prg", 0, HB_FALSE, HB_TRUE };
    HB_AST_LEXER * pLexer;
    HB_AST_TOKEN token;
 
@@ -154,7 +154,7 @@ static void test_macro_graph_json_serialization( void ** state )
    hb_astAssertContains( pszJson, "\"expansions\"" );
    hb_astAssertContains( pszJson, "\"macro_name\":\"VALUE\"" );
    hb_astAssertContains( pszJson, "\"expansion_id\":0" );
-   hb_astAssertContains( pszJson, "\"call_module\":\"tests/ast/demo.prg\"" );
+   hb_astAssertContains( pszJson, "\"call_module\":\"tests/ast/fixture_demo.prg\"" );
 
    hb_astTokenStreamSerializeMacrosJsonFree( pszJson );
 }

@@ -14,7 +14,7 @@ After these steps you’ll have the new libhbastlex.a inside lib/linux/gcc/, rea
 
 ## testing the stub
 
-Um teste de fumaça em C está disponível em `tests/ast/smoke.c`. Ele instancia o lexer incremental, percorre o fluxo de tokens produzidos pelo pré-processador e imprime categoria, tipo bruto e intervalo calculado.
+Um teste de fumaça em C está disponível em `tests/ast/ast_smoke_test.c`. Ele instancia o lexer incremental, percorre o fluxo de tokens produzidos pelo pré-processador e imprime categoria, tipo bruto e intervalo calculado.
 
 1. Certifique-se de ter construído as bibliotecas (`make HB_BUILD_PARTS=lib ...`).
 2. Compile o teste com o Makefile auxiliar:
@@ -31,7 +31,7 @@ Um teste de fumaça em C está disponível em `tests/ast/smoke.c`. Ele instancia
    ./tests/ast/smoke
    ```
 
-O fixture `tests/ast/demo.prg` inclui `tests/ast/helpers.ch`; os tokens provenientes de cada arquivo preservam o campo `module`, permitindo observar como o PP capturou linhas e arquivos originais.
+O fixture `tests/ast/fixture_demo.prg` inclui `tests/ast/fixture_helpers.ch`; os tokens provenientes de cada arquivo preservam o campo `module`, permitindo observar como o PP capturou linhas e arquivos originais.
 
 Quando o lexer ganhar implementação real, esse binário poderá ser expandido para inspecionar os tokens emitidos e validar round-trips.
 
@@ -48,12 +48,12 @@ Quando o lexer ganhar implementação real, esse binário poderá ser expandido 
   - `pszModule` e `original.start.nLine`: herdados do PP, preservando o módulo/arquivo e a linha original de cada token.
 - `tests/ast/smoke` imprime o stream com tipo, categoria e intervalo calculado, servindo de base para inspeções manuais.
 - `tests/ast/snapshot` executa asserts automatizados garantindo que tokens e rastros de macro (`pMacroOrigin`) produzidos pelo snapshot representam corretamente o grafo de expansão e valida o JSON emitido por `hb_astTokenStreamSerialize*()` com nós reais (`nodes`), símbolos (`symbols`) e paridade com o builder atual.
-- `tests/ast/test_builder` utiliza cMocka para validar o construtor de AST/símbolos diretamente, verificando nós, escopos e referências calculadas para o fixture `demo.prg`.
+- `tests/ast/builder-test` utiliza cMocka para validar o construtor de AST/símbolos diretamente, verificando nós, escopos e referências calculadas para o fixture `fixture_demo.prg`.
 
 ### `hbast` CLI
 
 - Construção: `make HB_BUILD_PARTS=compiler HB_PLATFORM=linux HB_COMPILER=gcc HB_WITH_UTILS=no` gera o binário `bin/<plat>/<compiler>/hbast`.
-- Execução: `bin/linux/gcc/hbast tests/ast/demo.prg -o demo.hbast.json` produz um payload conforme `doc/agents/ast/serialization-format.md` com tokens e `macros.expansions`.
+- Execução: `bin/linux/gcc/hbast tests/ast/fixture_demo.prg -o fixture_demo.hbast.json` produz um payload conforme `doc/agents/ast/serialization-format.md` com tokens e `macros.expansions`.
 - `hb_astTokenStreamSnapshot()` agora clona o histórico de tokens e expõe acessos constantes através de `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()`, permitindo inspeção sem depender do pré-processador.
 - `pMacroOrigin` aponta para estruturas imutáveis de expansão; os helpers `hb_astMacroTraceName()`, `hb_astMacroTraceCallModule()`, `hb_astMacroTraceCallRange()`, `hb_astMacroTraceDepth()`, `hb_astMacroTraceParent()` e `hb_astMacroTraceId()` permitem reconstruir a cadeia de macros, mapear pais e obter um identificador determinístico para serialização. `hb_astTokenStreamMacroTraceCount()`/`hb_astTokenStreamMacroTrace()` expõem a lista de expansões únicas por snapshot.
 

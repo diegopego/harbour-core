@@ -84,7 +84,7 @@ To viabilise refatorações confiáveis e análises estáticas robustas, o pipel
 
 - Código-base: `src/ast/lexer/hbast_lexer.c` concentra as estruturas `HB_AST_TOKEN_ENTRY`, `HB_AST_TOKEN_STREAM_ENTRY` e macros como `HB_AST_LEXER_HISTORY_GROWTH`, além das rotinas internas `hb_astLexerHistoryReset()` e `hb_astLexerHistoryStore()` que calibram o cache. O módulo `src/ast/lexer/hbast_json.c` gera o JSON de `macros.expansions`.
 - API pública: `include/ast/lexer/hbast_lexer.h` exporta `hb_astTokenStreamSnapshot()`, `hb_astTokenStreamCount()` e `hb_astTokenStreamToken()`; revisar antes de evoluções de assinatura.
-- Fixtures: `tests/ast/smoke.c`, `tests/ast/demo.prg` e `tests/ast/helpers.ch` validam o fluxo atual via `make -C tests/ast`.
+- Fixtures: `tests/ast/ast_smoke_test.c`, `tests/ast/fixture_demo.prg` e `tests/ast/fixture_helpers.ch` validam o fluxo atual via `make -C tests/ast`.
 - Build alvo: `src/ast/lexer/Makefile` gera `libhbastlex.a`, consumida por `tests/ast/Makefile`.
 - Documentação: `doc/agents/ast/incremental-lexer.md` e `doc/agents/ast/serialization-format.md` detalham as próximas etapas do pipeline, enquanto `doc/agents/ast/hbast-verify.md` descreve o verificador planejado.
 
