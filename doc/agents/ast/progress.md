@@ -51,4 +51,4 @@
   - Use the proposal to drive subsequent delegation briefs for implementation agents.
   - Documented governance rule in `Agents.md` requiring Overseer sessions to only suggest commit messages (no direct commits).
   - Divergence ledger captured in `doc/agents/ast/divergence-ledger.md`.
-  - Decision criteria and alignment memo drafted in `doc/agents/ast/draft.md`.
+  - Decision criteria recorded; alignment memo now includes timeline and sequencing milestones (2025-10-20 core fixes, 2025-10-27 tooling extraction, 2025-11-03 instrumentation restart) in `doc/agents/ast/draft.md`.

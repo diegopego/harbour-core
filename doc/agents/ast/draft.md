@@ -27,7 +27,15 @@
 - **Stay in Harbour core**:
   - `include/hbpp.h`, `src/pp/ppcore.c`, `src/harbour.def`: foundational macro trace APIs required for any compiler-backed tooling.
   - Governance docs (`Agents.md`, `doc/agents/ast/progress.md`, `doc/agents/ast/draft.md`): shared oversight infrastructure.
+  - Target timeline: retain and harden these APIs before resuming instrumentation work in Phase 2 (goal: ready for review by 2025-11-01).
 - **Move to tooling distribution**:
   - Entire `src/ast/` subtree, AST headers under `include/ast/`, utilities in `utils/hbast`, `utils/hbrename`, `tests/ast/`, and associated scripts/docs (`README-AST.MD`, serialization specs, schema, fixtures).
   - Build glue (`Makefile` test target, `include/Makefile`, `src/Makefile`, `utils/Makefile`) that only serves the tooling prototype.
-- **Drop / rewrite before reintegration**: Any pieces of the tooling prototype that lack tests or overlap with future compiler instrumentation should be re-evaluated post-alignment; candidates flagged in the ledger as “Isolate” will be reconsidered once the stable API is defined.
+  - Extraction plan: split into a tooling package branch by 2025-11-08, preserving fixtures and scripts for reuse.
+- **Drop / rewrite before reintegration**:
+  - Prototype code flagged as “Isolate” without direct path to core instrumentation remains out-of-tree until rewritten against the final compiler APIs.
+  - Re-evaluate after tooling extraction; schedule decision checkpoint for 2025-11-15 to determine which components re-enter Phase 3 (token event stream).
+- **Sequencing for roadmap**:
+  1. Week of 2025-10-20: apply minimal fixes to core trace APIs (`include/hbpp.h`, `src/pp/ppcore.c`) and document expectations in the instrumentation plan.
+  2. Week of 2025-10-27: coordinate tooling extraction, ensuring build scripts/docs/tests move to the new tooling repo without impacting Harbour core.
+  3. Week of 2025-11-03: revisit instrumentation plan and begin drafting implementation briefs based on the stabilized core.
