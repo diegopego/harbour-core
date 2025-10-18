@@ -6,7 +6,7 @@
 - Outstanding: draft instrumentation plan for compiler-integrated token/AST events and reconcile local `draft.md` edits prior to baseline commit.
 
 ## Follow-ups (Oversight Instrumentation Kickoff)
-- Outline `doc/agents/ast/instrumentation-plan.md`: enumerate hooks in `complex.c`, `harbour.y`, `hbcomp.c`, and expected data contracts to tooling.
+- DONE 2025-10-18: `doc/agents/ast/instrumentation-plan.md` documents hooks in `complex.c`, `harbour.y`, `hbcomp.c`, plus data contracts to tooling.
 - Draft delegation packets for Compiler Instrumentation Agent and AST Tooling Agent, including required tests (`hbmk2 -w3`, `tests/tooling/cmocka`, `scripts/test-ast.sh`).
 - Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
 
