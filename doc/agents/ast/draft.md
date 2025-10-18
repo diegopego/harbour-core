@@ -66,6 +66,12 @@
   - Emit `HB_AST_EVENT_TOKEN` and boundary events from `hb_comp_yylex` (`src/compiler/complex.c`), aligning with the hook table.
   - Introduce guarded parser instrumentation in `src/compiler/harbour.y` (function declarations first), attaching stable node IDs and token references.
   - Respect feature toggles so tracing can be disabled without touching existing behaviour.
+- **Task breakdown**:
+  1. Implement trace callback registration and teardown (`hb_comp_new`, `hb_comp_free`), add stress tests for retain/release accounting.
+  2. Instrument `hb_comp_yylex` with event emission and stable token IDs; capture sample event logs for fixtures listed in the verification matrix.
+  3. Add parser reduction hooks for function declarations; prep follow-up list for additional grammar nodes.
+  4. Update developer notes/commentary where necessary and document usage in `doc/agents/ast/instrumentation-plan.md` if new helpers are introduced.
+  5. Execute verification matrix suites; attach summaries (hbmk2, cmocka, scripts/test-ast.sh) to the session report.
 - **Dependencies & references**:
   - Decision criteria (Phase 0) for what stays in core.
   - Alignment timeline (core hardening week of 2025-10-20).
@@ -86,6 +92,12 @@
   - Replace the standalone lexer with consumers of `HB_AST_EVENT_TOKEN` and `HB_AST_EVENT_NODE_*` streams; update builders/serializers accordingly.
   - Update JSON/CBOR schema, documentation, and fixtures (`serialization-format.md`, `hbast-verify.md`, snapshots) to incorporate expansion IDs and token-node mappings.
   - Ensure extracted tooling repo mirrors Harbour hook expectations while staying decoupled from the core tree.
+- **Task breakdown**:
+  1. Stand up an integration harness that subscribes to compiler-emitted events and feeds them into the tooling builder.
+  2. Retrofit serializers and schema (`hbast.schema.json`) to accept new fields; bump schema revision with change notes.
+  3. Refresh snapshots/fixtures listed in the verification matrix, adding coverage for nested macros and dialect toggles.
+  4. Update documentation (`serialization-format.md`, `hbast-verify.md`) with new payload examples and validation rules.
+  5. Run verification matrix suites (tooling cmocka, scripts/test-ast.sh) and publish results in the session report, noting any discrepancies requiring compiler follow-up.
 - **Dependencies & references**:
   - Alignment roadmap (tooling extraction week of 2025-10-27; integration week of 2025-11-03).
   - Hook map specifics on available payload fields.

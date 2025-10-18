@@ -54,4 +54,4 @@
   - Decision criteria recorded; alignment memo now includes timeline and sequencing milestones (2025-10-20 core fixes, 2025-10-27 tooling extraction, 2025-11-03 instrumentation restart) in `doc/agents/ast/draft.md`.
   - Instrumentation plan with hook mapping and migration strategy published in `doc/agents/ast/instrumentation-plan.md`.
   - Verification matrix outlining mandatory suites/fixtures/pass-fail criteria documented in `doc/agents/ast/draft.md`.
-  - Delegation briefs for Compiler Instrumentation Agent and AST Tooling Agent documented in `doc/agents/ast/draft.md`.
+  - Delegation task packets (scope, breakdown, verification requirements) for Compiler Instrumentation Agent and AST Tooling Agent documented in `doc/agents/ast/draft.md`.
