@@ -7,7 +7,7 @@
 
 ## Follow-ups (Oversight Instrumentation Kickoff)
 - DONE 2025-10-18: `doc/agents/ast/instrumentation-plan.md` documents hooks in `complex.c`, `harbour.y`, `hbcomp.c`, plus data contracts to tooling.
-- Draft delegation packets for Compiler Instrumentation Agent and AST Tooling Agent, including required tests (`hbmk2 -w3`, `tests/tooling/cmocka`, `scripts/test-ast.sh`).
+- DONE 2025-10-18: Delegation briefs prepared for Compiler Instrumentation Agent and AST Tooling Agent (see dedicated sections below).
 - Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
 
 ## Phase 0 Assessment TODOs
@@ -58,3 +58,43 @@
   1. Week of 2025-10-20: apply minimal fixes to core trace APIs (`include/hbpp.h`, `src/pp/ppcore.c`) and document expectations in the instrumentation plan.
   2. Week of 2025-10-27: coordinate tooling extraction, ensuring build scripts/docs/tests move to the new tooling repo without impacting Harbour core.
   3. Week of 2025-11-03: revisit instrumentation plan and begin drafting implementation briefs based on the stabilized core.
+
+## Delegation Brief – Compiler Instrumentation Agent
+- **Mandate**: Implement the compiler-side hooks in `doc/agents/ast/instrumentation-plan.md`, ensuring Harbour emits token and AST events backed by `HB_PP_TRACEINFO`.
+- **Scope**:
+  - Wire `hb_pp_setTraceCallback()` in `hb_comp_new()` / `hb_comp_free()` and manage `HB_PP_TRACEINFO` lifetimes.
+  - Emit `HB_AST_EVENT_TOKEN` and boundary events from `hb_comp_yylex` (`src/compiler/complex.c`), aligning with the hook table.
+  - Introduce guarded parser instrumentation in `src/compiler/harbour.y` (function declarations first), attaching stable node IDs and token references.
+  - Respect feature toggles so tracing can be disabled without touching existing behaviour.
+- **Dependencies & references**:
+  - Decision criteria (Phase 0) for what stays in core.
+  - Alignment timeline (core hardening week of 2025-10-20).
+  - Hook map and migration guidance in `doc/agents/ast/instrumentation-plan.md`.
+  - Verification matrix for required test suites and fixtures.
+- **Validation**:
+  - `hbmk2 -w3` over affected fixtures; core regression suites as needed.
+  - `tests/tooling/cmocka` (expanded with trace retention checks).
+  - `scripts/test-ast.sh` driven by compiler events; verify snapshot parity.
+  - Confirm `HB_PP_TRACEINFO` retain/release counts net to zero post-run.
+- **Deliverables**:
+  - Patched source files with instrumentation guards and any helper APIs.
+  - Session report summarising hooks implemented, tests executed, and residual risks/open questions.
+
+## Delegation Brief – AST Tooling Agent
+- **Mandate**: Rework the tooling layer (post-extraction) to consume compiler-emitted events, keeping schemas and fixtures aligned with Harbour instrumentation.
+- **Scope**:
+  - Replace the standalone lexer with consumers of `HB_AST_EVENT_TOKEN` and `HB_AST_EVENT_NODE_*` streams; update builders/serializers accordingly.
+  - Update JSON/CBOR schema, documentation, and fixtures (`serialization-format.md`, `hbast-verify.md`, snapshots) to incorporate expansion IDs and token-node mappings.
+  - Ensure extracted tooling repo mirrors Harbour hook expectations while staying decoupled from the core tree.
+- **Dependencies & references**:
+  - Alignment roadmap (tooling extraction week of 2025-10-27; integration week of 2025-11-03).
+  - Hook map specifics on available payload fields.
+  - Verification matrix for mandatory suites (`tests/tooling/cmocka`, `scripts/test-ast.sh`) and fixture upkeep.
+- **Validation**:
+  - Run tooling cmocka suites against compiler-delivered streams; include assertions about node/token coverage.
+  - Execute `scripts/test-ast.sh` to compare generated artefacts to golden snapshots, updating them only when instrumentation changes are intentional.
+  - Document schema/version changes and compatibility notes.
+- **Deliverables**:
+  - Updated tooling codebase (in separated repo) ready to ingest Harbour events.
+  - Revised docs/fixtures and test logs demonstrating parity.
+  - Report detailing unresolved coverage gaps or requested compiler hooks for future sessions.
