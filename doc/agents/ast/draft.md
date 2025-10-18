@@ -11,7 +11,7 @@
 - Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
 
 ## Phase 0 Assessment TODOs
-- Build a divergence ledger (`keep / isolate / drop`) covering all files changed vs `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`.
+- DONE 2025-10-18: Divergence ledger recorded in `doc/agents/ast/divergence-ledger.md` (`keep / isolate / drop` vs `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`).
 - Document decision criteria: impact on upstream parity, necessity for compiler-backed refactorings, maintenance cost if embedded in core.
 - Draft an alignment memo summarising what stays in Harbour core, what moves to tooling distribution, and what is discarded, then update roadmap accordingly.
 - Note in governance checklist: Overseer prepares commit messages only; user executes commits.

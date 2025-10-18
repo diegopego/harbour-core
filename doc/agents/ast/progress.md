@@ -50,3 +50,4 @@
   - Draft alignment proposal documenting boundary between core compiler and external tooling deliverables.
   - Use the proposal to drive subsequent delegation briefs for implementation agents.
   - Documented governance rule in `Agents.md` requiring Overseer sessions to only suggest commit messages (no direct commits).
+  - Divergence ledger captured in `doc/agents/ast/divergence-ledger.md`.
