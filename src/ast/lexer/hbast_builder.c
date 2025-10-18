@@ -2,6 +2,8 @@
 #include "hbapi.h"
 #include "hbapifs.h"
 #include "hbdefs.h"
+#include <ctype.h>
+#include <stdint.h>
 #include <string.h>
 
 typedef struct
@@ -27,7 +29,6 @@ typedef struct
    HB_SIZE nSymbolCount;
    HB_SIZE nSymbolCapacity;
    HB_SIZE nextNodeId;
-   HB_SIZE nextSymbolId;
    HB_SIZE rootId;
 } HB_AST_BUILD_STATE;
 
@@ -35,7 +36,6 @@ static void hb_astBuilderStateInit( HB_AST_BUILD_STATE * pState )
 {
    hb_xmemset( pState, 0, sizeof( HB_AST_BUILD_STATE ) );
    pState->rootId = HB_SIZE_MAX;
-   pState->nextSymbolId = 5000;
 }
 
 static void hb_astBuilderFreeNodeInternal( HB_AST_NODE_INTERNAL * pNode )
@@ -218,6 +218,364 @@ static const HB_AST_TOKEN * hb_astBuilderTokenById( const HB_AST_TOKEN_STREAM * 
    }
 
    return NULL;
+}
+
+static void hb_astBuilderNodeSetRangeFromIndices( HB_AST_NODE_INTERNAL * pNode,
+                                                  const HB_AST_TOKEN_STREAM * pStream,
+                                                  HB_SIZE nStart,
+                                                  HB_SIZE nEnd );
+static void hb_astBuilderAssignStableId( HB_AST_NODE_INTERNAL * pNode, const char * pszModule );
+
+static HB_U64 hb_astBuilderHashLower( HB_U64 hash, const char * pszValue )
+{
+   const unsigned char * pch = ( const unsigned char * ) ( pszValue ? pszValue : "" );
+
+   while( *pch )
+   {
+      hash ^= ( HB_U64 ) tolower( *pch++ );
+      hash *= UINT64_C( 1099511628211 );
+   }
+
+   return hash;
+}
+
+static HB_SIZE hb_astBuilderComputeSymbolId( const char * pszModule,
+                                             const char * pszQualifiedName,
+                                             const char * pszKind )
+{
+   HB_U64 hash = UINT64_C( 14695981039346656037 );
+   HB_SIZE result;
+
+   hash = hb_astBuilderHashLower( hash, pszModule );
+   hash = hb_astBuilderHashLower( hash, "::" );
+   hash = hb_astBuilderHashLower( hash, pszKind );
+   hash = hb_astBuilderHashLower( hash, "::" );
+   hash = hb_astBuilderHashLower( hash, pszQualifiedName );
+
+   hash &= ( HB_U64 ) HB_SIZE_MAX;
+   result = ( HB_SIZE ) hash;
+
+   if( result == HB_SIZE_MAX )
+      result--;
+   if( result == 0 )
+      result = 1;
+
+   return result;
+}
+
+static HB_SIZE * hb_astBuilderCollectModuleIndices( const HB_AST_TOKEN_STREAM * pStream,
+                                                    const char * pszModule,
+                                                    HB_SIZE * pnCount )
+{
+   HB_SIZE nTokenCount = hb_astTokenStreamCount( pStream );
+   HB_SIZE nCount = 0;
+   HB_SIZE * pIndices;
+   HB_SIZE i;
+
+   if( pnCount == NULL )
+      return NULL;
+
+   if( nTokenCount == 0 )
+   {
+      *pnCount = 0;
+      return NULL;
+   }
+
+   pIndices = ( HB_SIZE * ) hb_xgrab( nTokenCount * sizeof( HB_SIZE ) );
+
+   for( i = 0; i < nTokenCount; ++i )
+   {
+      const HB_AST_TOKEN * pToken = hb_astBuilderTokenByIndex( pStream, i );
+
+      if( pToken && hb_astBuilderTokenBelongsToModule( pToken, pszModule ) )
+         pIndices[ nCount++ ] = i;
+   }
+
+   if( nCount == 0 )
+   {
+      hb_xfree( pIndices );
+      pIndices = NULL;
+   }
+   else if( nCount < nTokenCount )
+      pIndices = ( HB_SIZE * ) hb_xrealloc( pIndices, nCount * sizeof( HB_SIZE ) );
+
+   *pnCount = nCount;
+   return pIndices;
+}
+
+static HB_BOOL hb_astBuilderTokenIsFunctionStart( const HB_AST_TOKEN_STREAM * pStream,
+                                                  const HB_SIZE * pIndices,
+                                                  HB_SIZE nCount,
+                                                  HB_SIZE pos )
+{
+   const HB_AST_TOKEN * pToken;
+
+   if( pIndices == NULL || pos >= nCount )
+      return HB_FALSE;
+
+   pToken = hb_astBuilderTokenByIndex( pStream, pIndices[ pos ] );
+   if( pToken == NULL || pToken->kind != HB_AST_TOKEN_KIND_KEYWORD )
+      return HB_FALSE;
+
+   if( hb_astBuilderIsKeyword( pToken, "PROC" ) ||
+       hb_astBuilderIsKeyword( pToken, "PROCEDURE" ) ||
+       hb_astBuilderIsKeyword( pToken, "FUNCTION" ) )
+   {
+      return HB_TRUE;
+   }
+
+   if( hb_astBuilderIsKeyword( pToken, "STATIC" ) )
+   {
+      HB_SIZE lookahead = pos + 1;
+
+      while( lookahead < nCount )
+      {
+         const HB_AST_TOKEN * pNext = hb_astBuilderTokenByIndex( pStream, pIndices[ lookahead ] );
+
+         if( pNext == NULL )
+         {
+            ++lookahead;
+            continue;
+         }
+
+         if( pNext->kind == HB_AST_TOKEN_KIND_NEWLINE )
+            break;
+
+         if( pNext->kind == HB_AST_TOKEN_KIND_KEYWORD &&
+             ( hb_astBuilderIsKeyword( pNext, "PROC" ) ||
+               hb_astBuilderIsKeyword( pNext, "PROCEDURE" ) ||
+               hb_astBuilderIsKeyword( pNext, "FUNCTION" ) ) )
+         {
+            return HB_TRUE;
+         }
+
+         ++lookahead;
+      }
+   }
+
+   return HB_FALSE;
+}
+
+static HB_SIZE hb_astBuilderFindNextFunctionStart( const HB_AST_TOKEN_STREAM * pStream,
+                                                   const HB_SIZE * pIndices,
+                                                   HB_SIZE nCount,
+                                                   HB_SIZE startPos )
+{
+   HB_SIZE pos;
+
+   for( pos = startPos; pos < nCount; ++pos )
+   {
+      if( hb_astBuilderTokenIsFunctionStart( pStream, pIndices, nCount, pos ) )
+         return pos;
+   }
+
+   return nCount;
+}
+
+static HB_AST_NODE_INTERNAL * hb_astBuilderCreateNodeForRange( HB_AST_BUILD_STATE * pState,
+                                                               const char * pszKind,
+                                                               HB_SIZE parentId,
+                                                               const HB_AST_TOKEN_STREAM * pStream,
+                                                               const HB_SIZE * pIndices,
+                                                               HB_SIZE nStartPos,
+                                                               HB_SIZE nEndPos,
+                                                               const char * pszModule )
+{
+   HB_AST_NODE_INTERNAL * pNode;
+   HB_AST_NODE_INTERNAL * pParent;
+   HB_SIZE idx;
+
+   if( pState == NULL || pIndices == NULL || nStartPos > nEndPos )
+      return NULL;
+
+   pNode = hb_astBuilderAddNodeInternal( pState, pszKind );
+   if( pNode == NULL )
+      return NULL;
+
+   pNode->info.parentId = parentId;
+
+   pParent = hb_astBuilderLookupNode( pState, parentId );
+   if( pParent )
+      hb_astBuilderNodeAddChild( pParent, pNode->info.id );
+
+   for( idx = nStartPos; idx <= nEndPos; ++idx )
+   {
+      const HB_AST_TOKEN * pTok = hb_astBuilderTokenByIndex( pStream, pIndices[ idx ] );
+
+      if( pTok && hb_astBuilderTokenBelongsToModule( pTok, pszModule ) )
+         hb_astBuilderNodeAddToken( pNode, pTok->id.uHash );
+   }
+
+   hb_astBuilderNodeSetRangeFromIndices( pNode, pStream, pIndices[ nStartPos ], pIndices[ nEndPos ] );
+   hb_astBuilderAssignStableId( pNode, pszModule );
+
+   return pNode;
+}
+
+static HB_SIZE hb_astBuilderFindStatementEnd( const HB_AST_TOKEN_STREAM * pStream,
+                                              const HB_SIZE * pIndices,
+                                              HB_SIZE pos,
+                                              HB_SIZE limitEnd )
+{
+   HB_SIZE idx = pos;
+
+   while( idx < limitEnd )
+   {
+      const HB_AST_TOKEN * pTok = hb_astBuilderTokenByIndex( pStream, pIndices[ idx ] );
+
+      if( pTok && pTok->kind == HB_AST_TOKEN_KIND_NEWLINE )
+         return idx;
+
+      ++idx;
+   }
+
+   return limitEnd;
+}
+
+static void hb_astBuilderParseFunctionBody( HB_AST_BUILD_STATE * pState,
+                                            HB_AST_NODE_INTERNAL * pFunctionNode,
+                                            const HB_AST_TOKEN_STREAM * pStream,
+                                            const char * pszModule,
+                                            const HB_SIZE * pIndices,
+                                            HB_SIZE bodyStartPos,
+                                            HB_SIZE endPos )
+{
+   HB_SIZE pos = bodyStartPos;
+
+   if( pState == NULL || pFunctionNode == NULL || pIndices == NULL )
+      return;
+
+   while( pos <= endPos )
+   {
+      const HB_AST_TOKEN * pTok = hb_astBuilderTokenByIndex( pStream, pIndices[ pos ] );
+
+      if( pTok && pTok->kind == HB_AST_TOKEN_KIND_KEYWORD )
+      {
+         if( hb_astBuilderIsKeyword( pTok, "LOCAL" ) )
+         {
+            HB_SIZE stmtEnd = hb_astBuilderFindStatementEnd( pStream, pIndices, pos, endPos );
+            hb_astBuilderCreateNodeForRange( pState,
+                                             "LocalDecl",
+                                             pFunctionNode->info.id,
+                                             pStream,
+                                             pIndices,
+                                             pos,
+                                             stmtEnd,
+                                             pszModule );
+            pos = stmtEnd + 1;
+            continue;
+         }
+         else if( hb_astBuilderIsKeyword( pTok, "RETURN" ) )
+         {
+            HB_SIZE stmtEnd = hb_astBuilderFindStatementEnd( pStream, pIndices, pos, endPos );
+            hb_astBuilderCreateNodeForRange( pState,
+                                             "ReturnStmt",
+                                             pFunctionNode->info.id,
+                                             pStream,
+                                             pIndices,
+                                             pos,
+                                             stmtEnd,
+                                             pszModule );
+            pos = stmtEnd + 1;
+            continue;
+         }
+      }
+
+      ++pos;
+   }
+}
+
+static HB_SIZE hb_astBuilderParseFunction( HB_AST_BUILD_STATE * pState,
+                                           const HB_AST_TOKEN_STREAM * pStream,
+                                           const char * pszModule,
+                                           const HB_SIZE * pIndices,
+                                           HB_SIZE nCount,
+                                           HB_SIZE startPos )
+{
+   HB_SIZE funcKeywordPos = startPos;
+   HB_SIZE scan;
+   HB_SIZE endPos;
+   HB_AST_NODE_INTERNAL * pFunctionNode;
+   const HB_AST_TOKEN * pKeywordTok;
+   const char * pszNodeKind = "ProcDecl";
+   HB_SIZE nextStart;
+   HB_SIZE headerEndPos;
+   HB_SIZE bodyStartPos;
+
+   if( pState == NULL || pIndices == NULL || startPos >= nCount )
+      return startPos + 1;
+
+   for( scan = startPos; scan < nCount; ++scan )
+   {
+      const HB_AST_TOKEN * pTok = hb_astBuilderTokenByIndex( pStream, pIndices[ scan ] );
+
+      if( pTok == NULL )
+         continue;
+
+      if( pTok->kind == HB_AST_TOKEN_KIND_NEWLINE )
+         break;
+
+      if( pTok->kind == HB_AST_TOKEN_KIND_KEYWORD &&
+          ( hb_astBuilderIsKeyword( pTok, "PROC" ) ||
+            hb_astBuilderIsKeyword( pTok, "PROCEDURE" ) ||
+            hb_astBuilderIsKeyword( pTok, "FUNCTION" ) ) )
+      {
+         funcKeywordPos = scan;
+         break;
+      }
+   }
+
+   pKeywordTok = hb_astBuilderTokenByIndex( pStream, pIndices[ funcKeywordPos ] );
+   if( pKeywordTok && hb_astBuilderIsKeyword( pKeywordTok, "FUNCTION" ) )
+      pszNodeKind = "FunctionDecl";
+
+   nextStart = hb_astBuilderFindNextFunctionStart( pStream, pIndices, nCount, funcKeywordPos + 1 );
+   if( nextStart < nCount && nextStart > startPos )
+      endPos = nextStart - 1;
+   else
+      endPos = nCount == 0 ? 0 : nCount - 1;
+
+   if( endPos < startPos )
+      endPos = startPos;
+
+   pFunctionNode = hb_astBuilderCreateNodeForRange( pState,
+                                                    pszNodeKind,
+                                                    pState->rootId,
+                                                    pStream,
+                                                    pIndices,
+                                                    startPos,
+                                                    endPos,
+                                                    pszModule );
+   if( pFunctionNode == NULL )
+      return endPos + 1;
+
+   headerEndPos = endPos;
+   for( scan = funcKeywordPos; scan <= endPos; ++scan )
+   {
+      const HB_AST_TOKEN * pTok = hb_astBuilderTokenByIndex( pStream, pIndices[ scan ] );
+
+      if( pTok && pTok->kind == HB_AST_TOKEN_KIND_NEWLINE )
+      {
+         headerEndPos = scan;
+         break;
+      }
+   }
+
+   if( headerEndPos < endPos )
+      bodyStartPos = headerEndPos + 1;
+   else
+      bodyStartPos = endPos + 1;
+
+   if( bodyStartPos <= endPos )
+      hb_astBuilderParseFunctionBody( pState,
+                                      pFunctionNode,
+                                      pStream,
+                                      pszModule,
+                                      pIndices,
+                                      bodyStartPos,
+                                      endPos );
+
+   return endPos + 1;
 }
 
 static void hb_astBuilderNodeSetRangeFromIndices( HB_AST_NODE_INTERNAL * pNode,
@@ -438,9 +796,13 @@ static HB_BOOL hb_astBuilderNodeContainsIdentifier( const HB_AST_NODE_INTERNAL *
 
 static HB_AST_SYMBOL_INTERNAL * hb_astBuilderAddSymbolInternal( HB_AST_BUILD_STATE * pState,
                                                                 const char * pszKind,
-                                                                const char * pszName )
+                                                                const char * pszName,
+                                                                const char * pszQualifiedName,
+                                                                const char * pszModule )
 {
    HB_AST_SYMBOL_INTERNAL * pSymbol;
+   const char * pszQual;
+   const char * pszSymbolKind;
 
    if( pState->nSymbolCount == pState->nSymbolCapacity )
    {
@@ -461,10 +823,15 @@ static HB_AST_SYMBOL_INTERNAL * hb_astBuilderAddSymbolInternal( HB_AST_BUILD_STA
    pSymbol = &pState->pSymbols[ pState->nSymbolCount++ ];
    hb_xmemset( pSymbol, 0, sizeof( HB_AST_SYMBOL_INTERNAL ) );
 
-   pSymbol->info.symbolId = pState->nextSymbolId++;
-   pSymbol->info.pszKind = pszKind ? hb_strdup( pszKind ) : NULL;
+   pszQual = pszQualifiedName ? pszQualifiedName : pszName;
+   pszSymbolKind = pszKind ? pszKind : "Symbol";
+
+   pSymbol->info.symbolId = hb_astBuilderComputeSymbolId( pszModule,
+                                                          pszQual ? pszQual : "",
+                                                          pszSymbolKind );
+   pSymbol->info.pszKind = pszSymbolKind ? hb_strdup( pszSymbolKind ) : NULL;
    pSymbol->info.pszName = pszName ? hb_strdup( pszName ) : NULL;
-   pSymbol->info.pszQualifiedName = pszName ? hb_strdup( pszName ) : NULL;
+   pSymbol->info.pszQualifiedName = pszQual ? hb_strdup( pszQual ) : NULL;
 
    return pSymbol;
 }
@@ -517,13 +884,9 @@ static HB_BOOL hb_astBuilderPopulateNodes( HB_AST_BUILD_STATE * pState,
                                            const char * pszModule )
 {
    HB_AST_NODE_INTERNAL * pRoot;
-   HB_SIZE nTokenCount;
-   HB_SIZE nFirstIdx = HB_SIZE_MAX;
-   HB_SIZE nLastIdx = 0;
-   HB_SIZE i;
-   HB_SIZE nProcId = HB_SIZE_MAX;
-   HB_AST_NODE_INTERNAL * pRootNode = NULL;
-   HB_AST_NODE_INTERNAL * pParentNode;
+   HB_SIZE * pIndices = NULL;
+   HB_SIZE nModuleTokenCount = 0;
+   HB_SIZE idx;
 
    hb_astBuilderStateInit( pState );
 
@@ -538,179 +901,50 @@ static HB_BOOL hb_astBuilderPopulateNodes( HB_AST_BUILD_STATE * pState,
       return HB_TRUE;
    }
 
-   nTokenCount = hb_astTokenStreamCount( pStream );
+   pIndices = hb_astBuilderCollectModuleIndices( pStream, pszModule, &nModuleTokenCount );
 
-   for( i = 0; i < nTokenCount; ++i )
+   if( pIndices && nModuleTokenCount > 0 )
    {
-      const HB_AST_TOKEN * pToken = hb_astBuilderTokenByIndex( pStream, i );
-
-      if( pToken && hb_astBuilderTokenBelongsToModule( pToken, pszModule ) )
+      for( idx = 0; idx < nModuleTokenCount; ++idx )
       {
-         if( nFirstIdx == HB_SIZE_MAX )
-            nFirstIdx = i;
-         nLastIdx = i;
-         hb_astBuilderNodeAddToken( pRoot, pToken->id.uHash );
-      }
-   }
+         const HB_AST_TOKEN * pTok = hb_astBuilderTokenByIndex( pStream, pIndices[ idx ] );
 
-   if( nFirstIdx != HB_SIZE_MAX )
-      hb_astBuilderNodeSetRangeFromIndices( pRoot, pStream, nFirstIdx, nLastIdx );
+         if( pTok && hb_astBuilderTokenBelongsToModule( pTok, pszModule ) )
+            hb_astBuilderNodeAddToken( pRoot, pTok->id.uHash );
+      }
+
+      hb_astBuilderNodeSetRangeFromIndices( pRoot,
+                                            pStream,
+                                            pIndices[ 0 ],
+                                            pIndices[ nModuleTokenCount - 1 ] );
+   }
    else
       hb_xmemset( &pRoot->info.range, 0, sizeof( HB_AST_SOURCE_RANGE ) );
 
    hb_astBuilderAssignStableId( pRoot, pszModule );
 
-   if( nFirstIdx == HB_SIZE_MAX )
-      return HB_TRUE;
-
-   i = nFirstIdx;
-   while( i <= nLastIdx && i < nTokenCount )
+   if( pIndices == NULL || nModuleTokenCount == 0 )
    {
-      const HB_AST_TOKEN * pToken = hb_astBuilderTokenByIndex( pStream, i );
-
-      if( pToken == NULL || ! hb_astBuilderTokenBelongsToModule( pToken, pszModule ) )
-      {
-         ++i;
-         continue;
-      }
-
-      if( hb_astBuilderIsKeyword( pToken, "PROC" ) || hb_astBuilderIsKeyword( pToken, "FUNCTION" ) )
-      {
-         HB_AST_NODE_INTERNAL * pProcNode;
-         const char * pszKind = hb_astBuilderIsKeyword( pToken, "PROC" ) ? "ProcDecl" : "FunctionDecl";
-         HB_SIZE nStart = i;
-         HB_SIZE nHeaderEnd = i;
-         HB_SIZE nEnd = nLastIdx;
-         HB_SIZE j;
-
-         for( j = i; j <= nLastIdx && j < nTokenCount; ++j )
-         {
-            const HB_AST_TOKEN * pTemp = hb_astBuilderTokenByIndex( pStream, j );
-            if( pTemp && pTemp->kind == HB_AST_TOKEN_KIND_NEWLINE &&
-                hb_astBuilderTokenBelongsToModule( pTemp, pszModule ) )
-            {
-               nHeaderEnd = j;
-               break;
-            }
-         }
-
-         for( j = i + 1; j <= nLastIdx && j < nTokenCount; ++j )
-         {
-            const HB_AST_TOKEN * pTemp = hb_astBuilderTokenByIndex( pStream, j );
-            if( pTemp && hb_astBuilderTokenBelongsToModule( pTemp, pszModule ) &&
-                ( hb_astBuilderIsKeyword( pTemp, "PROC" ) || hb_astBuilderIsKeyword( pTemp, "FUNCTION" ) ) )
-            {
-               nEnd = j > 0 ? j - 1 : j;
-               break;
-            }
-         }
-
-         if( nEnd < nStart )
-            nEnd = nStart;
-
-         pProcNode = hb_astBuilderAddNodeInternal( pState, pszKind );
-         if( pProcNode == NULL )
-            return HB_FALSE;
-
-         nProcId = pProcNode->info.id;
-
-         pProcNode->info.parentId = pState->rootId;
-
-         pRootNode = hb_astBuilderLookupNode( pState, pState->rootId );
-         if( pRootNode )
-            hb_astBuilderNodeAddChild( pRootNode, nProcId );
-
-         for( j = nStart; j <= nEnd && j < nTokenCount; ++j )
-         {
-            const HB_AST_TOKEN * pTemp = hb_astBuilderTokenByIndex( pStream, j );
-            if( pTemp && hb_astBuilderTokenBelongsToModule( pTemp, pszModule ) )
-               hb_astBuilderNodeAddToken( pProcNode, pTemp->id.uHash );
-         }
-
-         hb_astBuilderNodeSetRangeFromIndices( pProcNode, pStream, nStart, nEnd );
-         hb_astBuilderAssignStableId( pProcNode, pszModule );
-
-         if( nHeaderEnd < nEnd )
-         {
-            HB_SIZE nBodyIdx = nHeaderEnd + 1;
-
-            while( nBodyIdx <= nEnd && nBodyIdx < nTokenCount )
-            {
-               const HB_AST_TOKEN * pBodyTok = hb_astBuilderTokenByIndex( pStream, nBodyIdx );
-
-               if( pBodyTok == NULL || ! hb_astBuilderTokenBelongsToModule( pBodyTok, pszModule ) )
-               {
-                  ++nBodyIdx;
-                  continue;
-               }
-
-               if( hb_astBuilderIsKeyword( pBodyTok, "LOCAL" ) || hb_astBuilderIsKeyword( pBodyTok, "RETURN" ) )
-               {
-                  const char * pszStmtKind = hb_astBuilderIsKeyword( pBodyTok, "LOCAL" ) ?
-                                             "LocalDecl" : "ReturnStmt";
-                  HB_AST_NODE_INTERNAL * pStmtNode;
-                  HB_SIZE nStmtStart = nBodyIdx;
-                  HB_SIZE nStmtEnd = nBodyIdx;
-                  HB_SIZE nScan;
-
-                  for( nScan = nBodyIdx; nScan <= nEnd && nScan < nTokenCount; ++nScan )
-                  {
-                     const HB_AST_TOKEN * pScanTok = hb_astBuilderTokenByIndex( pStream, nScan );
-
-                     if( pScanTok && pScanTok->kind == HB_AST_TOKEN_KIND_NEWLINE &&
-                         hb_astBuilderTokenBelongsToModule( pScanTok, pszModule ) )
-                     {
-                        nStmtEnd = nScan;
-                        break;
-                     }
-                  }
-
-                  if( nStmtEnd < nStmtStart )
-                     nStmtEnd = nStmtStart;
-                  if( nStmtEnd > nEnd )
-                     nStmtEnd = nEnd;
-
-                  pStmtNode = hb_astBuilderAddNodeInternal( pState, pszStmtKind );
-                  if( pStmtNode == NULL )
-                     return HB_FALSE;
-
-                  pStmtNode->info.parentId = nProcId;
-
-                  pParentNode = hb_astBuilderLookupNode( pState, nProcId );
-                  if( pParentNode )
-                     hb_astBuilderNodeAddChild( pParentNode, pStmtNode->info.id );
-
-                  for( nScan = nStmtStart; nScan <= nStmtEnd && nScan < nTokenCount; ++nScan )
-                  {
-                     const HB_AST_TOKEN * pStmtTok = hb_astBuilderTokenByIndex( pStream, nScan );
-
-                     if( pStmtTok && hb_astBuilderTokenBelongsToModule( pStmtTok, pszModule ) )
-                        hb_astBuilderNodeAddToken( pStmtNode, pStmtTok->id.uHash );
-                     else if( pStmtTok && pStmtTok->pMacroOrigin )
-                     {
-                        const char * pszCall = hb_astMacroTraceCallModule( pStmtTok->pMacroOrigin );
-                        if( pszCall && pszModule && hb_astBuilderModulesEqual( pszCall, pszModule ) )
-                           hb_astBuilderNodeAddToken( pStmtNode, pStmtTok->id.uHash );
-                     }
-                  }
-
-                  hb_astBuilderNodeSetRangeFromIndices( pStmtNode, pStream, nStmtStart, nStmtEnd );
-                  hb_astBuilderAssignStableId( pStmtNode, pszModule );
-
-                  nBodyIdx = nStmtEnd + 1;
-                  continue;
-               }
-
-               ++nBodyIdx;
-            }
-         }
-
-         i = ( nEnd < nLastIdx ) ? nEnd + 1 : nLastIdx + 1;
-         continue;
-      }
-
-      ++i;
+      if( pIndices )
+         hb_xfree( pIndices );
+      return HB_TRUE;
    }
+
+   idx = 0;
+   while( idx < nModuleTokenCount )
+   {
+      if( hb_astBuilderTokenIsFunctionStart( pStream, pIndices, nModuleTokenCount, idx ) )
+         idx = hb_astBuilderParseFunction( pState,
+                                           pStream,
+                                           pszModule,
+                                           pIndices,
+                                           nModuleTokenCount,
+                                           idx );
+      else
+         ++idx;
+   }
+
+   hb_xfree( pIndices );
 
    return HB_TRUE;
 }
@@ -733,10 +967,22 @@ static HB_BOOL hb_astBuilderPopulateSymbols( HB_AST_BUILD_STATE * pState,
       {
          const char * pszKeyword = hb_stricmp( pNode->info.pszKind, "ProcDecl" ) == 0 ? "PROC" : "FUNCTION";
          const char * pszName = hb_astBuilderExtractIdentifier( pStream, pNode, pszKeyword );
+         char szQualifier[ 512 ];
+
+         if( pszName == NULL && hb_stricmp( pNode->info.pszKind, "ProcDecl" ) == 0 )
+            pszName = hb_astBuilderExtractIdentifier( pStream, pNode, "PROCEDURE" );
 
          if( pszName )
          {
-            HB_AST_SYMBOL_INTERNAL * pSymbol = hb_astBuilderAddSymbolInternal( pState, "Function", pszName );
+            HB_AST_SYMBOL_INTERNAL * pSymbol;
+
+            hb_snprintf( szQualifier, sizeof( szQualifier ), "%s", pszName );
+
+            pSymbol = hb_astBuilderAddSymbolInternal( pState,
+                                                      "Function",
+                                                      pszName,
+                                                      szQualifier,
+                                                      pszModule );
 
             if( pSymbol == NULL )
                return HB_FALSE;
@@ -750,10 +996,34 @@ static HB_BOOL hb_astBuilderPopulateSymbols( HB_AST_BUILD_STATE * pState,
       else if( hb_stricmp( pNode->info.pszKind, "LocalDecl" ) == 0 )
       {
          const char * pszName = hb_astBuilderExtractIdentifier( pStream, pNode, "LOCAL" );
+         char szQualifier[ 512 ];
 
          if( pszName )
          {
-            HB_AST_SYMBOL_INTERNAL * pSymbol = hb_astBuilderAddSymbolInternal( pState, "Variable", pszName );
+            HB_AST_SYMBOL_INTERNAL * pSymbol;
+            HB_AST_NODE_INTERNAL * pParentNode = hb_astBuilderLookupNode( pState, pNode->info.parentId );
+            const char * pszParentName = NULL;
+
+            if( pParentNode && pParentNode->info.pszKind )
+            {
+               const char * pszParentKeyword = hb_stricmp( pParentNode->info.pszKind, "FunctionDecl" ) == 0 ?
+                                               "FUNCTION" : "PROC";
+
+               pszParentName = hb_astBuilderExtractIdentifier( pStream, pParentNode, pszParentKeyword );
+               if( pszParentName == NULL && hb_stricmp( pParentNode->info.pszKind, "ProcDecl" ) == 0 )
+                  pszParentName = hb_astBuilderExtractIdentifier( pStream, pParentNode, "PROCEDURE" );
+            }
+
+            if( pszParentName )
+               hb_snprintf( szQualifier, sizeof( szQualifier ), "%s::%s", pszParentName, pszName );
+            else
+               hb_snprintf( szQualifier, sizeof( szQualifier ), "%s", pszName );
+
+            pSymbol = hb_astBuilderAddSymbolInternal( pState,
+                                                      "Variable",
+                                                      pszName,
+                                                      szQualifier,
+                                                      pszModule );
 
             if( pSymbol == NULL )
                return HB_FALSE;
