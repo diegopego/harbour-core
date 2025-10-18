@@ -23,3 +23,30 @@
   - Finalise instrumentation plan for hooking `complex.c` token lifecycle and `harbour.y` reductions without regressing compiler behaviour.
   - Align tooling builder schemas with real `PHB_EXPR` node kinds to avoid divergence as grammar evolves.
   - Document outstanding change in `draft.md` before committing to keep historical context intact.
+
+## 2025-10-18 – Oversight Instrumentation Kickoff
+
+- **Scope survey**: Reviewed divergence against `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`; branch introduces macro trace plumbing in `src/pp/ppcore.c` and standalone tooling in `src/ast/lexer/`.
+- **State of instrumentation**: Compiler remains uninvolved with the tooling prototypes—`HB_PP_TRACEINFO` data is extended but not yet streamed to consumers, and `PHB_EXPR` trees stay private to parser actions.
+- **Prioritised actions**:
+  - Author `doc/agents/ast/instrumentation-plan.md` capturing concrete hook points (token emission in `complex.c`, reduction callbacks in `harbour.y`, aggregation in `hbcomp.c`).
+  - Prepare delegation brief for the Compiler Instrumentation Agent to surface stable token IDs and macro traces from the real preprocessor into the AST pipeline.
+  - Prepare delegation brief for the AST Tooling Agent to map `PHB_EXPR` kinds onto the JSON/CBOR schema, identifying missing coverage in `hbast_builder`.
+- **Risks & guards**: `ppcore.c` modifications touch critical preprocessor paths; mandate `hbmk2 -w3` and cmocka suites before any commit integrating new hooks.
+- **Follow-ups**: Update `doc/agents/ast/draft.md` with delegation outlines and testing matrix revisions ahead of implementation sessions.
+
+## 2025-10-18 – Phase 0 Branch Assessment Kickoff
+
+- **Mandate**: Before pushing instrumentation work, determine whether `ast-3rd-experiment` should be retained as-is, split, or rewritten to align with Harbour core goals.
+- **Branch divergence snapshot**:
+  - Core touchpoints: `.gitignore`, top-level `Makefile`, `include/Makefile`, `include/hbpp.h`, `src/Makefile`, `src/harbour.def`, `src/pp/ppcore.c`, `utils/Makefile`.
+  - Tooling overlay: new docs, schemas, `src/ast/` subsystem, CLI utilities (`utils/hbast`, `utils/hbrename`), dedicated tests/fixtures under `tests/ast/` and cmocka harness.
+- **Evaluation tracks**:
+  1. Validate whether core changes (preprocessor trace plumbing, build wiring) are production-ready or should be side-loaded via optional modules.
+  2. Decide which tooling assets live outside the Harbour core tree (e.g., separate repo/tooling pack) vs what must integrate tightly.
+  3. Identify any prototype code that should be dropped or rewritten before alignment.
+- **Next actions**:
+  - Catalogue each divergent file with rationale (keep, isolate, drop) and dependencies.
+  - Draft alignment proposal documenting boundary between core compiler and external tooling deliverables.
+  - Use the proposal to drive subsequent delegation briefs for implementation agents.
+  - Documented governance rule in `Agents.md` requiring Overseer sessions to only suggest commit messages (no direct commits).

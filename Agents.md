@@ -41,6 +41,7 @@ Maintain a **continuous, auditable exchange** between implementation sessions an
 - **Overseer**
   - Clarify priorities per phase, ensure work preserves compiler behavior and advances refactoring goals.
   - Approve instrumentation points in `complex.c`, `harbour.y`, `hbmain.c`, `hbcomp.c`, (and related).
+  - Provide suggested commit messages and leave actual commits to the user; never invoke `git commit` during Overseer sessions.
 - **Compiler Instrumentation Agent**
   - Embed token/AST event emitters inside the existing compiler (token hooks in `complex.c`, parser actions in `harbour.y`).
   - Document schemas for downstream consumers.
@@ -59,7 +60,7 @@ Maintain a **continuous, auditable exchange** between implementation sessions an
 - **Delegation packets**: For each substantive task, create a session brief detailing scope, files, tests, and success criteria.
 - **Implementation**: Agents modify code within guarded flags or scratch branches when experimenting; permanent changes align with the agreed plan.
 - **Validation**: Run `tests/tooling/cmocka`, `scripts/test-ast.sh`, and any new suites. Failures block progress until resolved.
-- **Review & Commit**: Overseer inspects diffs, records outcomes in `doc/agents/ast/progress.md`, and commits with descriptive messages.
+- **Review & Commit**: Overseer inspects diffs, records outcomes in `doc/agents/ast/progress.md`, and shares suggested commit messages; the user applies commits.
 
 ## Documentation & Logging
 - `draft.md`: living scratchpad for session snapshots, decisions, and next actions.
