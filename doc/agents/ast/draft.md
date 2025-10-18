@@ -67,11 +67,14 @@
   - Introduce guarded parser instrumentation in `src/compiler/harbour.y` (function declarations first), attaching stable node IDs and token references.
   - Respect feature toggles so tracing can be disabled without touching existing behaviour.
 - **Task breakdown**:
-  1. Implement trace callback registration and teardown (`hb_comp_new`, `hb_comp_free`), add stress tests for retain/release accounting.
-  2. Instrument `hb_comp_yylex` with event emission and stable token IDs; capture sample event logs for fixtures listed in the verification matrix.
-  3. Add parser reduction hooks for function declarations; prep follow-up list for additional grammar nodes.
-  4. Update developer notes/commentary where necessary and document usage in `doc/agents/ast/instrumentation-plan.md` if new helpers are introduced.
-  5. Execute verification matrix suites; attach summaries (hbmk2, cmocka, scripts/test-ast.sh) to the session report.
+  1. **Trace callback foundation** — implement registration/teardown (`hb_comp_new`, `hb_comp_free`), add stress tests for retain/release accounting. Log results and remaining gaps in `doc/agents/ast/progress.md`.
+  2. **Lexer emission pass** — instrument `hb_comp_yylex` with event emission and stable token IDs; capture sample event logs for fixtures in the verification matrix. Document emitted payload structure in `doc/agents/ast/instrumentation-plan.md`.
+  3. **Parser hook pilot** — add reduction hooks for function declarations; produce a follow-up checklist for additional grammar nodes (store in `doc/agents/ast/draft.md` under a new "Parser hook backlog" subsection).
+  4. **Stabilisation & notes** — update developer commentary/helpers as needed; highlight any helper APIs or toggles introduced.
+  5. **Verification sweep** — run matrix suites after each milestone (hbmk2, cmocka, scripts/test-ast.sh), attaching summaries and outstanding issues to the session report.
+- **Incremental execution guidance**:
+  - If the session approaches token limits, finish the current step, summarise partial results, and record next actions + test status in both `doc/agents/ast/progress.md` and a short note in `doc/agents/ast/draft.md`.
+  - Each sub-step can be delivered as a separate delegated session; ensure code is left in a buildable/tested state with feature flags disabled by default if work is mid-flight.
 - **Dependencies & references**:
   - Decision criteria (Phase 0) for what stays in core.
   - Alignment timeline (core hardening week of 2025-10-20).
@@ -85,6 +88,7 @@
 - **Deliverables**:
   - Patched source files with instrumentation guards and any helper APIs.
   - Session report summarising hooks implemented, tests executed, and residual risks/open questions.
+  - Updated log entries noting which parts of the task breakdown are complete and what remains for the next session.
 
 ## Delegation Brief – AST Tooling Agent
 - **Mandate**: Rework the tooling layer (post-extraction) to consume compiler-emitted events, keeping schemas and fixtures aligned with Harbour instrumentation.
@@ -93,11 +97,14 @@
   - Update JSON/CBOR schema, documentation, and fixtures (`serialization-format.md`, `hbast-verify.md`, snapshots) to incorporate expansion IDs and token-node mappings.
   - Ensure extracted tooling repo mirrors Harbour hook expectations while staying decoupled from the core tree.
 - **Task breakdown**:
-  1. Stand up an integration harness that subscribes to compiler-emitted events and feeds them into the tooling builder.
-  2. Retrofit serializers and schema (`hbast.schema.json`) to accept new fields; bump schema revision with change notes.
-  3. Refresh snapshots/fixtures listed in the verification matrix, adding coverage for nested macros and dialect toggles.
-  4. Update documentation (`serialization-format.md`, `hbast-verify.md`) with new payload examples and validation rules.
-  5. Run verification matrix suites (tooling cmocka, scripts/test-ast.sh) and publish results in the session report, noting any discrepancies requiring compiler follow-up.
+  1. **Event ingestion harness** — build a thin adaptor that connects compiler event streams to the existing builder; document API assumptions and gaps.
+  2. **Schema/serializer update** — retrofit serializers and `hbast.schema.json` for new fields; record revision notes and compatibility guidance.
+  3. **Fixture refresh** — regenerate snapshots listed in the verification matrix, adding nested macro and dialect coverage; catalogue any failing scenarios for follow-up.
+  4. **Documentation pass** — update `serialization-format.md`, `hbast-verify.md`, and related docs with new payload examples/validation rules.
+  5. **Verification sweep** — run tooling cmocka and `scripts/test-ast.sh` after each milestone, noting results and pending work in the session report.
+- **Incremental execution guidance**:
+  - Close each milestone with a documentation stub in `doc/agents/ast/progress.md` and a to-do note in `doc/agents/ast/draft.md` so the next session can resume quickly.
+  - Leave the tooling repo in a compilable/testable state between sessions; if a schema bump is mid-flight, gate it with a preview flag until fixtures catch up.
 - **Dependencies & references**:
   - Alignment roadmap (tooling extraction week of 2025-10-27; integration week of 2025-11-03).
   - Hook map specifics on available payload fields.
@@ -110,3 +117,4 @@
   - Updated tooling codebase (in separated repo) ready to ingest Harbour events.
   - Revised docs/fixtures and test logs demonstrating parity.
   - Report detailing unresolved coverage gaps or requested compiler hooks for future sessions.
+  - Clearly marked follow-up items enabling a new session to pick up pending fixtures or docs without ambiguity.
