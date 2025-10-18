@@ -23,6 +23,25 @@
 - **Testing guarantees**: Core-integrated code must be covered by Harbour’s existing test suites; isolated tooling can rely on dedicated harnesses.
 - **Packaging boundaries**: Utilities or docs aimed at external workflows should live in the tooling distribution, not the compiler tree.
 
+## Verification Matrix
+- **Core compiler gates**:
+  - `hbmk2 -w3` on all `.prg` fixtures touched by instrumentation to ensure no new warnings/errors surface.
+  - Harbour compiler self-tests covering macro-heavy code paths where traces are emitted.
+- **Tooling harness**:
+  - `tests/tooling/cmocka` suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
+  - `scripts/test-ast.sh`: rerun snapshot comparisons using compiler-sourced events; failures indicate divergence from the schema/fixtures.
+- **Fixtures & snapshots**:
+  - Reuse existing `tests/ast/fixture_*.prg`, `.ch`, `.json`, `.ppo`, `.trace.json` files; add new variants for nested macros, conditionals, and dialect switches once instrumentation lands.
+  - Maintain golden snapshots for both token streams and AST payloads; store under extracted tooling repo but reference versions in Harbour core for parity checks.
+- **Pass/Fail criteria**:
+  - All suites above must pass without warnings; token and AST snapshots must hash-match the golden copies.
+  - Token IDs emitted by `hb_comp_yylex` should reconcile with nodes collected in parser reductions (no orphan tokens/nodes).
+  - `HB_PP_TRACEINFO` retain/release counts must net to zero after each test run (cmocka assertion).
+  - Compiler regression tests must show no change in output unless an instrumentation feature flag is enabled.
+- **Reporting**:
+  - Log matrix status in `doc/agents/ast/progress.md` for each session touching instrumentation.
+  - Implementation agents attach test output summaries to their session reports.
+
 ## Alignment Memo (Draft)
 - **Stay in Harbour core**:
   - `include/hbpp.h`, `src/pp/ppcore.c`, `src/harbour.def`: foundational macro trace APIs required for any compiler-backed tooling.
