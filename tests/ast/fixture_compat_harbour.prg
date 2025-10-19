@@ -14,6 +14,7 @@ FUNCTION FixtureCompatHarbour( xValue )
    LOCAL aLog := {}
    LOCAL nTotal := APPLY_NESTED_MACROS( 5 )
    LOCAL oErr := NIL
+   LOCAL oInner := NIL
 
    FixtureCompatLog( aLog, "compat:HARBOUR" )
 
@@ -26,6 +27,25 @@ FUNCTION FixtureCompatHarbour( xValue )
       ENDIF
    RECOVER USING oErr
       FixtureCompatLog( aLog, "recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
+   ENDSEQUENCE
+
+   BEGIN SEQUENCE WITH {|oErr| FixtureCompatLog( aLog, "nested:handler:" + ;
+         IIf( oErr == NIL, "none", oErr:Description ) ) }
+      FixtureCompatLog( aLog, "nested:enter" )
+      BEGIN SEQUENCE WITH {|oInner| FixtureCompatLog( aLog, "nested:innerhandler:" + ;
+            IIf( oInner == NIL, "none", oInner:Description ) ) }
+         FixtureCompatLog( aLog, "nested:work" )
+         oInner := ErrorNew()
+         oInner:Description := "harbour nested break"
+         oInner:GenCode := 3001
+         BREAK oInner
+      RECOVER USING oInner
+         FixtureCompatLog( aLog, "nested:innerrecover:" + IIf( oInner == NIL, "none", oInner:Description ) )
+         oInner:Description := oInner:Description + ":reraised"
+         BREAK oInner
+      ENDSEQUENCE
+   RECOVER USING oErr
+      FixtureCompatLog( aLog, "nested:recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
    ENDSEQUENCE
 
    FixtureCompatLog( aLog, "compat:HARBOUR:end" )

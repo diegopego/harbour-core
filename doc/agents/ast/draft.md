@@ -144,8 +144,8 @@ Include in final session note (and summarise in commit message):
 - Remaining risks or TODOs.
 
 ### Session Transition Notes
-- **2025-10-24 (dialect fixtures)**: Added two dedicated fixtures, `fixture_compat_clipper.prg` and `fixture_compat_harbour.prg`, backed by `fixture_compat_common.ch`. Both emit their own golden snapshots and keep the logic honest by relying solely on compile-time pragmas. Updated `ast_hbmk_ast_tests.c` to include both fixtures and refreshed `ast_compilebuf_tests.c` to exercise the Clipper variant via the in-memory path.  
-  - **Working tree**: pending files in `.gitignore`, `tests/ast/ast_compilebuf_tests.c`, `tests/ast/ast_hbmk_ast_tests.c`, `tests/ast/fixture_compat_clipper.prg`, `tests/ast/fixture_compat_harbour.prg`, `tests/ast/fixture_compat_common.ch`, and the new snapshots under `tests/ast/fixtures/`.
+- **2025-10-24 (dialect fixtures)**: Added two dedicated fixtures, `fixture_compat_clipper.prg` and `fixture_compat_harbour.prg`, backed by `fixture_compat_common.ch`. Both now exercise multiple `BEGIN SEQUENCE`/`RECOVER` flows (nested handlers, re-raised errors) and emit their own golden snapshots. Updated `ast_hbmk_ast_tests.c` to include the pair and extended `ast_compilebuf_tests.c` with both Clipper and Harbour in-memory variants.  
+  - **Working tree**: pending files in `.gitignore`, `tests/ast/ast_compilebuf_tests.c`, `tests/ast/ast_hbmk_ast_tests.c`, `tests/ast/fixture_compat_clipper.prg`, `tests/ast/fixture_compat_harbour.prg`, `tests/ast/fixture_compat_common.ch`, and the refreshed snapshots under `tests/ast/fixtures/`.
 - **Focus**: Single-module instrumentation is in place; diagnostics counters now land. Next sessions should broaden CLI (`hbmk-ast-tests`) coverage, document the new toggles, and continue building out snapshot fixtures (preprocessor macro fixture added this session).  
 - **Pending**: Add additional fixtures, publish JSON snapshots via compile-buffer harness, document CLI/env usage (`HB_AST_TRACE`, `HB_AST_TRACE_DUMP`, `HB_AST_TRACE_DIAGNOSTICS`), and clean temporary artefacts after runs.  
 - **Working tree**: Uncommitted edits in `src/compiler/complex.c`, `tests/ast/ast_compilebuf_tests.c`, and documentation updates (`doc/agents/ast/*.md`).  
@@ -161,7 +161,7 @@ Include in final session note (and summarise in commit message):
 - **Open items**:
 - [x] Fix CLI handling so `--ast-trace-dump=-` routes to stdout without triggering error `F0035` (2025-10-23: `cmdcheck.c` sentinel parsing tightened).
 - [x] Audit the dump path for formatting issues or leaks while capturing stdout (`hb_compAstTraceDumpJson` review + cmocka coverage).
-- [ ] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise — Clipper/Harbour fixtures landed; still need more error recovery variants and documentation for the per-dialect approach before locking snapshots.
+- [ ] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise — Clipper/Harbour fixtures now cover nested recovery paths; still need doc updates and potentially RETRY/FINALLY samples before locking snapshots.
 - [ ] Surface nightly build guidance for `HB_AST_TRACE_DUMP` / CLI usage.
 - [ ] Document the new `-iinclude` requirement introduced for `hbmk-ast-tests` and compile-buffer harnesses.
 - **Next session prep**: Compiler rebuilt and `tests/ast` suites (including `hbmk-ast-tests`) ran clean on 2025-10-23; fixture demo snapshot refreshed after restoring the trailing newline, so keep clearing temporary artefacts (`fixture_demo.c`, stdout dumps) after runs, then pivot to new fixtures + documentation refresh for the trace-dump workflow.

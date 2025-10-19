@@ -51,6 +51,7 @@ tests/ast/hbmk-ast-tests
 tests/ast/compilebuf-tests
 tests/ast/fixture_demo
 tests/ast/compilebuf_compat_clipper.c
+tests/ast/compilebuf_compat_harbour.c
 command_trace
 fixture_demo
 macro_trace

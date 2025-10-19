@@ -156,6 +156,33 @@ static const HB_COMPILEBUF_CASE s_cases[] =
       "compilebuf_compat_clipper.c",
       "tests/ast/compilebuf_compat_clipper.c",
       "FUNCTION"
+   },
+   {
+      "compilebuf_compat_harbour.prg",
+      "#pragma -w3\n"
+      "#pragma -kh+\n"
+      "#pragma -km-\n"
+      "#pragma -ko+\n"
+      "#include \"error.ch\"\n"
+      "#include \"tests/ast/fixture_compat_common.ch\"\n"
+      "FUNCTION CompileBufCompatHarbour()\n"
+      "   LOCAL aLog := {}\n"
+      "   LOCAL oInner := NIL\n"
+      "   FixtureCompatLog( aLog, \"compat:HARBOUR\" )\n"
+      "   BEGIN SEQUENCE WITH {|oErr| FixtureCompatLog( aLog, \"handler:\" + IIf( oErr == NIL, \"none\", oErr:Description ) ) }\n"
+      "      FixtureCompatLog( aLog, \"nested:enter\" )\n"
+      "      oInner := ErrorNew()\n"
+      "      oInner:Description := \"compilebuf harbour\"\n"
+      "      oInner:GenCode := 9101\n"
+      "      BREAK oInner\n"
+      "   RECOVER USING oErr\n"
+      "      FixtureCompatLog( aLog, \"nested:recover:\" + IIf( oErr == NIL, \"none\", oErr:Description ) )\n"
+      "   ENDSEQUENCE\n"
+      "   FixtureCompatLog( aLog, \"compat:HARBOUR:end\" )\n"
+      "   RETURN Len( aLog )\n",
+      "compilebuf_compat_harbour.c",
+      "tests/ast/compilebuf_compat_harbour.c",
+      "FUNCTION"
    }
 };
 

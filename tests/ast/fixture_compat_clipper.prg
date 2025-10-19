@@ -15,6 +15,7 @@ FUNCTION FixtureCompatClipper( xValue )
    LOCAL nTotal := APPLY_NESTED_MACROS( 2 )
    LOCAL oErr := NIL
    LOCAL oBreak := NIL
+   LOCAL oSecondary := NIL
 
    FixtureCompatLog( aLog, "compat:CLIPPER" )
 
@@ -29,7 +30,17 @@ FUNCTION FixtureCompatClipper( xValue )
          BREAK oBreak
       ENDIF
    RECOVER USING oErr
-      FixtureCompatLog( aLog, "recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
+   FixtureCompatLog( aLog, "recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
+ENDSEQUENCE
+
+   BEGIN SEQUENCE WITH {|oErr| FixtureCompatLog( aLog, "alt:handler:" + ;
+         IIf( oErr == NIL, "none", oErr:Description ) ) }
+      oSecondary := ErrorNew()
+      oSecondary:Description := "clipper alt break"
+      oSecondary:GenCode := 2002
+      BREAK oSecondary
+   RECOVER USING oErr
+      FixtureCompatLog( aLog, "alt:recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
    ENDSEQUENCE
 
    FixtureCompatLog( aLog, "compat:CLIPPER:end" )
