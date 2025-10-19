@@ -76,3 +76,13 @@
   - Instrumentation plan with hook mapping and migration strategy published in `doc/agents/ast/instrumentation-plan.md`.
   - Verification matrix outlining mandatory suites/fixtures/pass-fail criteria documented in `doc/agents/ast/draft.md`.
   - Delegation task packets (scope, incremental breakdown, verification requirements) for Compiler Instrumentation Agent and AST Tooling Agent documented in `doc/agents/ast/draft.md`.
+## 2025-10-18 – Compiler Instrumentation Session Report
+
+- **Scope covered**: Steps 1–3 of the Compiler Instrumentation brief landed. `hb_comp_new()`/`hb_comp_free()` now route through `hb_compAstTraceInit/Done`, wiring `hb_pp_setTraceCallback()` and managing `HB_PP_TRACEINFO` refcounts. Token events flow from `hb_comp_yylex()` via `hb_compAstTracePublishToken()`/`hb_compAstTraceReturn()`, and `harbour.y` function productions emit enter/leave node events through `hb_compAstTraceNode{Enter,Leave}()`.
+- **Artifacts**: New helper module `hbtraceast.c`, guarded state in `hbcompdf.h`, retained/released APIs in `include/hbpp.h`, and updated docs (`doc/agents/ast/instrumentation-plan.md`, `doc/agents/ast/draft.md`), including a parser hook backlog.
+- **Verification status**: `tests/ast/ast_trace_tests.c`, existing cmocka suites, and `scripts/test-ast.sh` (with the new `trace-events` binary) pass; instrumentation disabled mode covered. `hbmk2 -w3` over fixtures still pending before merge.
+- **Open follow-ups**:
+  - Implement real event sink in `hb_compAstTracePpSink` and define consumer API.
+  - Extend parser hooks beyond function declarations (classes, statements, expressions) per backlog.
+  - Add CLI/env toggle to expose instrumentation flag.
+  - Run `hbmk2 -w3` on relevant fixtures to satisfy verification matrix.

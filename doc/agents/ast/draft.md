@@ -9,6 +9,7 @@
 - DONE 2025-10-18: `doc/agents/ast/instrumentation-plan.md` documents hooks in `complex.c`, `harbour.y`, `hbcomp.c`, plus data contracts to tooling.
 - DONE 2025-10-18: Delegation briefs prepared for Compiler Instrumentation Agent and AST Tooling Agent (see dedicated sections below).
 - Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
+- Track post-session follow-ups: event sink implementation, expanded parser hooks, instrumentation toggle surfacing, `hbmk2 -w3` run.
 
 ## Phase 0 Assessment TODOs
 - DONE 2025-10-18: Divergence ledger recorded in `doc/agents/ast/divergence-ledger.md` (`keep / isolate / drop` vs `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`).
@@ -74,11 +75,11 @@
   - Introduce guarded parser instrumentation in `src/compiler/harbour.y` (function declarations first), attaching stable node IDs and token references.
   - Respect feature toggles so tracing can be disabled without touching existing behaviour.
 - **Task breakdown**:
-  1. **Trace callback foundation** — implement registration/teardown (`hb_comp_new`, `hb_comp_free`), add stress tests for retain/release accounting. Log results and remaining gaps in `doc/agents/ast/progress.md`.
-  2. **Lexer emission pass** — instrument `hb_comp_yylex` with event emission and stable token IDs; capture sample event logs for fixtures in the verification matrix. Document emitted payload structure in `doc/agents/ast/instrumentation-plan.md`.
-  3. **Parser hook pilot** — add reduction hooks for function declarations; produce a follow-up checklist for additional grammar nodes (store in `doc/agents/ast/draft.md` under a new "Parser hook backlog" subsection).
-  4. **Stabilisation & notes** — update developer commentary/helpers as needed; highlight any helper APIs or toggles introduced.
-  5. **Verification sweep** — run matrix suites after each milestone (hbmk2, cmocka, scripts/test-ast.sh), attaching summaries and outstanding issues to the session report.
+  1. **Trace callback foundation** — implement registration/teardown (`hb_comp_new`, `hb_comp_free`), add stress tests for retain/release accounting. *Status: COMPLETED 2025-10-18 (trace helper in `hbtraceast.c`, cmocka `traceinfo_lifetime_balances`).*
+  2. **Lexer emission pass** — instrument `hb_comp_yylex` with event emission and stable token IDs; capture sample event logs for fixtures in the verification matrix. *Status: COMPLETED 2025-10-18 (token/boundary events via `hb_compAstTracePublishToken/Return`).*
+  3. **Parser hook pilot** — add reduction hooks for function declarations; produce a follow-up checklist for additional grammar nodes (stored below). *Status: COMPLETED 2025-10-18 (function enter/leave instrumentation in `harbour.y`).*
+  4. **Stabilisation & notes** — update developer commentary/helpers as needed; highlight any helper APIs or toggles introduced. *In progress: event sink wiring and CLI toggle outstanding.*
+  5. **Verification sweep** — run matrix suites after each milestone (hbmk2, cmocka, scripts/test-ast.sh), attaching summaries and outstanding issues to the session report. *Partial: cmocka + `scripts/test-ast.sh` pass; `hbmk2 -w3` pending.*
 - **Incremental execution guidance**:
   - If the session approaches token limits, finish the current step, summarise partial results, and record next actions + test status in both `doc/agents/ast/progress.md` and a short note in `doc/agents/ast/draft.md`.
   - Each sub-step can be delivered as a separate delegated session; ensure code is left in a buildable/tested state with feature flags disabled by default if work is mid-flight.
@@ -96,6 +97,13 @@
   - Patched source files with instrumentation guards and any helper APIs.
   - Session report summarising hooks implemented, tests executed, and residual risks/open questions.
   - Updated log entries noting which parts of the task breakdown are complete and what remains for the next session.
+
+### Parser hook backlog
+- Class declarations / method definitions (trace node enter/leave, token mapping).
+- Statement-level constructs (IF/ELSE, DO WHILE, SWITCH, SEQUENCE).
+- Expression reductions (binary operators, macro expressions, lambda/block literals).
+- Error recovery paths (ensure events flush correctly on syntax errors).
+- Exit/return handling (ensure final boundary events align with node closures).
 
 ## Delegation Brief – AST Tooling Agent
 - **Mandate**: Rework the tooling layer (post-extraction) to consume compiler-emitted events, keeping schemas and fixtures aligned with Harbour instrumentation.
