@@ -44,7 +44,9 @@ int hb_compMainExt( int argc, const char * const argv[],
                     HB_BYTE ** pBufPtr, HB_SIZE * pnSize,
                     const char * szSource, int iStartLine,
                     void * cargo, PHB_PP_OPEN_FUNC pOpenFunc,
-                                  PHB_PP_MSG_FUNC pMsgFunc )
+                                  PHB_PP_MSG_FUNC pMsgFunc,
+                                  HB_COMP_FINISH_FUNC pFinishFunc,
+                                  void * pFinishCargo )
 {
    HB_COMP_DECL;
    int iStatus = EXIT_SUCCESS, iFileCount = 0;
@@ -160,6 +162,9 @@ int hb_compMainExt( int argc, const char * const argv[],
       }
    }
 
+   if( pFinishFunc )
+      pFinishFunc( HB_COMP_PARAM, pFinishCargo );
+
    hb_comp_free( HB_COMP_PARAM );
 
    hb_setSetFileCase( iFileCase );
@@ -172,7 +177,7 @@ int hb_compMainExt( int argc, const char * const argv[],
 
 int hb_compMain( int argc, const char * const argv[] )
 {
-   return hb_compMainExt( argc, argv, NULL, NULL, NULL, 0, NULL, NULL, NULL );
+   return hb_compMainExt( argc, argv, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL );
 }
 
 static int hb_compReadClpFile( HB_COMP_DECL, const char * szClpFile )

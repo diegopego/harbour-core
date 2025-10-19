@@ -11,7 +11,7 @@
 - Existing cmocka tests interact directly with `hb_compAstTrace*` APIs by instantiating `hb_comp_new()` manually, but they do not run the full parse pipeline.
 
 ## Proposed approach
-1. **API surface**: Extend `hb_compMainExt()` (or add a sibling helper) to accept an optional callback that receives the active `PHB_COMP` prior to teardown. The callback can snapshot token/AST data for golden comparison.
+1. **API surface** *(prototype in progress)*: `hb_compMainExt()` now accepts an optional finish callback (`HB_COMP_FINISH_FUNC`) invoked immediately before compiler teardown. Tests can supply this hook to snapshot token/AST/preprocessor buffers while the `PHB_COMP` is still valid.
 2. **Test harness**: Create a cmocka suite (`tests/ast/ast_compilebuf_tests.c`) that:
    - Defines inline Harbour sources (or loads fixtures into memory).
    - Invokes the new helper (wrapping `hb_compMainExt`) with `--ast-trace` enabled and `hb_compAstTraceSetEnabled()` asserted.

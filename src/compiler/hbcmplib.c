@@ -205,7 +205,7 @@ HB_FUNC( HB_COMPILE )
    PHB_PP_MSG_FUNC pMsgFunc;
 
    hb_compGenArgList( 1, hb_pcount(), &argc, &argv, &pIncItem, &pOpenFunc, &pMsgFunc );
-   hb_retni( hb_compMainExt( argc, argv, NULL, NULL, NULL, 0, pIncItem, pOpenFunc, pMsgFunc ) );
+   hb_retni( hb_compMainExt( argc, argv, NULL, NULL, NULL, 0, pIncItem, pOpenFunc, pMsgFunc, NULL, NULL ) );
    hb_xfree( ( void * ) argv );
 }
 
@@ -220,7 +220,7 @@ HB_FUNC( HB_COMPILEBUF )
    HB_SIZE nLen;
 
    hb_compGenArgList( 1, hb_pcount(), &argc, &argv, &pIncItem, &pOpenFunc, &pMsgFunc );
-   iResult = hb_compMainExt( argc, argv, &pBuffer, &nLen, NULL, 0, pIncItem, pOpenFunc, pMsgFunc );
+   iResult = hb_compMainExt( argc, argv, &pBuffer, &nLen, NULL, 0, pIncItem, pOpenFunc, pMsgFunc, NULL, NULL );
    hb_xfree( ( void * ) argv );
 
    if( iResult == EXIT_SUCCESS && pBuffer )
@@ -242,7 +242,7 @@ HB_FUNC( HB_COMPILEFROMBUF )
       HB_SIZE nLen;
 
       hb_compGenArgList( 2, hb_pcount(), &argc, &argv, &pIncItem, &pOpenFunc, &pMsgFunc );
-      iResult = hb_compMainExt( argc, argv, &pBuffer, &nLen, szSource, 0, pIncItem, pOpenFunc, pMsgFunc );
+      iResult = hb_compMainExt( argc, argv, &pBuffer, &nLen, szSource, 0, pIncItem, pOpenFunc, pMsgFunc, NULL, NULL );
       hb_xfree( ( void * ) argv );
 
       if( iResult == EXIT_SUCCESS && pBuffer )
