@@ -136,7 +136,10 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 - **Trace retention leaks**: Mismanaged retain/release could leak memory. Add cmocka tests that compile macro-heavy fixtures while checking for outstanding `HB_PP_TRACEINFO` references.
 - **Cross-version compatibility**: Downstream tools must cope with absent trace callbacks (older compilers). Provide capability negotiation and ensure `hb_pp_setTraceCallback` is optional.
 - **Testing coverage gaps**: Expand fixtures to cover nested macros, inline functions, and dialect switches. Require `hbmk2 -w3`, the `tests/ast` cmocka harness, and `scripts/test-ast.sh` before merging instrumentation patches.
-- **Run log** (2025-10-21): `scripts/test-ast.sh` succeeds with instrumentation toggled on/off; `hbmk2 -w3` still pending for this brief.
+- **Run log**:
+  - 2025-10-21: `scripts/test-ast.sh` succeeds with instrumentation toggled on/off; `hbmk2 -w3` remained pending.
+  - 2025-10-22: `hbmk2 -w3` sweep integrated into `tests/ast/hbmk2-fixtures`; fixtures updated to compile warning-free.
+  - 2025-10-23: CLI trace dump (`--ast-trace-dump`) wired for stdout, `hb_compMainExtModule()`/finish callbacks landed, and compile-buffer harness validates trace emission; next step is promoting these traces to golden snapshots.
 
 ## Open Questions & Verification Plan
 - **Stable token IDs**: Confirm the formula (`file_id`, original range, token kind, macro depth) fits within existing Harbour data types. Prototype helper in `src/compiler/complex.c` and write cmocka tests.
@@ -144,5 +147,7 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 - **Trace callback lifetime**: Ensure the callback remains valid across module boundaries (single-module vs multi-module). Instrument `hb_compParserRun`’s single-module path and add regression tests.
 - **Error handling**: Determine whether syntax errors should flush pending events or keep them for diagnostics. Simulate parse errors in tests and manually inspect event stream.
 - **Thread safety**: Harbour’s compiler is largely single-threaded, but confirm no concurrent `hb_pp_state` usage before assuming callbacks are safe. Audit call sites and document constraints.
+- **Golden snapshots**: Extend the new `hb_compMainExt()` finish callback + compile-buffer harness to emit JSON snapshots and compare against golden fixtures; define update workflow for legitimate changes.
+- **Diagnostics toggles**: Evaluate lightweight debug counters (token/nodes/emitted events, retained traceinfo) accessible via instrumentation flags to aid troubleshooting.
 
 Once these questions are resolved, the instrumentation plan is ready for delegation to the Compiler Instrumentation Agent and the AST Tooling Agent.

@@ -15,6 +15,7 @@
 - Evaluate adding `hb_compileBuf`-based fixtures as golden AST references so only Harbour-compilable `.prg`/`.ch` inputs drive instrumentation tests.
 - Consider lightweight debug counters inside trace helpers to diagnose event sequencing (token/node counts, retained traceinfo) when future sessions debug hooks.
 - 2025-10-22: `hbmk2 -w3` sweep recorded; fixture tweaks (function conversions + `CallIncludedProc()`) cleared prior warnings so the matrix is green again.
+- 2025-10-23: CLI trace dump and compile-buffer harness landed; next instrumentation session should focus on golden snapshot comparisons, `hb_compParserRun` coverage, and diagnostics counters.
 
 ## Phase 0 Assessment TODOs
 - DONE 2025-10-18: Divergence ledger recorded in `doc/agents/ast/divergence-ledger.md` (`keep / isolate / drop` vs `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`).
@@ -88,7 +89,8 @@
   2. **Lexer emission pass** — instrument `hb_comp_yylex` with event emission and stable token IDs; capture sample event logs for fixtures in the verification matrix. *Status: COMPLETED 2025-10-18 (token/boundary events via `hb_compAstTracePublishToken/Return`).*
   3. **Parser hook pilot** — add reduction hooks for function declarations; produce a follow-up checklist for additional grammar nodes (stored below). *Status: COMPLETED 2025-10-18 (function enter/leave instrumentation in `harbour.y`).*
   4. **Stabilisation & notes** — update developer commentary/helpers as needed; highlight any helper APIs or toggles introduced. *Status: COMPLETED 2025-10-20 (PP sink + CLI/env toggles + parser hook extensions landed).*
-  5. **Verification sweep** — run matrix suites after each milestone (`hbmk2 -w3`, cmocka, `scripts/test-ast.sh`), attaching summaries and outstanding issues to the session report. *Partial: cmocka + `scripts/test-ast.sh` pass; `hbmk2 -w3` executed with fixture warnings to resolve; evaluate `hb_compileBuf` golden tests for future coverage.*
+  5. **Verification sweep** — run matrix suites after each milestone (`hbmk2 -w3`, cmocka, `scripts/test-ast.sh`), attaching summaries and outstanding issues to the session report. *Status: COMPLETED 2025-10-22 (`hbmk2 -w3` harness landed, `tests/ast/compilebuf-tests` validates trace emission); continue with `hb_compileBuf` golden snapshot work below.*
+  6. **Golden traces & diagnostics** — extend instrumentation to `hb_compParserRun` (single-module path), add optional debug counters, and promote compile-buffer/CLI traces to golden JSON snapshots stored under `tests/ast/fixtures/`. *Next session priority; coordinate with tooling team for schema updates.*
 - **Incremental execution guidance**:
   - If the session approaches token limits, finish the current step, summarise partial results, and record next actions + test status in both `doc/agents/ast/progress.md` and a short note in `doc/agents/ast/draft.md`.
   - Each sub-step can be delivered as a separate delegated session; ensure code is left in a buildable/tested state with feature flags disabled by default if work is mid-flight.
