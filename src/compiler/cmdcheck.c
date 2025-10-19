@@ -232,6 +232,21 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
          HB_COMP_PARAM->fQuiet = HB_FALSE;
          HB_COMP_PARAM->fExit = HB_FALSE;
       }
+      else if( hb_strnicmp( szSwPtr + 2, "no-ast-trace-diagnostics", 24 ) == 0 )
+      {
+         const char * szOptPtr = szSwPtr + 26;
+
+         if( *szOptPtr == '=' || *szOptPtr == ':' )
+         {
+            ++szOptPtr;
+            while( *szOptPtr && *szOptPtr != ' ' && ! HB_ISOPTSEP( *szOptPtr ) )
+               ++szOptPtr;
+         }
+
+         HB_COMP_PARAM->fAstTraceDiagnostics = HB_FALSE;
+         hb_compAstTraceSetDiagnostics( HB_COMP_PARAM, HB_FALSE );
+         szSwPtr = szOptPtr;
+      }
       else if( hb_strnicmp( szSwPtr + 2, "no-ast-trace", 12 ) == 0 )
       {
          const char * szOptPtr = szSwPtr + 14;
@@ -245,6 +260,36 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
 
          HB_COMP_PARAM->fAstTraceEnabled = HB_FALSE;
          hb_compAstTraceSetEnabled( HB_COMP_PARAM, HB_FALSE );
+         szSwPtr = szOptPtr;
+      }
+      else if( hb_strnicmp( szSwPtr + 2, "ast-trace-diagnostics", 21 ) == 0 )
+      {
+         const char * szOptPtr = szSwPtr + 23;
+         HB_BOOL fEnable = HB_TRUE;
+
+         if( *szOptPtr == '=' || *szOptPtr == ':' )
+         {
+            const char * szValue = ++szOptPtr;
+
+            while( *szOptPtr && *szOptPtr != ' ' && ! HB_ISOPTSEP( *szOptPtr ) )
+               ++szOptPtr;
+
+            if( szOptPtr > szValue )
+            {
+               char * szDup = hb_strndup( szValue, szOptPtr - szValue );
+
+               fEnable = hb_compChkParseBoolFlag( szDup, HB_TRUE );
+               hb_xfree( szDup );
+            }
+         }
+         else if( *szOptPtr == '-' )
+         {
+            ++szOptPtr;
+            fEnable = HB_FALSE;
+         }
+
+         HB_COMP_PARAM->fAstTraceDiagnostics = fEnable;
+         hb_compAstTraceSetDiagnostics( HB_COMP_PARAM, fEnable );
          szSwPtr = szOptPtr;
       }
       else if( hb_strnicmp( szSwPtr + 2, "ast-trace-dump", 14 ) == 0 )
@@ -986,6 +1031,19 @@ void hb_compChkEnvironment( HB_COMP_DECL )
          HB_COMP_PARAM->fAstTraceEnabled = fEnable;
          hb_compAstTraceSetEnabled( HB_COMP_PARAM, fEnable );
          hb_xfree( szAstTrace );
+      }
+   }
+
+   {
+      char * szAstTraceDiag = hb_getenv( "HB_AST_TRACE_DIAGNOSTICS" );
+
+      if( szAstTraceDiag )
+      {
+         HB_BOOL fEnable = hb_compChkParseBoolFlag( szAstTraceDiag, HB_TRUE );
+
+         HB_COMP_PARAM->fAstTraceDiagnostics = fEnable;
+         hb_compAstTraceSetDiagnostics( HB_COMP_PARAM, fEnable );
+         hb_xfree( szAstTraceDiag );
       }
    }
 

@@ -853,6 +853,7 @@ typedef struct _HB_COMP
    HB_BOOL           fMeaningful;         /* do not generate warnings about meaningless expression usage */
    HB_BOOL           fINCLUDE;            /* use INCLUDE envvar as header path (default) */
    HB_BOOL           fAstTraceEnabled;    /* compiler instrumentation toggle */
+   HB_BOOL           fAstTraceDiagnostics;/* instrumentation diagnostics counters toggle */
 } HB_COMP, * PHB_COMP;
 
 typedef struct

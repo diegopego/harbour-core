@@ -194,6 +194,119 @@ static void cli_toggle_controls_trace( void ** state )
    hb_comp_free( pComp );
 }
 
+static void cli_toggle_controls_trace_diagnostics( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+   const char * argvEnable[] = { "hb_comp", "--ast-trace-diagnostics" };
+   const char * argvDisable[] = { "hb_comp", "--no-ast-trace-diagnostics" };
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compChkCommandLine( pComp, HB_SIZEOFARRAY( argvEnable ), argvEnable );
+   assert_true( hb_compAstTraceDiagnosticsEnabled( pComp ) );
+
+   hb_compChkCommandLine( pComp, HB_SIZEOFARRAY( argvDisable ), argvDisable );
+   assert_false( hb_compAstTraceDiagnosticsEnabled( pComp ) );
+
+   hb_comp_free( pComp );
+}
+
+static void diagnostics_counters_track_events( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+   HB_PP_TOKEN token;
+   HB_PP_TRACE_EVENT event;
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compAstTraceSetDiagnostics( pComp, HB_TRUE );
+   assert_true( hb_compAstTraceDiagnosticsEnabled( pComp ) );
+   hb_compAstTraceSetEnabled( pComp, HB_FALSE );
+   hb_compAstTraceClear( pComp );
+
+   hb_xmemset( &token, 0, sizeof( token ) );
+   token.value = "TOKEN";
+   token.len = 5;
+
+   hb_compAstTracePublishToken( pComp, &token );
+   hb_compAstTracePublishBoundary( pComp, ';', 0 );
+
+   hb_xmemset( &event, 0, sizeof( event ) );
+   event.szRuleKind = "macro";
+   hb_compAstTracePublishPreprocessorEvent( pComp, &event );
+
+   assert_int_equal( hb_compAstTraceTokenCount( pComp ), 0 );
+   assert_int_equal( hb_compAstTraceBoundaryCount( pComp ), 0 );
+   assert_int_equal( hb_compAstTracePpEventCount( pComp ), 0 );
+   assert_int_equal( hb_compAstTraceTokenTotal( pComp ), 1 );
+   assert_int_equal( hb_compAstTraceBoundaryTotal( pComp ), 1 );
+   assert_int_equal( hb_compAstTracePpEventTotal( pComp ), 1 );
+   assert_int_equal( hb_compAstTraceNodeTotal( pComp ), 0 );
+
+   hb_compAstTraceSetEnabled( pComp, HB_TRUE );
+   hb_compAstTraceClear( pComp );
+
+   hb_compAstTracePublishToken( pComp, &token );
+   hb_compAstTracePublishBoundary( pComp, ';', 0 );
+   hb_compAstTracePublishPreprocessorEvent( pComp, &event );
+   hb_compAstTraceNodeEnterStack( pComp, HB_COMP_AST_NODE_FUNCTION, hb_compAstTraceLastTokenId( pComp ) );
+   hb_compAstTraceNodeLeaveStack( pComp, HB_COMP_AST_NODE_FUNCTION );
+
+   assert_int_equal( hb_compAstTraceTokenCount( pComp ), 1 );
+   assert_int_equal( hb_compAstTraceBoundaryCount( pComp ), 1 );
+   assert_int_equal( hb_compAstTracePpEventCount( pComp ), 1 );
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 2 );
+   assert_int_equal( hb_compAstTraceTokenTotal( pComp ), 1 );
+   assert_int_equal( hb_compAstTraceBoundaryTotal( pComp ), 1 );
+   assert_int_equal( hb_compAstTracePpEventTotal( pComp ), 1 );
+   assert_int_equal( hb_compAstTraceNodeTotal( pComp ), 2 );
+
+   hb_compAstTraceSetDiagnostics( pComp, HB_FALSE );
+   assert_false( hb_compAstTraceDiagnosticsEnabled( pComp ) );
+   assert_int_equal( hb_compAstTraceTokenTotal( pComp ), 0 );
+   assert_int_equal( hb_compAstTraceNodeTotal( pComp ), 0 );
+
+   hb_comp_free( pComp );
+}
+
+static void diagnostics_traceinfo_totals( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+   PHB_PP_TRACEINFO pInfo;
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compAstTraceSetDiagnostics( pComp, HB_TRUE );
+   assert_true( hb_compAstTraceDiagnosticsEnabled( pComp ) );
+
+   pInfo = ( PHB_PP_TRACEINFO ) hb_xgrabz( sizeof( HB_PP_TRACEINFO ) );
+   pInfo->nRefCount = 1;
+
+   assert_int_equal( hb_compAstTraceTraceinfoRetainedTotal( pComp ), 0 );
+   assert_int_equal( hb_compAstTraceTraceinfoReleasedTotal( pComp ), 0 );
+
+   hb_compAstTraceRetainInfo( pComp, pInfo );
+   hb_compAstTraceRetainInfo( pComp, pInfo );
+   assert_int_equal( hb_compAstTraceTraceinfoRetainedTotal( pComp ), 2 );
+
+   hb_compAstTraceReleaseInfo( pComp, pInfo );
+   assert_int_equal( hb_compAstTraceTraceinfoReleasedTotal( pComp ), 1 );
+
+   hb_compAstTraceSetDiagnostics( pComp, HB_FALSE );
+   assert_false( hb_compAstTraceDiagnosticsEnabled( pComp ) );
+   assert_int_equal( hb_compAstTraceTraceinfoRetainedTotal( pComp ), 0 );
+   assert_int_equal( hb_compAstTraceTraceinfoReleasedTotal( pComp ), 0 );
+
+   hb_pp_traceinfoRelease( pInfo );
+   hb_comp_free( pComp );
+}
+
 static void node_events_pair_enter_and_leave( void ** state )
 {
    PHB_COMP pComp = hb_comp_new();
@@ -475,6 +588,9 @@ int main( void )
       cmocka_unit_test( token_and_boundary_events_capture_metadata ),
       cmocka_unit_test( pp_events_capture_macro_traces ),
       cmocka_unit_test( cli_toggle_controls_trace ),
+      cmocka_unit_test( cli_toggle_controls_trace_diagnostics ),
+      cmocka_unit_test( diagnostics_counters_track_events ),
+      cmocka_unit_test( diagnostics_traceinfo_totals ),
       cmocka_unit_test( expression_nodes_capture_reductions ),
       cmocka_unit_test( class_and_member_events_capture_names ),
       cmocka_unit_test( statement_stack_records_nested_nodes ),

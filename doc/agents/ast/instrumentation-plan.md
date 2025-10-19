@@ -148,6 +148,6 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 - **Error handling**: Determine whether syntax errors should flush pending events or keep them for diagnostics. Simulate parse errors in tests and manually inspect event stream.
 - **Thread safety**: Harbour’s compiler is largely single-threaded, but confirm no concurrent `hb_pp_state` usage before assuming callbacks are safe. Audit call sites and document constraints.
 - **Golden snapshots**: Extend the new `hb_compMainExt()` finish callback + compile-buffer harness to emit JSON snapshots and compare against golden fixtures; define update workflow for legitimate changes.
-- **Diagnostics toggles**: Evaluate lightweight debug counters (token/nodes/emitted events, retained traceinfo) accessible via instrumentation flags to aid troubleshooting.
+- **Diagnostics toggles**: `--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS` enable lightweight counters (token/boundary/node totals plus traceinfo retain/release tallies) for instrumentation troubleshooting.
 
 Once these questions are resolved, the instrumentation plan is ready for delegation to the Compiler Instrumentation Agent and the AST Tooling Agent.

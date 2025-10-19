@@ -53,3 +53,4 @@ tests/ast/fixture_demo
 command_trace
 fixture_demo
 macro_trace
+fixture_blocks
