@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "hbapi.h"
 #include "hbcomp.h"
@@ -19,6 +20,8 @@ typedef struct
    HB_SIZE nodeCount;
    HB_COMP_AST_NODE_KIND * nodeKinds;
    HB_COMP_AST_NODE_EVENT_TYPE * nodePhases;
+   const char * expectedModule;
+   bool sawExpectedModule;
    char * firstTokenModule;
 } HB_TRACE_CAPTURE;
 
@@ -50,14 +53,22 @@ static void hb_trace_capture_finish( PHB_COMP pComp, void * cargo )
             memcpy( pszCopy, pToken->value, nLen + 1 );
             pCapture->tokenValues[ i ] = pszCopy;
          }
-         if( pToken->module && ! pCapture->firstTokenModule )
+         if( pToken->module )
          {
-            size_t nModuleLen = strlen( pToken->module );
-            char * pszModule = ( char * ) malloc( nModuleLen + 1 );
+            if( pCapture->expectedModule &&
+                strcmp( pToken->module, pCapture->expectedModule ) == 0 )
+            {
+               pCapture->sawExpectedModule = true;
+            }
+            if( ! pCapture->firstTokenModule )
+            {
+               size_t nModuleLen = strlen( pToken->module );
+               char * pszModule = ( char * ) malloc( nModuleLen + 1 );
 
-            assert_non_null( pszModule );
-            memcpy( pszModule, pToken->module, nModuleLen + 1 );
-            pCapture->firstTokenModule = pszModule;
+               assert_non_null( pszModule );
+               memcpy( pszModule, pToken->module, nModuleLen + 1 );
+               pCapture->firstTokenModule = pszModule;
+            }
          }
       }
    }
@@ -98,40 +109,106 @@ static void hb_trace_capture_release( HB_TRACE_CAPTURE * pCapture )
    memset( pCapture, 0, sizeof( *pCapture ) );
 }
 
-static const char * const s_szSource =
-   "FUNCTION Demo()\n"
-   "   LOCAL n := 1\n"
-   "   RETURN n\n";
-static const char * const s_szModule = "compilebuf_fixture.prg";
-static const char * const s_szOutputTemp = "compilebuf_fixture.c";
-static const char * const s_szOutput = "tests/ast/compilebuf_fixture.c";
+typedef struct
+{
+   const char * module;
+   const char * source;
+   const char * outputTemp;
+   const char * outputFinal;
+   const char * requiredToken;
+}
+HB_COMPILEBUF_CASE;
 
-static void compilebuf_expect_trace( size_t argc, const char * const argv[] )
+static const HB_COMPILEBUF_CASE s_cases[] =
+{
+   {
+      "compilebuf_fixture.prg",
+      "FUNCTION Demo()\n"
+      "   LOCAL n := 1\n"
+      "   RETURN n\n",
+      "compilebuf_fixture.c",
+      "tests/ast/compilebuf_fixture.c",
+      "FUNCTION"
+   },
+   {
+      "compilebuf_compat_clipper.prg",
+      "#pragma -w3\n"
+      "#pragma -kh-\n"
+      "#pragma -km+\n"
+      "#pragma -ko-\n"
+      "#include \"error.ch\"\n"
+      "#include \"tests/ast/fixture_compat_common.ch\"\n"
+      "FUNCTION CompileBufCompatClipper()\n"
+      "   LOCAL aLog := {}\n"
+      "   LOCAL oBreak := NIL\n"
+      "   FixtureCompatLog( aLog, \"compat:CLIPPER\" )\n"
+      "   BEGIN SEQUENCE WITH {|oErr| FixtureCompatLog( aLog, \"handler:\" + IIf( oErr == NIL, \"none\", oErr:Description ) ) }\n"
+      "      APPLY_NESTED_MACROS( 5 )\n"
+      "      oBreak := ErrorNew()\n"
+      "      oBreak:Description := \"compilebuf\"\n"
+      "      oBreak:GenCode := 9001\n"
+      "      BREAK oBreak\n"
+      "   RECOVER USING oErr\n"
+      "      FixtureCompatLog( aLog, \"recover:\" + IIf( oErr == NIL, \"none\", oErr:Description ) )\n"
+      "   ENDSEQUENCE\n"
+      "   FixtureCompatLog( aLog, \"compat:CLIPPER:end\" )\n"
+      "   RETURN Len( aLog )\n",
+      "compilebuf_compat_clipper.c",
+      "tests/ast/compilebuf_compat_clipper.c",
+      "FUNCTION"
+   }
+};
+
+static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
+                                     size_t argc,
+                                     const char * const argv[] )
 {
    HB_TRACE_CAPTURE capture;
+   bool foundToken = false;
+   size_t i;
    int iResult;
 
    memset( &capture, 0, sizeof( capture ) );
+   capture.expectedModule = pCase->module;
+   capture.sawExpectedModule = false;
 
-   remove( s_szOutput );
-   remove( s_szOutputTemp );
+   remove( pCase->outputFinal );
+   remove( pCase->outputTemp );
 
    iResult = hb_compMainExtModule( ( int ) argc, argv,
                                    NULL, NULL,
-                                   s_szModule, s_szSource, 0,
+                                   pCase->module, pCase->source, 0,
                                    NULL, NULL, NULL,
                                    hb_trace_capture_finish, &capture );
    assert_int_equal( iResult, EXIT_SUCCESS );
    assert_true( capture.tokenCount > 0 );
    assert_non_null( capture.tokenValues );
-   assert_string_equal( capture.tokenValues[ 0 ], "FUNCTION" );
-   assert_non_null( capture.firstTokenModule );
-   assert_string_equal( capture.firstTokenModule, s_szModule );
+   if( pCase->requiredToken )
+   {
+      for( i = 0; i < capture.tokenCount; ++i )
+      {
+         if( capture.tokenValues[ i ] &&
+             strcmp( capture.tokenValues[ i ], pCase->requiredToken ) == 0 )
+         {
+            foundToken = true;
+            break;
+         }
+      }
+      assert_true( foundToken );
+   }
+   assert_true( capture.sawExpectedModule );
 
-   assert_int_equal( rename( s_szOutputTemp, s_szOutput ), 0 );
+   if( rename( pCase->outputTemp, pCase->outputFinal ) != 0 )
+   {
+      int err = errno;
+
+      fail_msg( "rename(%s,%s) failed: %s",
+                pCase->outputTemp, pCase->outputFinal,
+                strerror( err ) );
+   }
 
    {
-      FILE * fp = fopen( s_szOutput, "r" );
+      FILE * fp = fopen( pCase->outputFinal, "r" );
       char buffer[ 64 ];
 
       assert_non_null( fp );
@@ -151,20 +228,28 @@ static void compilebuf_expect_trace( size_t argc, const char * const argv[] )
 
 static void compilebuf_generates_trace_events( void ** state )
 {
-   const char * argv[] = { "hb_comp", "-q2", "--ast-trace" };
+   const char * argv[] = { "hb_comp", "-q2", "-iinclude", "--ast-trace" };
+   size_t i;
 
    HB_SYMBOL_UNUSED( state );
 
-   compilebuf_expect_trace( HB_SIZEOFARRAY( argv ), argv );
+   for( i = 0; i < HB_SIZEOFARRAY( s_cases ); ++i )
+   {
+      compilebuf_expect_trace( &s_cases[ i ], HB_SIZEOFARRAY( argv ), argv );
+   }
 }
 
 static void compilebuf_generates_trace_events_single_module( void ** state )
 {
-   const char * argv[] = { "hb_comp", "-q2", "-m", "--ast-trace" };
+   const char * argv[] = { "hb_comp", "-q2", "-m", "-iinclude", "--ast-trace" };
+   size_t i;
 
    HB_SYMBOL_UNUSED( state );
 
-   compilebuf_expect_trace( HB_SIZEOFARRAY( argv ), argv );
+   for( i = 0; i < HB_SIZEOFARRAY( s_cases ); ++i )
+   {
+      compilebuf_expect_trace( &s_cases[ i ], HB_SIZEOFARRAY( argv ), argv );
+   }
 }
 
 int main( void )

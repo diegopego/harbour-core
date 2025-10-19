@@ -1,5 +1,11 @@
 # AST Tooling Progress Log
 
+## 2025-10-24 – Dialect/Error Fixture Expansion
+
+- **Code updates**: Replaced the earlier combined dialect fixture with two explicit modules: `tests/ast/fixture_compat_clipper.prg` (Clipper pragmas) and `tests/ast/fixture_compat_harbour.prg` (Harbour pragmas). Both share `fixture_compat_common.ch` for nested macro helpers, exercise `BEGIN SEQUENCE`/`RECOVER`, and now emit independent golden traces (`fixture_compat_clipper.ast.json`, `fixture_compat_harbour.ast.json`). `ast_hbmk_ast_tests.c` iterates both fixtures, and `ast_compilebuf_tests.c`’s second in-memory case now mirrors the Clipper variant.
+- **Testing**: `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_clipper.prg`; `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_harbour.prg`; `make -C tests/ast compilebuf-tests` / `./tests/ast/compilebuf-tests`; `make -C tests/ast hbmk-ast-tests` / `./tests/ast/hbmk-ast-tests`; `make -C tests/ast hbmk2-fixtures` / `./tests/ast/hbmk2-fixtures`; `scripts/test-ast.sh`.
+- **Follow-up**: Expand error-path coverage (e.g. additional RECOVER branches, pragma mixes) and document the `-iinclude` requirement for the harnesses. Consider adding compile-buffer coverage for the Harbour variant if we need symmetry in future test sweeps.
+
 ## 2025-10-24 – Single-Module Trace Coverage
 
 - **Code updates**: Routed `hb_compParserRun()` through `hb_comp_yylex()` unconditionally so instrumentation emits token/boundary events even when `-m` (`fSingleModule`) suppresses module enrollment. The eager-token path now mirrors the standard lexer flow without side effects. Added `tests/ast/fixture_blocks.prg` plus its golden dump to broaden nested-block coverage, refactored `tests/ast/ast_hbmk_ast_tests.c` to exercise every fixture under both default and `-m` modes, and introduced diagnostics counters (`hb_compAstTraceTokenTotal()`, etc.) with CLI/env toggles (`--ast-trace-diagnostics`, `HB_AST_TRACE_DIAGNOSTICS`).

@@ -50,9 +50,12 @@ tests/ast/hbmk2-fixtures
 tests/ast/hbmk-ast-tests
 tests/ast/compilebuf-tests
 tests/ast/fixture_demo
+tests/ast/compilebuf_compat_clipper.c
 command_trace
 fixture_demo
 macro_trace
 fixture_blocks
 fixture_ppdirectives
 fixture_statements
+fixture_compat_clipper
+fixture_compat_harbour
