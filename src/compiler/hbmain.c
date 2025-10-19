@@ -40,13 +40,13 @@ static HB_BOOL hb_compRegisterFunc( HB_COMP_DECL, PHB_HFUNC pFunc, HB_BOOL fErro
 
 /* ************************************************************************* */
 
-int hb_compMainExt( int argc, const char * const argv[],
-                    HB_BYTE ** pBufPtr, HB_SIZE * pnSize,
-                    const char * szSource, int iStartLine,
-                    void * cargo, PHB_PP_OPEN_FUNC pOpenFunc,
-                                  PHB_PP_MSG_FUNC pMsgFunc,
-                                  HB_COMP_FINISH_FUNC pFinishFunc,
-                                  void * pFinishCargo )
+static int hb_compMainExtImpl( int argc, const char * const argv[],
+                               HB_BYTE ** pBufPtr, HB_SIZE * pnSize,
+                               const char * szModuleName, const char * szSource, int iStartLine,
+                               void * cargo, PHB_PP_OPEN_FUNC pOpenFunc,
+                                             PHB_PP_MSG_FUNC pMsgFunc,
+                                             HB_COMP_FINISH_FUNC pFinishFunc,
+                                             void * pFinishCargo )
 {
    HB_COMP_DECL;
    int iStatus = EXIT_SUCCESS, iFileCount = 0;
@@ -121,7 +121,9 @@ int hb_compMainExt( int argc, const char * const argv[],
    if( szSource )
    {
       iFileCount++;
-      iStatus = hb_compCompile( HB_COMP_PARAM, "{SOURCE}", szSource, iStartLine );
+      iStatus = hb_compCompile( HB_COMP_PARAM,
+                                ( szModuleName && *szModuleName ) ? szModuleName : "{SOURCE}",
+                                szSource, iStartLine );
    }
    else
    {
@@ -178,6 +180,30 @@ int hb_compMainExt( int argc, const char * const argv[],
 int hb_compMain( int argc, const char * const argv[] )
 {
    return hb_compMainExt( argc, argv, NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL );
+}
+
+int hb_compMainExt( int argc, const char * const argv[],
+                    HB_BYTE ** pBufPtr, HB_SIZE * pnSize,
+                    const char * szSource, int iStartLine,
+                    void * cargo, PHB_PP_OPEN_FUNC pOpenFunc,
+                                  PHB_PP_MSG_FUNC pMsgFunc,
+                                  HB_COMP_FINISH_FUNC pFinishFunc,
+                                  void * pFinishCargo )
+{
+   return hb_compMainExtImpl( argc, argv, pBufPtr, pnSize, NULL, szSource, iStartLine,
+                              cargo, pOpenFunc, pMsgFunc, pFinishFunc, pFinishCargo );
+}
+
+int hb_compMainExtModule( int argc, const char * const argv[],
+                          HB_BYTE ** pBufPtr, HB_SIZE * pnSize,
+                          const char * szModuleName, const char * szSource, int iStartLine,
+                          void * cargo, PHB_PP_OPEN_FUNC pOpenFunc,
+                                        PHB_PP_MSG_FUNC pMsgFunc,
+                                        HB_COMP_FINISH_FUNC pFinishFunc,
+                                        void * pFinishCargo )
+{
+   return hb_compMainExtImpl( argc, argv, pBufPtr, pnSize, szModuleName, szSource, iStartLine,
+                              cargo, pOpenFunc, pMsgFunc, pFinishFunc, pFinishCargo );
 }
 
 static int hb_compReadClpFile( HB_COMP_DECL, const char * szClpFile )

@@ -5,8 +5,9 @@
 - **Testing**: Ran `hbmk2 -w3` against `tests/ast/fixture_demo.prg`, `tests/ast/preprocessor/fixtures/macro_trace.prg`, and `tests/ast/preprocessor/fixtures/command_trace.prg`. After refactoring the fixture to functions and adding `CallIncludedProc()` to exercise the static helper, the sweep now completes without warnings.
 - **Outcome**: Compiler instrumentation behaved as expected under strict warnings and the helper include is fully consumed. Fixtures are back to warning-free state for the verification matrix.
 - **Automation**: Added a `cmocka` runner (`tests/ast/hbmk2-fixtures`) that globs all `.prg` fixtures, shells out to `hbmk2 -w3`, and fails the suite if warnings/errors appear; wired into `tests/ast/Makefile`.
-- **Implementation**: Exercised the `hb_compMainExt()` finish callback (`HB_COMP_FINISH_FUNC`) so cmocka tests can inspect `PHB_COMP` instrumentation buffers before teardown.
+- **Implementation**: Exercised the `hb_compMainExt()` finish callback (`HB_COMP_FINISH_FUNC`) so cmocka tests can inspect `PHB_COMP` instrumentation buffers before teardown, and introduced `hb_compMainExtModule()` to let in-memory compilations supply a virtual module name without breaking the original API.
 - **Harness**: Introduced `tests/ast/compilebuf-tests`, which compiles an in-memory source via `hb_compMainExt()` and validates that token traces are emitted when tracing is enabled.
+- **Coverage**: `tests/ast/compilebuf-tests` now supplies a virtual module name, captures the emitted trace stream, and asserts the token metadata matches the generated `tests/ast/compilebuf_fixture.c` artefact.
 - **Research**: Captured the `hb_compileBuf` golden-test evaluation plan in `doc/agents/ast/hb_compilebuf_evaluation.md`, outlining API gaps and the steps needed to snapshot instrumentation from in-memory compilations.
 - **Open items**: Re-run `hbmk2 -w3` when new fixtures land, expand the `hb_compileBuf` snapshot harness toward golden comparisons, and continue evaluating broader verification coverage.
 

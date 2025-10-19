@@ -37,7 +37,7 @@
   - `tests/ast` cmocka suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
   - `scripts/test-ast.sh`: rerun snapshot comparisons using compiler-sourced events; failures indicate divergence from the schema/fixtures.
 - **Run log**:
-  - 2025-10-22: `hbmk2 -w3` run logged; fixtures now compile cleanly after exercising the static helper include, the new `hbmk2-fixtures` cmocka target automates the check, the `hb_compMainExt()` finish callback is exercised for instrumentation snapshotting, the `tests/ast/compilebuf-tests` harness validates token emission from in-memory compilations, and `doc/agents/ast/hb_compilebuf_evaluation.md` captures the plan for golden tests driven by `hb_compileBuf`.
+  - 2025-10-22: `hbmk2 -w3` run logged; fixtures now compile cleanly after exercising the static helper include, the new `hbmk2-fixtures` cmocka target automates the check, the `hb_compMainExt()` finish callback is exercised for instrumentation snapshotting, `hb_compMainExtModule()` enables virtual module names for buffer compilations, the `tests/ast/compilebuf-tests` harness validates token emission using that name while retaining the generated `tests/ast/compilebuf_fixture.c`, and `doc/agents/ast/hb_compilebuf_evaluation.md` captures the plan for golden tests driven by `hb_compileBuf`.
 - **Fixtures & snapshots**:
   - Reuse existing `tests/ast/fixture_*.prg`, `.ch`, `.json`, `.ppo`, `.trace.json` files; add new variants for nested macros, conditionals, and dialect switches once instrumentation lands.
   - Maintain golden snapshots for both token streams and AST payloads; store under extracted tooling repo but reference versions in Harbour core for parity checks.

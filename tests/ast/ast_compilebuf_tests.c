@@ -19,6 +19,7 @@ typedef struct
    HB_SIZE nodeCount;
    HB_COMP_AST_NODE_KIND * nodeKinds;
    HB_COMP_AST_NODE_EVENT_TYPE * nodePhases;
+   char * firstTokenModule;
 } HB_TRACE_CAPTURE;
 
 static void hb_trace_capture_finish( PHB_COMP pComp, void * cargo )
@@ -48,6 +49,15 @@ static void hb_trace_capture_finish( PHB_COMP pComp, void * cargo )
             assert_non_null( pszCopy );
             memcpy( pszCopy, pToken->value, nLen + 1 );
             pCapture->tokenValues[ i ] = pszCopy;
+         }
+         if( pToken->module && ! pCapture->firstTokenModule )
+         {
+            size_t nModuleLen = strlen( pToken->module );
+            char * pszModule = ( char * ) malloc( nModuleLen + 1 );
+
+            assert_non_null( pszModule );
+            memcpy( pszModule, pToken->module, nModuleLen + 1 );
+            pCapture->firstTokenModule = pszModule;
          }
       }
    }
@@ -84,6 +94,7 @@ static void hb_trace_capture_release( HB_TRACE_CAPTURE * pCapture )
    }
    free( pCapture->nodeKinds );
    free( pCapture->nodePhases );
+   free( pCapture->firstTokenModule );
    memset( pCapture, 0, sizeof( *pCapture ) );
 }
 
@@ -93,6 +104,9 @@ static void compilebuf_generates_trace_events( void ** state )
       "FUNCTION Demo()\n"
       "   LOCAL n := 1\n"
       "   RETURN n\n";
+   static const char * const s_szModule = "compilebuf_fixture.prg";
+   static const char * const s_szOutputTemp = "compilebuf_fixture.c";
+   static const char * const s_szOutput = "tests/ast/compilebuf_fixture.c";
    const char * argv[] = { "hb_comp", "-q2", "--ast-trace" };
    HB_TRACE_CAPTURE capture;
    int iResult;
@@ -101,15 +115,31 @@ static void compilebuf_generates_trace_events( void ** state )
 
    memset( &capture, 0, sizeof( capture ) );
 
-   iResult = hb_compMainExt( HB_SIZEOFARRAY( argv ), argv,
-                             NULL, NULL,
-                             s_szSource, 0,
-                             NULL, NULL, NULL,
-                             hb_trace_capture_finish, &capture );
+   remove( s_szOutput );
+   remove( s_szOutputTemp );
+
+   iResult = hb_compMainExtModule( HB_SIZEOFARRAY( argv ), argv,
+                                   NULL, NULL,
+                                   s_szModule, s_szSource, 0,
+                                   NULL, NULL, NULL,
+                                   hb_trace_capture_finish, &capture );
    assert_int_equal( iResult, EXIT_SUCCESS );
    assert_true( capture.tokenCount > 0 );
    assert_non_null( capture.tokenValues );
    assert_string_equal( capture.tokenValues[ 0 ], "FUNCTION" );
+   assert_non_null( capture.firstTokenModule );
+   assert_string_equal( capture.firstTokenModule, s_szModule );
+
+   assert_int_equal( rename( s_szOutputTemp, s_szOutput ), 0 );
+
+   {
+      FILE * fp = fopen( s_szOutput, "r" );
+      char buffer[ 64 ];
+
+      assert_non_null( fp );
+      assert_non_null( fgets( buffer, sizeof( buffer ), fp ) );
+      fclose( fp );
+   }
 
    if( capture.nodeCount > 0 )
    {

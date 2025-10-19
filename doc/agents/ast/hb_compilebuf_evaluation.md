@@ -5,13 +5,13 @@
 - Identify integration points that allow capturing `HB_COMP` trace buffers produced during the compilation of in-memory sources.
 
 ## Findings
-- `hb_compileBuf()` is exposed only as a Harbour function (`HB_FUNC( HB_COMPILEBUF )` in `src/compiler/hbcmplib.c`). It delegates to the C entry point `hb_compMainExt()`, which creates and frees an internal `PHB_COMP` instance.
-- `hb_compMainExt()` currently returns only serialization buffers (`pOutBuf`) and does not expose the `PHB_COMP` instance before it is freed. Instrumentation state (`hb_compAstTrace*`) becomes inaccessible once `hb_compMainExt()` returns.
+- `hb_compileBuf()` is exposed only as a Harbour function (`HB_FUNC( HB_COMPILEBUF )` in `src/compiler/hbcmplib.c`). It delegates to the C entry points `hb_compMainExt()` / `hb_compMainExtModule()`, which create and free an internal `PHB_COMP` instance.
+- `hb_compMainExtModule()` layers the virtual-module-name support on top of the existing callback-enabled API so in-memory compilations can surface stable filenames without breaking older callers.
 - The internal compiler pipeline requires environment/CLI preprocessing (`hb_compChkEnvironment`, `hb_compChkCommandLine`, `hb_compInitPP`, `hb_compIdentifierOpen`), making a minimal reimplementation in tests non-trivial without reusing `hb_compMainExt()`.
 - Existing cmocka tests interact directly with `hb_compAstTrace*` APIs by instantiating `hb_comp_new()` manually, but they do not run the full parse pipeline.
 
 ## Proposed approach
-1. **API surface**: `hb_compMainExt()` exposes an optional finish callback (`HB_COMP_FINISH_FUNC`) invoked immediately before compiler teardown. Tests can supply this hook to snapshot token/AST/preprocessor buffers while the `PHB_COMP` is still valid.
+1. **API surface**: `hb_compMainExt()` exposes an optional finish callback (`HB_COMP_FINISH_FUNC`) invoked immediately before compiler teardown, while `hb_compMainExtModule()` adds the virtual module-name parameter for buffer compilations.
 2. **Test harness**: Create a cmocka suite (`tests/ast/ast_compilebuf_tests.c`) that:
    - Defines inline Harbour sources (or loads fixtures into memory).
    - Invokes the new helper (wrapping `hb_compMainExt`) with `--ast-trace` enabled and `hb_compAstTraceSetEnabled()` asserted.
@@ -20,7 +20,7 @@
 3. **Golden generation**: Reuse the current `scripts/test-ast.sh` pipeline to regenerate snapshots on demand (e.g., `scripts/gen-compilebuf-goldens.sh` that runs the cmocka binary in "record" mode).
 
 ## Current status
-- The finish callback in `hb_compMainExt()` is exercised by `tests/ast/compilebuf-tests`, which compiles an in-memory stub (`FUNCTION Demo()`) with `--ast-trace` enabled and asserts that token events are captured.
+- The finish callback in `hb_compMainExtModule()` is exercised by `tests/ast/compilebuf-tests`, which compiles an in-memory stub (`FUNCTION Demo()`) with `--ast-trace` enabled, supplies a virtual module name, and asserts that token events are captured alongside the persisted `compilebuf_fixture.c` output.
 - The harness currently validates token sequencing; AST node capture remains optional until parser hooks guarantee coverage for buffer-based compilations.
 - Next step is to extend the harness to serialize trace buffers (tokens/boundaries/nodes) into deterministically ordered snapshots and compare them against golden fixtures.
 
