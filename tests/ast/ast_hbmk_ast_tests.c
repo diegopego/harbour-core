@@ -64,8 +64,35 @@ static char * hb_astReadStream( FILE * fp )
    return buffer;
 }
 
-static void hb_astAssertFixtureDump( size_t argc, const char * const argv[] )
+static void hb_astCleanupArtifacts( const char * prgPath )
 {
+   char base[256];
+   char * pExt;
+   const char * pszBase = strrchr( prgPath, '/' );
+   char staged[512];
+   char local[256];
+
+   if( pszBase )
+      pszBase++;
+   else
+      pszBase = prgPath;
+
+   hb_strncpy( base, pszBase, sizeof( base ) - 1 );
+   pExt = strrchr( base, '.' );
+   if( pExt )
+      *pExt = '\0';
+
+   hb_snprintf( local, sizeof( local ), "%s.c", base );
+   hb_snprintf( staged, sizeof( staged ), "tests/ast/%s.c", base );
+
+   remove( local );
+   remove( staged );
+}
+
+static void hb_astAssertFixtureDump( const char * prgPath, const char * expectedPath, HB_BOOL fSingleModule )
+{
+   const char * argv[5];
+   size_t argc = 0;
    char * actual;
    char * jsonStart;
    char * actualRaw;
@@ -74,8 +101,14 @@ static void hb_astAssertFixtureDump( size_t argc, const char * const argv[] )
    int savedStdout;
    int iStatus;
 
-   remove( "tests/ast/fixture_demo.c" );
-   remove( "fixture_demo.c" );
+   argv[ argc++ ] = "hb_comp";
+   if( fSingleModule )
+      argv[ argc++ ] = "-m";
+   argv[ argc++ ] = "--ast-trace";
+   argv[ argc++ ] = "--ast-trace-dump=-";
+   argv[ argc++ ] = prgPath;
+
+   hb_astCleanupArtifacts( prgPath );
 
    capture = tmpfile();
    assert_non_null( capture );
@@ -113,10 +146,9 @@ static void hb_astAssertFixtureDump( size_t argc, const char * const argv[] )
    memcpy( actual, jsonStart, strlen( jsonStart ) + 1 );
    free( actualRaw );
 
-   remove( "tests/ast/fixture_demo.c" );
-   remove( "fixture_demo.c" );
+   hb_astCleanupArtifacts( prgPath );
 
-   expected = hb_astLoadFile( "tests/ast/fixtures/fixture_demo.ast.json" );
+   expected = hb_astLoadFile( expectedPath );
    assert_non_null( expected );
    assert_string_equal( actual, expected );
    free( expected );
@@ -124,35 +156,39 @@ static void hb_astAssertFixtureDump( size_t argc, const char * const argv[] )
    free( actual );
 }
 
+typedef struct
+{
+   const char * prgPath;
+   const char * expectedJson;
+}
+HB_AST_FIXTURE;
+
+static const HB_AST_FIXTURE s_cases[] =
+{
+   { "tests/ast/fixture_demo.prg", "tests/ast/fixtures/fixture_demo.ast.json" },
+   { "tests/ast/fixture_blocks.prg", "tests/ast/fixtures/fixture_blocks.ast.json" }
+};
+
 static void hb_astCompileFixture_default( void ** state )
 {
-   const char * argv[] =
-   {
-      "hb_comp",
-      "--ast-trace",
-      "--ast-trace-dump=-",
-      "tests/ast/fixture_demo.prg"
-   };
+   size_t i;
 
    HB_SYMBOL_UNUSED( state );
 
-   hb_astAssertFixtureDump( HB_SIZEOFARRAY( argv ), argv );
+   for( i = 0; i < HB_SIZEOFARRAY( s_cases ); ++i )
+   {
+      hb_astAssertFixtureDump( s_cases[ i ].prgPath, s_cases[ i ].expectedJson, HB_FALSE );
+   }
 }
 
 static void hb_astCompileFixture_single_module( void ** state )
 {
-   const char * argv[] =
-   {
-      "hb_comp",
-      "-m",
-      "--ast-trace",
-      "--ast-trace-dump=-",
-      "tests/ast/fixture_demo.prg"
-   };
-
    HB_SYMBOL_UNUSED( state );
 
-   hb_astAssertFixtureDump( HB_SIZEOFARRAY( argv ), argv );
+   for( size_t i = 0; i < HB_SIZEOFARRAY( s_cases ); ++i )
+   {
+      hb_astAssertFixtureDump( s_cases[ i ].prgPath, s_cases[ i ].expectedJson, HB_TRUE );
+   }
 }
 
 int main( void )
