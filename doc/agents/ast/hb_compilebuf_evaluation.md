@@ -11,13 +11,18 @@
 - Existing cmocka tests interact directly with `hb_compAstTrace*` APIs by instantiating `hb_comp_new()` manually, but they do not run the full parse pipeline.
 
 ## Proposed approach
-1. **API surface** *(prototype in progress)*: `hb_compMainExt()` now accepts an optional finish callback (`HB_COMP_FINISH_FUNC`) invoked immediately before compiler teardown. Tests can supply this hook to snapshot token/AST/preprocessor buffers while the `PHB_COMP` is still valid.
+1. **API surface**: `hb_compMainExt()` exposes an optional finish callback (`HB_COMP_FINISH_FUNC`) invoked immediately before compiler teardown. Tests can supply this hook to snapshot token/AST/preprocessor buffers while the `PHB_COMP` is still valid.
 2. **Test harness**: Create a cmocka suite (`tests/ast/ast_compilebuf_tests.c`) that:
    - Defines inline Harbour sources (or loads fixtures into memory).
    - Invokes the new helper (wrapping `hb_compMainExt`) with `--ast-trace` enabled and `hb_compAstTraceSetEnabled()` asserted.
    - Serializes `hb_compAstTraceToken/Boundary/Node` arrays to JSON (reuse existing tooling helpers or add a minimal exporter).
    - Compares the serialized payload with committed golden files (one per fixture) using stable ordering.
 3. **Golden generation**: Reuse the current `scripts/test-ast.sh` pipeline to regenerate snapshots on demand (e.g., `scripts/gen-compilebuf-goldens.sh` that runs the cmocka binary in "record" mode).
+
+## Current status
+- The finish callback in `hb_compMainExt()` is exercised by `tests/ast/compilebuf-tests`, which compiles an in-memory stub (`FUNCTION Demo()`) with `--ast-trace` enabled and asserts that token events are captured.
+- The harness currently validates token sequencing; AST node capture remains optional until parser hooks guarantee coverage for buffer-based compilations.
+- Next step is to extend the harness to serialize trace buffers (tokens/boundaries/nodes) into deterministically ordered snapshots and compare them against golden fixtures.
 
 ## Open questions
 - Should the callback own releasing retained `HB_PP_TRACEINFO` references, or should `hb_compAstTraceShutdown()` remain responsible after snapshotting?
