@@ -149,5 +149,21 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 - **Thread safety**: Harbour’s compiler is largely single-threaded, but confirm no concurrent `hb_pp_state` usage before assuming callbacks are safe. Audit call sites and document constraints.
 - **Golden snapshots**: Extend the new `hb_compMainExt()` finish callback + compile-buffer harness to emit JSON snapshots and compare against golden fixtures; define update workflow for legitimate changes.
 - **Diagnostics toggles**: `--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS` enable lightweight counters (token/boundary/node totals plus traceinfo retain/release tallies) for instrumentation troubleshooting.
+- **Terminology note**: References to “PP macros” denote preprocessor constructs (`#define`, `#xcommand`, conditional compilation). Runtime macro evaluation via the `&` operator remains part of the expression instrumentation backlog.
+
+### Harbour / Clipper Source Terminology Matrix
+
+Use the following naming when documenting fixtures, tests, and instrumentation so we consistently distinguish preprocessor activity from compiler directives and runtime macro evaluation.
+
+| Category (preferred term) | Harbour syntax / examples | Stage in toolchain | Notes / treatment |
+| --- | --- | --- | --- |
+| **Preprocessor directive** | `#define`, `#undef`, `#include`, `#if[n]def`, `#ifdef`, `#else`, `#error` | Runs in the Harbour preprocessor before tokens reach the parser | Produces replacement tokens or controls conditional compilation. Refer to these as **PP directives**. |
+| **Preprocessor command / translate** | `#command`, `#translate`, `#xcommand`, `#xtranslate` | Preprocessor rewrite that expands to Harbour source prior to parsing | Commonly called “PP commands” in Clipper/Harbour docs. They are not runtime macros. |
+| **Preprocessor pragma** | `#pragma`, including `#pragma -k*`, `#pragma __text`, `#pragma __stream`, `#pragma __endtext`, `#pragma /B-` | Preprocessor phase | Pragmas may toggle compiler switches or inject code templates. Refer to them as **PP pragmas**. |
+| **Preprocessor text block** | `TEXT ... ENDTEXT`, `TEXT TO VAR ... ENDTEXT`, `TEXT INTO ... ENDTEXT` | Lowered to `#pragma __text/__stream/__cstream` before parsing | Treat these as **PP text blocks**; instrumentation should attribute expansions to the underlying pragmas. |
+| **Compiler directive keyword** | `REQUEST`, `ANNOUNCE`, `STATIC`, `MEMVAR`, `FIELD`, `THREAD STATIC`, `LOCAL`, `EXTERN` | Parser/semantic analysis (after preprocessor) | These are compile-time directives that affect symbol tables and linking. Do **not** call them macros; refer to them as **compiler directives**. |
+| **Runtime macro operator** | `&cSymbol`, `&( cExpr )`, `&("Func")()` | Evaluated by the VM at runtime | This is the traditional Clipper “macro”. When instrumentation observes these expressions, label them as **runtime macro operator** usage. |
+
+By default, reserve the word **macro** for the runtime `&` operator or explicitly qualify it (e.g., “PP directive”, “PP command”) when referring to preprocessor constructs.
 
 Once these questions are resolved, the instrumentation plan is ready for delegation to the Compiler Instrumentation Agent and the AST Tooling Agent.

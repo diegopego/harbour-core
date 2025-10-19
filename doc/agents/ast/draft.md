@@ -100,7 +100,7 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 | Parser hook pilot | ✅ | Functions/classes/control-flow instrumented; backlog tracks remaining reductions. |
 | Stabilisation & toggles | ✅ | PP sink + CLI/env toggles documented. |
 | Verification sweep | ✅ | `hbmk2-fixtures`, `compilebuf-tests`, `ast_trace_tests`, `scripts/test-ast.sh` integrated. |
-| Golden traces & diagnostics | 🔄 | Single-module coverage landed (`hb_compParserRun` instrumentation + `compilebuf-tests` `-m` harness); fixture matrix now includes `fixture_blocks` JSON dumps; diagnostics counters/toggles shipped; pending broader golden snapshot workflow. |
+| Golden traces & diagnostics | 🔄 | Single-module coverage landed (`hb_compParserRun` instrumentation + `compilebuf-tests` `-m` harness); fixture matrix now includes `fixture_blocks` + `fixture_ppdirectives` JSON dumps; diagnostics counters/toggles shipped; pending broader golden snapshot workflow. |
 
 ### Active Objectives (next sessions)
 1. ✅ **Single-module coverage** – `hb_compParserRun` now routes through `hb_comp_yylex`; both compile-buffer and CLI harnesses iterate over `fixture_demo` and `fixture_blocks` under default/`-m` modes. Next: document the behaviour and backfill additional fixtures before snapshot promotion.  
@@ -144,14 +144,14 @@ Include in final session note (and summarise in commit message):
 - Remaining risks or TODOs.
 
 ### Session Transition Notes
-- **Focus**: Single-module instrumentation is in place; diagnostics counters now land. Next sessions should broaden CLI (`hbmk-ast-tests`) coverage, document the new toggles, and continue building out snapshot fixtures.  
+- **Focus**: Single-module instrumentation is in place; diagnostics counters now land. Next sessions should broaden CLI (`hbmk-ast-tests`) coverage, document the new toggles, and continue building out snapshot fixtures (preprocessor macro fixture added this session).  
 - **Pending**: Add additional fixtures, publish JSON snapshots via compile-buffer harness, document CLI/env usage (`HB_AST_TRACE`, `HB_AST_TRACE_DUMP`, `HB_AST_TRACE_DIAGNOSTICS`), and clean temporary artefacts after runs.  
 - **Tests executed**: `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_blocks.prg`; `make -C tests/ast compilebuf-tests`; `./tests/ast/compilebuf-tests`; `make -C tests/ast hbmk-ast-tests`; `./tests/ast/hbmk-ast-tests`; `make -C tests/ast trace-events`; `./tests/ast/trace-events`; `make -C tests/ast hbmk2-fixtures`; `./tests/ast/hbmk2-fixtures` (all passing).  
 - **Working tree**: Uncommitted edits in `src/compiler/complex.c`, `tests/ast/ast_compilebuf_tests.c`, and documentation updates (`doc/agents/ast/*.md`).  
 - **Prompt for next delegate**: “Record completed subtasks, outstanding items, test outcomes, and uncommitted file status in both `doc/agents/ast/progress.md` and `doc/agents/ast/draft.md` before ending the session. If work was inherited mid-task, describe exactly what remains.”
 
 ### Open Follow-ups
-- Continue expanding CLI/compile-buffer fixtures (macros, error paths, dialect switches) before refreshing golden snapshots.  
+- Continue expanding CLI/compile-buffer fixtures (preprocessor macros landed; next add error paths, dialect switches) before refreshing golden snapshots.  
 - [x] Add instrumentation debug counters/toggles (exposed via `--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS`).  
 - Promote compile-buffer/CLI traces to golden JSON fixtures; define refresh workflow.  
 - Expand `hbmk-ast-tests` fixture matrix; refresh CLI/env documentation.  
