@@ -6,7 +6,7 @@
 
 ## Findings
 - `hb_compileBuf()` is exposed only as a Harbour function (`HB_FUNC( HB_COMPILEBUF )` in `src/compiler/hbcmplib.c`). It delegates to the C entry points `hb_compMainExt()` / `hb_compMainExtModule()`, which create and free an internal `PHB_COMP` instance.
-- `hb_compMainExtModule()` layers the virtual-module-name support on top of the existing callback-enabled API so in-memory compilations can surface stable filenames without breaking older callers.
+- `hb_compMainExtModule()` layers the virtual-module-name support on top of the existing callback-enabled API so in-memory compilations can surface stable filenames without breaking older callers, and `--ast-trace-dump` / `HB_AST_TRACE_DUMP` let the compiler emit JSON traces directly to files or stdout.
 - The internal compiler pipeline requires environment/CLI preprocessing (`hb_compChkEnvironment`, `hb_compChkCommandLine`, `hb_compInitPP`, `hb_compIdentifierOpen`), making a minimal reimplementation in tests non-trivial without reusing `hb_compMainExt()`.
 - Existing cmocka tests interact directly with `hb_compAstTrace*` APIs by instantiating `hb_comp_new()` manually, but they do not run the full parse pipeline.
 
@@ -21,6 +21,7 @@
 
 ## Current status
 - The finish callback in `hb_compMainExtModule()` is exercised by `tests/ast/compilebuf-tests`, which compiles an in-memory stub (`FUNCTION Demo()`) with `--ast-trace` enabled, supplies a virtual module name, and asserts that token events are captured alongside the persisted `compilebuf_fixture.c` output.
+- The new CLI surface is covered by `tests/ast/hbmk-ast-tests`, invoking the compiler on real `.prg` fixtures with `--ast-trace` and `--ast-trace-dump` while comparing the emitted JSON to committed fixtures.
 - The harness currently validates token sequencing; AST node capture remains optional until parser hooks guarantee coverage for buffer-based compilations.
 - Next step is to extend the harness to serialize trace buffers (tokens/boundaries/nodes) into deterministically ordered snapshots and compare them against golden fixtures.
 

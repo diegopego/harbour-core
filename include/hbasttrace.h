@@ -4,6 +4,7 @@
 #include "hbapi.h"
 #include "hbcompdf.h"
 #include "hbpp.h"
+#include <stdio.h>
 
 HB_EXTERN_BEGIN
 
@@ -125,6 +126,9 @@ HB_SIZE hb_compAstTraceNodeCount( const HB_COMP * pComp );
 const HB_COMP_AST_TRACE_NODE_EVENT * hb_compAstTraceNode( const HB_COMP * pComp, HB_SIZE index );
 HB_SIZE hb_compAstTraceLastTokenId( const HB_COMP * pComp );
 void    hb_compAstTraceClear( PHB_COMP pComp );
+#if ! defined( HB_MACRO_SUPPORT )
+HB_BOOL hb_compAstTraceDumpJson( const HB_COMP * pComp, FILE * fp );
+#endif
 
 HB_EXTERN_END
 

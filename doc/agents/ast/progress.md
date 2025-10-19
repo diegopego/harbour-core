@@ -1,13 +1,22 @@
 # AST Tooling Progress Log
 
+## 2025-10-23 – CLI Trace Dump Sentinel
+
+- **Code updates**: Adjusted `src/compiler/cmdcheck.c` so `--ast-trace-dump=-` is parsed as a stdout sentinel rather than a stray option, keeping `HB_COMP_PARAM->szAstTraceDump` consistent for downstream dumping.
+- **Behaviour**: Confirmed `hb_compMainExtModule()` now streams JSON traces without raising `F0035`; the stdout path flows through `hb_compAstTraceDumpJson()` and flushes as expected.
+- **Testing**: Rebuilt the compiler (`make -C src compiler`) and executed the full AST cmocka suite (`make -C tests/ast tests`); the `hbmk-ast-tests` runner passes and stays wired into the default target list.
+- **Fixtures**: Added the missing trailing newline to `tests/ast/fixture_demo.prg` and refreshed `tests/ast/fixtures/fixture_demo.ast.json` so the CLI trace dump snapshot matches the regenerated token stream.
+- **Follow-up**: Next session should expand the fixture matrix under `tests/ast/fixtures/` and refresh CLI/env toggle documentation now that the stdout hook is unblocked.
+
 ## 2025-10-22 – Verification Sweep (`hbmk2 -w3`)
 
 - **Testing**: Ran `hbmk2 -w3` against `tests/ast/fixture_demo.prg`, `tests/ast/preprocessor/fixtures/macro_trace.prg`, and `tests/ast/preprocessor/fixtures/command_trace.prg`. After refactoring the fixture to functions and adding `CallIncludedProc()` to exercise the static helper, the sweep now completes without warnings.
 - **Outcome**: Compiler instrumentation behaved as expected under strict warnings and the helper include is fully consumed. Fixtures are back to warning-free state for the verification matrix.
 - **Automation**: Added a `cmocka` runner (`tests/ast/hbmk2-fixtures`) that globs all `.prg` fixtures, shells out to `hbmk2 -w3`, and fails the suite if warnings/errors appear; wired into `tests/ast/Makefile`.
-- **Implementation**: Exercised the `hb_compMainExt()` finish callback (`HB_COMP_FINISH_FUNC`) so cmocka tests can inspect `PHB_COMP` instrumentation buffers before teardown, and introduced `hb_compMainExtModule()` to let in-memory compilations supply a virtual module name without breaking the original API.
+- **Implementation**: Exercised the `hb_compMainExt()` finish callback (`HB_COMP_FINISH_FUNC`) so cmocka tests can inspect `PHB_COMP` instrumentation buffers before teardown, introduced `hb_compMainExtModule()` to let in-memory compilations supply a virtual module name without breaking the original API, and added `--ast-trace-dump` / `HB_AST_TRACE_DUMP` to materialise instrumentation as JSON.
 - **Harness**: Introduced `tests/ast/compilebuf-tests`, which compiles an in-memory source via `hb_compMainExt()` and validates that token traces are emitted when tracing is enabled.
 - **Coverage**: `tests/ast/compilebuf-tests` now supplies a virtual module name, captures the emitted trace stream, and asserts the token metadata matches the generated `tests/ast/compilebuf_fixture.c` artefact.
+- **CLI AST tests**: `tests/ast/hbmk-ast-tests` invokes the real compiler with `--ast-trace` / `--ast-trace-dump` and compares the emitted JSON (`tests/ast/fixtures/fixture_demo.ast.json`) against fixtures, ensuring preprocessor/includes are covered end-to-end.
 - **Research**: Captured the `hb_compileBuf` golden-test evaluation plan in `doc/agents/ast/hb_compilebuf_evaluation.md`, outlining API gaps and the steps needed to snapshot instrumentation from in-memory compilations.
 - **Open items**: Re-run `hbmk2 -w3` when new fixtures land, expand the `hb_compileBuf` snapshot harness toward golden comparisons, and continue evaluating broader verification coverage.
 

@@ -809,6 +809,7 @@ typedef struct _HB_COMP
    char *            szStdCh;             /* standard definitions file name (-u) */
    char **           szStdChExt;          /* extended definitions file names (-u+<file>) */
    int               iStdChExt;           /* number of extended definition files (-u+<file>) */
+   char *            szAstTraceDump;      /* optional AST trace dump path */
 
    HB_BYTE           cDataListType;       /* current declared variable list type */
 

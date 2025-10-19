@@ -927,3 +927,180 @@ void hb_compAstTraceClear( PHB_COMP pComp )
    pTrace->nLastTokenId = 0;
    pTrace->nNodeStackCount = 0;
 }
+
+static void hb_compAstTraceJsonWriteString( FILE * fp, const char * pszValue )
+{
+   if( pszValue == NULL )
+   {
+      fputs( "null", fp );
+      return;
+   }
+
+   fputc( '"', fp );
+   while( *pszValue )
+   {
+      unsigned char ch = ( unsigned char ) *pszValue++;
+      switch( ch )
+      {
+         case '\\':
+            fputs( "\\\\", fp );
+            break;
+         case '"':
+            fputs( "\\\"", fp );
+            break;
+         case '\b':
+            fputs( "\\b", fp );
+            break;
+         case '\f':
+            fputs( "\\f", fp );
+            break;
+         case '\n':
+            fputs( "\\n", fp );
+            break;
+         case '\r':
+            fputs( "\\r", fp );
+            break;
+         case '\t':
+            fputs( "\\t", fp );
+            break;
+         default:
+            if( ch < 0x20 )
+               fprintf( fp, "\\u%04X", ch );
+            else
+               fputc( ch, fp );
+      }
+   }
+   fputc( '"', fp );
+}
+
+static const char * hb_compAstTraceNodeKindName( HB_COMP_AST_NODE_KIND kind )
+{
+   switch( kind )
+   {
+      case HB_COMP_AST_NODE_FUNCTION:          return "FUNCTION";
+      case HB_COMP_AST_NODE_CLASS:             return "CLASS";
+      case HB_COMP_AST_NODE_CLASS_METHOD:      return "CLASS_METHOD";
+      case HB_COMP_AST_NODE_CLASS_DATA:        return "CLASS_DATA";
+      case HB_COMP_AST_NODE_STATEMENT_IF:      return "STATEMENT_IF";
+      case HB_COMP_AST_NODE_STATEMENT_CASE:    return "STATEMENT_CASE";
+      case HB_COMP_AST_NODE_STATEMENT_WHILE:   return "STATEMENT_WHILE";
+      case HB_COMP_AST_NODE_STATEMENT_FOR:     return "STATEMENT_FOR";
+      case HB_COMP_AST_NODE_STATEMENT_FOREACH: return "STATEMENT_FOREACH";
+      case HB_COMP_AST_NODE_STATEMENT_SWITCH:  return "STATEMENT_SWITCH";
+      case HB_COMP_AST_NODE_STATEMENT_WITH:    return "STATEMENT_WITH";
+      case HB_COMP_AST_NODE_STATEMENT_SEQUENCE:return "STATEMENT_SEQUENCE";
+      case HB_COMP_AST_NODE_CODEBLOCK:         return "CODEBLOCK";
+      case HB_COMP_AST_NODE_EXPR_ASSIGN:       return "EXPR_ASSIGN";
+      case HB_COMP_AST_NODE_EXPR_INPLACE:      return "EXPR_INPLACE";
+      case HB_COMP_AST_NODE_EXPR_MATH:         return "EXPR_MATH";
+      case HB_COMP_AST_NODE_EXPR_BOOL:         return "EXPR_BOOL";
+      case HB_COMP_AST_NODE_EXPR_RELATION:     return "EXPR_RELATION";
+      case HB_COMP_AST_NODE_EXPR_UNARY:        return "EXPR_UNARY";
+      default:                                 return "UNKNOWN";
+   }
+}
+
+static const char * hb_compAstTraceNodePhaseName( HB_COMP_AST_NODE_EVENT_TYPE phase )
+{
+   switch( phase )
+   {
+      case HB_COMP_AST_NODE_EVENT_ENTER: return "ENTER";
+      case HB_COMP_AST_NODE_EVENT_LEAVE: return "LEAVE";
+      default:                           return "UNKNOWN";
+   }
+}
+
+HB_BOOL hb_compAstTraceDumpJson( const HB_COMP * pComp, FILE * fp )
+{
+   HB_COMP_AST_TRACE * pTrace;
+   HB_SIZE i;
+
+   if( pComp == NULL || fp == NULL )
+      return HB_FALSE;
+
+   pTrace = hb_compAstTraceState( ( PHB_COMP ) pComp );
+   if( ! pTrace )
+      return HB_FALSE;
+
+   fputs( "{\n  \"tokens\": [\n", fp );
+   for( i = 0; i < pTrace->nTokenCount; ++i )
+   {
+      const HB_COMP_AST_TRACE_TOKEN * pToken = &pTrace->pTokens[ i ];
+
+      fprintf( fp,
+               "    {\"sequence\":%lu,\"id\":%lu,\"type\":%u,\"marker\":%u,\"value\":",
+               ( unsigned long ) pToken->sequence,
+               ( unsigned long ) pToken->id,
+               ( unsigned int ) pToken->type,
+               ( unsigned int ) pToken->markerIndex );
+      hb_compAstTraceJsonWriteString( fp, pToken->value );
+      fputs( ",\"module\":", fp );
+      hb_compAstTraceJsonWriteString( fp, pToken->module );
+      fprintf( fp,
+               ",\"line\":%d,\"column\":%d,\"endColumn\":%d,\"offset\":%lu,\"endOffset\":%lu}%s\n",
+               pToken->line,
+               pToken->column,
+               pToken->endColumn,
+               ( unsigned long ) pToken->offset,
+               ( unsigned long ) pToken->endOffset,
+               ( i + 1 < pTrace->nTokenCount ) ? "," : "" );
+   }
+   fputs( "  ],\n  \"nodes\": [\n", fp );
+   for( i = 0; i < pTrace->nNodeCount; ++i )
+   {
+      const HB_COMP_AST_TRACE_NODE_EVENT * pNode = &pTrace->pNodes[ i ];
+
+      fprintf( fp,
+               "    {\"sequence\":%lu,\"id\":%lu,\"kind\":\"%s\",\"phase\":\"%s\",\"tokenId\":%lu,\"name\":",
+               ( unsigned long ) pNode->sequence,
+               ( unsigned long ) pNode->id,
+               hb_compAstTraceNodeKindName( pNode->kind ),
+               hb_compAstTraceNodePhaseName( pNode->phase ),
+               ( unsigned long ) pNode->tokenId );
+      hb_compAstTraceJsonWriteString( fp, pNode->name );
+      fprintf( fp, "}%s\n", ( i + 1 < pTrace->nNodeCount ) ? "," : "" );
+   }
+   fputs( "  ],\n  \"boundaries\": [\n", fp );
+   for( i = 0; i < pTrace->nBoundaryCount; ++i )
+   {
+      const HB_COMP_AST_TRACE_BOUNDARY * pBoundary = &pTrace->pBoundaries[ i ];
+
+      fprintf( fp,
+               "    {\"sequence\":%lu,\"tokenId\":%lu,\"code\":%d,\"lexState\":%d}%s\n",
+               ( unsigned long ) pBoundary->sequence,
+               ( unsigned long ) pBoundary->tokenId,
+               pBoundary->code,
+               pBoundary->lexState,
+               ( i + 1 < pTrace->nBoundaryCount ) ? "," : "" );
+   }
+   fputs( "  ],\n  \"preprocessor\": [\n", fp );
+   for( i = 0; i < pTrace->nPpEventCount; ++i )
+   {
+      const HB_COMP_AST_TRACE_PP_EVENT * pEvent = &pTrace->pPpEvents[ i ];
+
+      fprintf( fp,
+               "    {\"sequence\":%lu,\"ruleKind\":",
+               ( unsigned long ) pEvent->sequence );
+      hb_compAstTraceJsonWriteString( fp, pEvent->ruleKind );
+      fputs( ",\"macro\":", fp );
+      hb_compAstTraceJsonWriteString( fp, pEvent->macroName );
+      fputs( ",\"callModule\":", fp );
+      hb_compAstTraceJsonWriteString( fp, pEvent->callModule );
+      fprintf( fp,
+               ",\"callLine\":%d,\"callColumn\":%d,\"callEndLine\":%d,\"callEndColumn\":%d,"
+               "\"callOffset\":%lu,\"callEndOffset\":%lu,\"expansionId\":%lu,\"source\":",
+               pEvent->callLine,
+               pEvent->callColumn,
+               pEvent->callEndLine,
+               pEvent->callEndColumn,
+               ( unsigned long ) pEvent->callOffset,
+               ( unsigned long ) pEvent->callEndOffset,
+               ( unsigned long ) pEvent->expansionId );
+      hb_compAstTraceJsonWriteString( fp, pEvent->source );
+      fputs( ",\"result\":", fp );
+      hb_compAstTraceJsonWriteString( fp, pEvent->result );
+      fprintf( fp, "}%s\n", ( i + 1 < pTrace->nPpEventCount ) ? "," : "" );
+   }
+   fputs( "  ]\n}\n", fp );
+   return HB_TRUE;
+}

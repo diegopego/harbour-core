@@ -247,6 +247,42 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
          hb_compAstTraceSetEnabled( HB_COMP_PARAM, HB_FALSE );
          szSwPtr = szOptPtr;
       }
+      else if( hb_strnicmp( szSwPtr + 2, "ast-trace-dump", 14 ) == 0 )
+      {
+         const char * szOptPtr = szSwPtr + 16;
+
+         if( *szOptPtr == '=' || *szOptPtr == ':' )
+         {
+            const char * szValue = ++szOptPtr;
+
+            while( *szOptPtr && *szOptPtr != ' ' && ! HB_ISOPTSEP( *szOptPtr ) )
+               ++szOptPtr;
+
+            if( szOptPtr == szValue && *szOptPtr == '-' &&
+                ( szOptPtr[ 1 ] == '\0' || szOptPtr[ 1 ] == ' ' ) )
+            {
+               ++szOptPtr;
+            }
+
+            if( szOptPtr > szValue )
+            {
+               char * szDup = hb_strndup( szValue, szOptPtr - szValue );
+
+               if( HB_COMP_PARAM->szAstTraceDump )
+                  hb_xfree( HB_COMP_PARAM->szAstTraceDump );
+               HB_COMP_PARAM->szAstTraceDump = szDup;
+            }
+         }
+         else
+         {
+            if( HB_COMP_PARAM->szAstTraceDump )
+            {
+               hb_xfree( HB_COMP_PARAM->szAstTraceDump );
+               HB_COMP_PARAM->szAstTraceDump = NULL;
+            }
+         }
+         szSwPtr = szOptPtr;
+      }
       else if( hb_strnicmp( szSwPtr + 2, "ast-trace", 9 ) == 0 )
       {
          const char * szOptPtr = szSwPtr + 11;
@@ -950,6 +986,21 @@ void hb_compChkEnvironment( HB_COMP_DECL )
          HB_COMP_PARAM->fAstTraceEnabled = fEnable;
          hb_compAstTraceSetEnabled( HB_COMP_PARAM, fEnable );
          hb_xfree( szAstTrace );
+      }
+   }
+
+   {
+      char * szDump = hb_getenv( "HB_AST_TRACE_DUMP" );
+
+      if( szDump )
+      {
+         if( szDump[ 0 ] != '\0' )
+         {
+            if( HB_COMP_PARAM->szAstTraceDump )
+               hb_xfree( HB_COMP_PARAM->szAstTraceDump );
+            HB_COMP_PARAM->szAstTraceDump = hb_strdup( szDump );
+         }
+         hb_xfree( szDump );
       }
    }
 

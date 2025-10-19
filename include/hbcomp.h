@@ -56,6 +56,9 @@
 #include "hbpcode.h"
 #include "hbhash.h"
 
+struct _HB_COMP;
+typedef struct _HB_COMP * PHB_COMP;
+
 HB_EXTERN_BEGIN
 
 extern HB_ISIZ hb_compPCodeSize( PHB_HFUNC, HB_SIZE );

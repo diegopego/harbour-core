@@ -164,6 +164,27 @@ static int hb_compMainExtImpl( int argc, const char * const argv[],
       }
    }
 
+   if( HB_COMP_PARAM->fAstTraceEnabled && HB_COMP_PARAM->szAstTraceDump )
+   {
+      const char * szDump = HB_COMP_PARAM->szAstTraceDump;
+      FILE * fpDump = NULL;
+      HB_BOOL fStdout = szDump && strcmp( szDump, "-" ) == 0;
+
+      if( fStdout )
+         fpDump = stdout;
+      else
+         fpDump = fopen( szDump, "wb" );
+
+      if( fpDump )
+      {
+         hb_compAstTraceDumpJson( HB_COMP_PARAM, fpDump );
+         if( fStdout )
+            fflush( fpDump );
+         else
+            fclose( fpDump );
+      }
+   }
+
    if( pFinishFunc )
       pFinishFunc( HB_COMP_PARAM, pFinishCargo );
 

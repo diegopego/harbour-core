@@ -7989,6 +7989,12 @@ HB_BOOL hb_compCheckUnclosedStru( HB_COMP_DECL, PHB_HFUNC pFunc )
 
 void yyerror( HB_COMP_DECL, const char * s )
 {
+   fprintf( stderr, "yyerror: state=%d lasttok=%s errcount=%d eof=%d msg=%s\n",
+            HB_COMP_PARAM->pLex ? HB_COMP_PARAM->pLex->iState : -1,
+            ( HB_COMP_PARAM->pLex && HB_COMP_PARAM->pLex->lasttok ) ? HB_COMP_PARAM->pLex->lasttok : "(null)",
+            HB_COMP_PARAM->iErrorCount,
+            HB_COMP_PARAM->pLex ? hb_pp_eof( HB_COMP_PARAM->pLex->pPP ) : -1,
+            s ? s : "(null)" );
    if( ! HB_COMP_PARAM->pLex->lasttok || HB_COMP_PARAM->pLex->lasttok[ 0 ] == '\n' )
    {
       if( HB_COMP_PARAM->iErrorCount == 0 || ! hb_pp_eof( HB_COMP_PARAM->pLex->pPP ) )

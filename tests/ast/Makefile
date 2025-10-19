@@ -21,7 +21,7 @@ LIBS     := -L$(LIBDIR) \
 CMOCKA_INC  ?= -I/usr/local/include
 CMOCKA_LIBS ?= -L/usr/local/lib -lcmocka
 
-TARGETS := smoke snapshot rename builder-test pp-trace trace-events hbmk2-fixtures compilebuf-tests
+TARGETS := smoke snapshot rename builder-test pp-trace trace-events hbmk2-fixtures compilebuf-tests hbmk-ast-tests
 
 .PHONY: all clean build tests suite
 
@@ -51,6 +51,9 @@ hbmk2-fixtures: ast_hbmk2_fixtures_test.c
 compilebuf-tests: ast_compilebuf_tests.c
 	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
+hbmk-ast-tests: ast_hbmk_ast_tests.c
+	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
+
 clean:
 	rm -f $(TARGETS)
 
@@ -65,3 +68,4 @@ tests: build
 	(cd $(ROOT) && ./tests/ast/trace-events)
 	(cd $(ROOT) && ./tests/ast/hbmk2-fixtures)
 	(cd $(ROOT) && ./tests/ast/compilebuf-tests)
+	(cd $(ROOT) && ./tests/ast/hbmk-ast-tests)

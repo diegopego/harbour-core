@@ -37,7 +37,7 @@
   - `tests/ast` cmocka suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
   - `scripts/test-ast.sh`: rerun snapshot comparisons using compiler-sourced events; failures indicate divergence from the schema/fixtures.
 - **Run log**:
-  - 2025-10-22: `hbmk2 -w3` run logged; fixtures now compile cleanly after exercising the static helper include, the new `hbmk2-fixtures` cmocka target automates the check, the `hb_compMainExt()` finish callback is exercised for instrumentation snapshotting, `hb_compMainExtModule()` enables virtual module names for buffer compilations, the `tests/ast/compilebuf-tests` harness validates token emission using that name while retaining the generated `tests/ast/compilebuf_fixture.c`, and `doc/agents/ast/hb_compilebuf_evaluation.md` captures the plan for golden tests driven by `hb_compileBuf`.
+  - 2025-10-22: `hbmk2 -w3` run logged; fixtures now compile cleanly after exercising the static helper include, the new `hbmk2-fixtures` cmocka target automates the check, the `hb_compMainExt()` finish callback is exercised for instrumentation snapshotting, `hb_compMainExtModule()` enables virtual module names for buffer compilations, the compiler can dump instrumentation via `--ast-trace-dump` / `HB_AST_TRACE_DUMP`, the `tests/ast/compilebuf-tests` harness validates token emission using that name while retaining the generated `tests/ast/compilebuf_fixture.c`, `tests/ast/hbmk-ast-tests` compares CLI-generated JSON against fixtures under `tests/ast/fixtures`, and `doc/agents/ast/hb_compilebuf_evaluation.md` captures the plan for golden tests driven by `hb_compileBuf`.
 - **Fixtures & snapshots**:
   - Reuse existing `tests/ast/fixture_*.prg`, `.ch`, `.json`, `.ppo`, `.trace.json` files; add new variants for nested macros, conditionals, and dialect switches once instrumentation lands.
   - Maintain golden snapshots for both token streams and AST payloads; store under extracted tooling repo but reference versions in Harbour core for parity checks.
@@ -74,7 +74,7 @@
 - **Sequencing for roadmap**:
   1. Week of 2025-10-20: apply minimal fixes to core trace APIs (`include/hbpp.h`, `src/pp/ppcore.c`) and document expectations in the instrumentation plan.
   2. Week of 2025-10-27: coordinate tooling extraction, ensuring build scripts/docs/tests move to the new tooling repo without impacting Harbour core.
-  3. Week of 2025-11-03: revisit instrumentation plan and begin drafting implementation briefs based on the stabilized core.
+ 3. Week of 2025-11-03: revisit instrumentation plan and begin drafting implementation briefs based on the stabilized core. Fold in the CLI trace-dump flow (`--ast-trace-dump` / `HB_AST_TRACE_DUMP`), note outstanding polish (`--ast-trace-dump=-` stdout handling, trace dump cleanup), identify the next fixture additions for `tests/ast/hbmk-ast-tests`, and outline doc/test updates needed for the verification workflow.
 
 ## Delegation Brief – Compiler Instrumentation Agent
 - **Mandate**: Implement the compiler-side hooks in `doc/agents/ast/instrumentation-plan.md`, ensuring Harbour emits token and AST events backed by `HB_PP_TRACEINFO`.
@@ -106,6 +106,16 @@
   - Patched source files with instrumentation guards and any helper APIs.
   - Session report summarising hooks implemented, tests executed, and residual risks/open questions.
   - Updated log entries noting which parts of the task breakdown are complete and what remains for the next session.
+
+### Session transfer — CLI trace validation hand-off
+- **Objective**: Extend Harbour’s AST instrumentation workflow so `.prg` fixtures compiled via `harbour` / `hbmk2` with `--ast-trace` emit JSON that cmocka tests compare against `tests/ast/fixtures/*.ast.json`.
+- **Current state**: `hb_compMainExtModule()` + `--ast-trace-dump` (`HB_AST_TRACE_DUMP`) landed; `hbtraceast.c` streams JSON via `hb_compAstTraceDumpJson`; `tests/ast/hbmk-ast-tests.c` runs `fixture_demo.prg` with `--ast-trace --ast-trace-dump=-`, scrubs the banner, and matches `tests/ast/fixtures/fixture_demo.ast.json`; `tests/ast/Makefile` and `.gitignore` already cover the harness.
+- **Open items**:
+  - [x] Fix CLI handling so `--ast-trace-dump=-` routes to stdout without triggering error `F0035` (2025-10-23: `cmdcheck.c` sentinel parsing tightened).
+  - [x] Audit the dump path for formatting issues or leaks while capturing stdout (`hb_compAstTraceDumpJson` review + cmocka coverage).
+  - [ ] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise.
+  - [ ] Surface nightly build guidance for `HB_AST_TRACE_DUMP` / CLI usage.
+- **Next session prep**: Compiler rebuilt and `tests/ast` suites (including `hbmk-ast-tests`) ran clean on 2025-10-23; fixture demo snapshot refreshed after restoring the trailing newline, so keep clearing temporary artefacts (`fixture_demo.c`, stdout dumps) after runs, then pivot to new fixtures + documentation refresh for the trace-dump workflow.
 
 ### Parser hook backlog
 - [x] Class declarations / method definitions (trace node enter/leave, token mapping).

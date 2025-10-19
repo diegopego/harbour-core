@@ -569,6 +569,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
          }
       }
       pLex->lasttok = NULL;
+      pLex->iState = LOOKUP;
       return hb_compAstTraceReturn( HB_COMP_PARAM, pLex, 0 );
    }
 

@@ -364,5 +364,8 @@ void hb_comp_free( PHB_COMP pComp )
    if( pComp->pI18nFileName )
       hb_xfree( pComp->pI18nFileName );
 
+   if( pComp->szAstTraceDump )
+      hb_xfree( pComp->szAstTraceDump );
+
    hb_xfree( pComp );
 }
