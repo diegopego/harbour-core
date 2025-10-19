@@ -10,6 +10,8 @@
 - DONE 2025-10-18: Delegation briefs prepared for Compiler Instrumentation Agent and AST Tooling Agent (see dedicated sections below).
 - Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
 - Track post-session follow-ups: expanded parser hooks and `hbmk2 -w3` run (event sink + instrumentation toggle landed 2025-10-20).
+- Evaluate adding `hb_compileBuf`-based fixtures as golden AST references so only Harbour-compilable `.prg`/`.ch` inputs drive instrumentation tests.
+- Consider lightweight debug counters inside trace helpers to diagnose event sequencing (token/node counts, retained traceinfo) when future sessions debug hooks.
 - 2025-10-21: Instrumentation status table added to the plan; remaining action is to schedule `hbmk2 -w3` before merge readiness.
 
 ## Phase 0 Assessment TODOs
@@ -52,6 +54,8 @@
 - [x] Track codeblock (`{|| ... }`) entry/exit, linking to originating tokens.
 - [ ] Surface inline (`INLINE`) definitions and `INIT/EXIT` procedures with dedicated node kinds.
 - [ ] Map macro-generated constructs to node events once traceinfo-to-node bindings are stabilised.
+- [ ] Introduce optional debug counters (token/node totals, retained traceinfo) toggled via instrumentation flag for deeper diagnostics.
+- [ ] Build `hb_compileBuf` integration tests that compile canonical fixtures and compare emitted AST/token streams against golden snapshots.
 
 ## Alignment Memo (Draft)
 - **Stay in Harbour core**:
