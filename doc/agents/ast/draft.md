@@ -272,6 +272,75 @@ Each session should produce a summary covering:
 - Regenerate snapshots from the trace pack when schemas change; keep documentation (`hbast-verify.md`, README) aligned.  
 - Plan LSP/tooling integration (go-to-definition, rename) once compiler-driven snapshots are stable.
 
+## Delegation Brief – AST Tooling Migration Agent (Template)
+
+Delegation Brief: you are the AST Tooling Migration Agent
+
+### Overview
+- **Mandate**: Audit the first-attempt AST tooling work (commit range `d29cad47f5f8025136caa89f5a92392d13d87751`‒`afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`) that introduced parallel lexers, parsers, and utilities. Determine what should be merged into the compiler-backed flow, what belongs in a separate module, and what should be retired.  
+- **Goal**: Deliver a migration/retirement plan that eliminates duplicated logic while preserving useful capabilities, keeping terminology aligned with the CA‑Clipper 5.3 guide (`doc/references/c53g01c.txt`) and Harbour docs.
+
+### Inputs & References
+- Git history: `git diff --stat d29cad47f5f8025136caa89f5a92392d13d87751..afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`.  
+- Files touched in that range (e.g., `src/ast/lexer/*.c`, `utils/hbast`, `utils/hbrename`, `tests/ast`, related docs).  
+- Current instrumentation plan (`doc/agents/ast/instrumentation-plan.md`) and progress log (`doc/agents/ast/progress.md`).  
+- Latest compiler extensions (trace dump, diagnostics toggles) to understand replacement capabilities.
+
+### Milestone Ledger
+| Milestone | Status | Notes |
+| --- | --- | --- |
+| Inventory legacy tooling | ⏳ | Produce a file-by-file summary of features added in the first attempt. |
+| Triage decision matrix | ⏳ | Classify each component: migrate into core extensions, keep as optional tooling, or retire. |
+| Migration blueprint | ⏳ | Outline concrete tasks (code moves, test updates, docs) for items flagged “migrate”. |
+| Retirement plan | ⏳ | Specify removal steps, cleanup patches, and verification for items flagged “retire”. |
+| Module packaging notes | ⏳ | Define structure/ownership for tooling that remains standalone. |
+
+### Step-by-Step Guide
+1. **Gather evidence** – run `git log --stat` and targeted `git show` commands across the commit range to capture the scope of added files and functionality.  
+2. **Classify components** – for each file/function introduced, decide whether it should migrate, remain as optional tooling, or be removed; note dependencies on current compiler hooks.  
+3. **Draft migration tasks** – for “migrate” items, specify the target location (e.g., compiler trace workflow), tests to adapt, and docs that need updates.  
+4. **Draft retirement tasks** – for “retire” items, list deletion steps, Makefile/documentation cleanup, and regression checks.  
+5. **Recommend packaging** – define boundaries for tooling that stays separate (directory layout, build targets, doc updates).  
+6. **Report findings** – log the classification and proposed actions in `doc/agents/ast/progress.md` and summarise the required follow-ups here.
+
+> Treat this as an analysis-first role. Avoid large deletions until the overseer approves the plan; focus on clarity and actionable follow-ups.
+
+### Execution Checklist
+**Start**  
+- Confirm `git status` is clean (analysis-only session).  
+- Prepare diff summaries for the commit range.  
+
+**During**  
+- Use a scratchpad (`hb-ast-temp.md`) for notes before transcribing results.  
+- Cross-reference existing compiler capabilities (post `1ff54bcd6d07`) to avoid recommending duplicate work.  
+- Capture command snippets for reproducibility.
+
+**Before hand-off**  
+- Add a concise report (inventory, classifications, proposed actions) to `doc/agents/ast/progress.md`.  
+- Update this draft with TODO checkboxes for implementation agents.  
+- Leave the codebase untouched unless a blocker fix is unavoidable; document any blockers clearly.
+
+### Testing Expectations
+- None for pure analysis.  
+- If prototype cleanups occur, run `make -C tests/ast tests`, `scripts/test-ast.sh`, and `hbmk2 -w3` on affected fixtures to confirm parity.
+
+### Reporting Template
+- Summary of files reviewed / commands executed.  
+- Decision matrix (migrate / keep / retire) with reasoning.  
+- Proposed follow-up tasks grouped by agent or component.  
+- Risks or open questions for overseer review.
+
+### Session Transition Note
+- If analysis is incomplete, list remaining directories or commits.  
+- Flag any missing compiler hooks that would block migration.  
+- Record agreed next steps for implementation agents (e.g., “Compiler Instrumentation Agent to expose X”, “AST Tooling Agent to remove Y”).
+
+### Open Follow-ups
+- Complete the inventory and classification of the first-attempt tooling commits.  
+- Coordinate with Compiler Instrumentation Agent on any missing hooks needed for migration.  
+- Prepare phased cleanup patches once overseer approves the plan.  
+- Update documentation (`Agents.md`, `serialization-format.md`, README) after migration decisions are implemented.
+
 ## Oversight Session 2025-10-21 Notes
 - Compiler instrumentation hooks (lifecycle, lexer, parser, expression helpers) verified against the plan; documentation updated with status tracking.
 - cmocka `expression_nodes_capture_reductions` fixed to unblock trace-events target; `scripts/test-ast.sh` executed successfully.
