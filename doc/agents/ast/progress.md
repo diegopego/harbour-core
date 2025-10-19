@@ -3,6 +3,7 @@
 ## 2025-10-24 – Dialect/Error Fixture Expansion
 
 - **Code updates**: Replaced the earlier combined dialect fixture with two explicit modules: `tests/ast/fixture_compat_clipper.prg` (Clipper pragmas) and `tests/ast/fixture_compat_harbour.prg` (Harbour pragmas). Both share `fixture_compat_common.ch`, now devoid of in-function pragma overrides, and extend coverage with multiple `BEGIN SEQUENCE`/`RECOVER` flows (nested handlers, reraised errors). Matching golden traces live under `tests/ast/fixtures/fixture_compat_clipper.ast.json` and `fixture_compat_harbour.ast.json`. `ast_hbmk_ast_tests.c` iterates both fixtures, and `ast_compilebuf_tests.c` gained a Harbour-focused case alongside the existing Clipper snippet.
+- **Docs**: Noted in the harness documentation that CLI/compile-buffer executions must pass `-iinclude` so the standard Harbour headers resolve, and recorded both compatibility fixtures in the verification matrix for future reference.
 - **Testing**: `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_clipper.prg`; `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_harbour.prg`; `make -C tests/ast compilebuf-tests` / `./tests/ast/compilebuf-tests`; `make -C tests/ast hbmk-ast-tests` / `./tests/ast/hbmk-ast-tests`; `make -C tests/ast hbmk2-fixtures` / `./tests/ast/hbmk2-fixtures`; `scripts/test-ast.sh`.
 - **Follow-up**: Document the `-iinclude` requirement for all harnesses, evaluate additional RECOVER shapes (e.g. RETRY, FINALLY) for future fixtures, and decide whether to snapshot the compile-buffer Harbour output separately.
 

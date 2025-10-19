@@ -135,6 +135,7 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 - `hbmk2 -w3` on every affected `.prg`/`.ch`/`.hbm`/`.hbmk` (no warnings allowed).  
 - Golden trace comparison against compiler-generated JSON snapshots (CLI dump, compile-buffer harness).  
 - Verify `HB_PP_TRACEINFO` retain/release balances return to zero.
+- When invoking the compiler from tests or manual repros, include `-iinclude` so standard Harbour headers (e.g. `error.ch`) resolve the same way the harness does.
 
 ### Reporting Template
 Include in final session note (and summarise in commit message):
@@ -163,7 +164,7 @@ Include in final session note (and summarise in commit message):
 - [x] Audit the dump path for formatting issues or leaks while capturing stdout (`hb_compAstTraceDumpJson` review + cmocka coverage).
 - [ ] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise — Clipper/Harbour fixtures now cover nested recovery paths; still need doc updates and potentially RETRY/FINALLY samples before locking snapshots.
 - [ ] Surface nightly build guidance for `HB_AST_TRACE_DUMP` / CLI usage.
-- [ ] Document the new `-iinclude` requirement introduced for `hbmk-ast-tests` and compile-buffer harnesses.
+- [x] Document the new `-iinclude` requirement introduced for `hbmk-ast-tests` and compile-buffer harnesses.
 - **Next session prep**: Compiler rebuilt and `tests/ast` suites (including `hbmk-ast-tests`) ran clean on 2025-10-23; fixture demo snapshot refreshed after restoring the trailing newline, so keep clearing temporary artefacts (`fixture_demo.c`, stdout dumps) after runs, then pivot to new fixtures + documentation refresh for the trace-dump workflow.
 
 ### Diagnostics toggle milestone (2025-10-24)
