@@ -1,5 +1,34 @@
 # AST Tooling Progress Log
 
+## 2025-10-25 – Legacy AST Tooling Audit
+
+- **Scope**: Reviewed the experimental AST tooling commits (`d29cad47f5f8025136caa89f5a92392d13d87751`‒`afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`) to map every new module to the current compiler-backed instrumentation. Commands: `git diff --stat d29cad47f5f8025136caa89f5a92392d13d87751..afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`, `git log --oneline d29cad47f5f8025136caa89f5a92392d13d87751..afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`, manual inspection of `include/hbpp.h`, `src/pp/ppcore.c`, `src/ast/lexer/*.c`, `utils/hbast`, `utils/hbrename`, `tests/ast/*.c`, `scripts/test-ast.sh`, and downstream instrumentation headers (`include/hbasttrace.h`).
+- **Decision matrix**:
+
+  | Decision | Component scope | Notes |
+  | --- | --- | --- |
+  | Migrate into compiler flow | `include/hbpp.h`, `src/pp/ppcore.c`, `src/harbour.def`, `tests/ast/ast_preprocessor_trace_test.c` | `HB_PP_TRACEINFO` and `hb_pp_setTraceCallback()` already underpin `hb_compAstTrace*`; keep them in core, tighten retain/release docs, and align fixtures with CA‑Clipper terminology. |
+  | Migrate (consumer rewrite) | `src/ast/lexer/hbast_json.c`, `doc/agents/ast/serialization-format.md`, `utils/hbast/hbast.c` | Preserve JSON/CBOR schemas and CLI surface, but reimplement over `HB_COMP_AST_TRACE_*` snapshots instead of the shadow lexer. |
+  | Optional tooling (rewrite) | `README-AST.MD`, `doc/agents/ast/incremental-lexer.md`, hbast packaging | Move into a standalone tooling bundle that ships compiler-trace consumers; update language to mirror CA‑Clipper 5.3 taxonomy. |
+  | Retire | `src/ast/lexer/hbast_lexer.c`, `src/ast/lexer/hbast_builder.c`, `include/ast/lexer/hbast_lexer.h`, `include/ast/hbast_builder.h`, `utils/hbrename`, legacy cmocka suites (`tests/ast/ast_{smoke,snapshot,rename,builder}.c`), `scripts/test-ast.sh`, fixtures tied to `HB_AST_TOKEN` | Parallel lexer duplicates Harbour semantics, builder heuristics cover only PROC/LOCAL/RETURN, rename CLI is read-only; remove once compiler consumers exist and replace tests with compiler-backed harnesses. |
+
+- **Migration blueprint**:
+  - Build a consumer adapter that materialises the snapshot/macro/symbol JSON directly from `hb_compAstTraceDumpJson()` output (reuse CA‑Clipper terminology from `doc/references/c53g01c.txt` and the current schema).
+  - Port the hbast CLI to invoke the compiler with `--ast-trace{,-dump}` rather than running the standalone lexer; keep CBOR writer by serialising compiler JSON.
+  - Fold `hb_pp_traceinfoRetain/Release` guidance into instrumentation docs; ensure diagnostics toggles exercise the callback path before removing duplicate retainers.
+- **Retirement plan**:
+  - Stage deletions for `src/ast/lexer` and dependent headers after the consumer adapter lands and fixtures pass (`tests/ast/ast_trace_tests.c` already covers the new API).
+  - Drop `utils/hbrename` and the legacy cmocka targets once replacement compiler-driven tools/tests exist; confirm `scripts/test-ast.sh` is superseded by the instrumentation harness.
+  - Archive fixtures (`tests/ast/fixture_demo.hbast.json`, `tests/tooling/cmocka/*`) into the tooling bundle or remove if redundant.
+- **Module packaging notes**:
+  - House the rewritten hbast CLI + docs under a dedicated `tools/ast-cli/` subtree with its own build/test targets powered by compiler traces.
+  - Treat `doc/agents/ast/serialization-format.md` as the shared schema contract; update wording to describe compiler events and call out retired modules.
+  - Keep preprocessor trace fixtures in `tests/ast/preprocessor/fixtures` as the validation bed for `HB_PP_TRACE_EVENT`.
+- **Risks / open questions**:
+  - Need an ingestion plan for stable node IDs once parser events supersede the heuristic builder.
+  - Confirm no downstream agents still rely on `HB_AST_TOKEN` before removing the headers.
+  - Ensure CA‑Clipper terminology (PROC/STATIC/LOCAL) remains consistent when rewriting docs and CLI output.
+
 ## 2025-10-24 – Dialect/Error Fixture Expansion
 
 - **Code updates**: Replaced the earlier combined dialect fixture with two explicit modules: `tests/ast/fixture_compat_clipper.prg` (Clipper pragmas) and `tests/ast/fixture_compat_harbour.prg` (Harbour pragmas). Both share `fixture_compat_common.ch`, now devoid of in-function pragma overrides, and extend coverage with multiple `BEGIN SEQUENCE`/`RECOVER` flows (nested handlers, reraised errors, post-recover finalisation logs). Matching golden traces live under `tests/ast/fixtures/fixture_compat_clipper.ast.json` and `fixture_compat_harbour.ast.json`. `ast_hbmk_ast_tests.c` iterates both fixtures, and `ast_compilebuf_tests.c` gained a Harbour-focused case alongside the existing Clipper snippet.

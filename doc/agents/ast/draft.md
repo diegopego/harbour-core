@@ -336,10 +336,13 @@ Delegation Brief: you are the AST Tooling Migration Agent
 - Record agreed next steps for implementation agents (e.g., “Compiler Instrumentation Agent to expose X”, “AST Tooling Agent to remove Y”).
 
 ### Open Follow-ups
-- Complete the inventory and classification of the first-attempt tooling commits.  
-- Coordinate with Compiler Instrumentation Agent on any missing hooks needed for migration.  
-- Prepare phased cleanup patches once overseer approves the plan.  
-- Update documentation (`Agents.md`, `serialization-format.md`, README) after migration decisions are implemented.
+- [x] Complete the inventory and classification of the first-attempt tooling commits.  
+- [ ] Draft the compiler-trace consumer adapter that replaces `HB_AST_TOKEN_STREAM` usage with `hb_compAstTraceDumpJson()` snapshots (schema-aligned).  
+- [ ] Rebase the hbast CLI and related docs onto compiler instrumentation, preserving JSON/CBOR output.  
+- [ ] Define the packaging plan for tooling that stays standalone (directory layout, build targets, ownership).  
+- [ ] Prepare phased cleanup patches to remove `src/ast/lexer`, legacy cmocka suites, and `utils/hbrename` once the replacement path is ready.  
+- [ ] Update documentation (`Agents.md`, `serialization-format.md`, `README-AST.MD`) to reflect the compiler-backed flow and note retired modules.  
+- [ ] Coordinate with the Compiler Instrumentation Agent on any missing hooks or telemetry needed by the consumer adapter before deletions proceed.  
 
 ## Oversight Session 2025-10-21 Notes
 - Compiler instrumentation hooks (lifecycle, lexer, parser, expression helpers) verified against the plan; documentation updated with status tracking.
