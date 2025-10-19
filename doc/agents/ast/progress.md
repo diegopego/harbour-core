@@ -75,7 +75,8 @@
   - `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_includes.prg`
 - **Results**: Fresh CLI dumps landed the new golden snapshots; hbmk AST harness passes for default and `-m` modes with the expanded matrix; both fixtures compile warning-free under `hbmk2 -w3`.
 - **Packaging**: Published `tests/ast/trace-pack/core-trace-pack-2025-10-25.zip` (helpers included) with usage notes in `tests/ast/trace-pack/README.md` so tooling can ingest the frozen set directly.
-- **Next steps**: Rerun the full verification sweep against the frozen pack and extend compile-buffer snapshot coverage before promoting the archive downstream.
+- **Verification**: `tests/ast/hbmk-ast-tests`, `./tests/ast/compilebuf-tests`, `./tests/ast/hbmk2-fixtures`, and `./scripts/test-ast.sh` all pass against the frozen pack; `bin/linux/gcc/hbmk2 -w3 tests/ast/*.prg` reports zero warnings.
+- **Next steps**: Extend compile-buffer snapshot coverage before promoting the archive downstream.
 
 ## 2025-10-19 – Lexer Emission Pass
 

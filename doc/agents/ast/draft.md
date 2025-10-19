@@ -155,14 +155,14 @@ Include in final session note (and summarise in commit message):
 - **2025-10-25 (fixture freeze prep)**: Added expression-heavy `fixture_expressions.prg` and include-driven `fixture_includes.prg`, plus the supporting `fixture_include_chain.ch`; regenerated CLI snapshots and registered both fixtures with `tests/ast/ast_hbmk_ast_tests.c`.  
   - **Commands**: `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_expressions.ast.json tests/ast/fixture_expressions.prg`, `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_includes.ast.json tests/ast/fixture_includes.prg`, `tests/ast/hbmk-ast-tests`, `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_expressions.prg`, `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_includes.prg`.  
   - **Packaging**: Core fixtures and snapshots bundled as `tests/ast/trace-pack/core-trace-pack-2025-10-25.zip` with regeneration notes in `tests/ast/trace-pack/README.md`.  
-  - **Outstanding**: Run the full verification sweep with the frozen pack, expand compile-buffer snapshot coverage, and keep the working tree limited to fixture/doc updates until those checks are logged.
+  - **Outstanding**: Expand compile-buffer snapshot coverage and keep the working tree limited to fixture/doc updates until those checks are logged (verification sweep completed 2025-10-25).
 - **2025-10-24 (dialect fixtures)**: Added two dedicated fixtures, `fixture_compat_clipper.prg` and `fixture_compat_harbour.prg`, backed by `fixture_compat_common.ch`. Both now exercise multiple `BEGIN SEQUENCE`/`RECOVER` flows and emit their own golden snapshots. Updated `ast_hbmk_ast_tests.c` to include the pair and extended `ast_compilebuf_tests.c` with both Clipper and Harbour in-memory variants.  
   - **Working tree**: pending files in `.gitignore`, `tests/ast/ast_compilebuf_tests.c`, `tests/ast/ast_hbmk_ast_tests.c`, `tests/ast/fixture_compat_clipper.prg`, `tests/ast/fixture_compat_harbour.prg`, `tests/ast/fixture_compat_common.ch`, and the refreshed snapshots under `tests/ast/fixtures/`.
 - **Focus** (next sessions):  
   1. ✅ Add the expression-heavy and include-driven fixtures, regenerate JSON, and document the commands (fixtures + snapshots landed 2025-10-25; documentation follow-up pending).  
   2. ✅ Freeze the “trace pack” (zip or tagged directory) containing all fixtures + snapshots; log its regeneration workflow (core bundle published at `tests/ast/trace-pack/core-trace-pack-2025-10-25.zip`).  
   3. ✅ Update docs (`instrumentation-plan.md`, `hb_compilebuf_evaluation.md`) with the final toggles/commands (snapshot workflow recorded 2025-10-25).  
-  4. Run the verification matrix once more and record results.
+  4. ✅ Run the verification matrix once more and record results (commands executed 2025-10-25; outcomes logged in `progress.md`).
 - **Prompt for next delegate**: “Record completed subtasks, outstanding items, test outcomes, and uncommitted file status in both `doc/agents/ast/progress.md` and `doc/agents/ast/draft.md` before ending the session. If work was inherited mid-task, describe exactly what remains.”
 
 ### Open Follow-ups
