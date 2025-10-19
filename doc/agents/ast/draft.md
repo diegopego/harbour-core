@@ -77,40 +77,81 @@
   2. Week of 2025-10-27: coordinate tooling extraction, ensuring build scripts/docs/tests move to the new tooling repo without impacting Harbour core.
  3. Week of 2025-11-03: revisit instrumentation plan and begin drafting implementation briefs based on the stabilized core. Fold in the CLI trace-dump flow (`--ast-trace-dump` / `HB_AST_TRACE_DUMP`), note outstanding polish (`--ast-trace-dump=-` stdout handling, trace dump cleanup), identify the next fixture additions for `tests/ast/hbmk-ast-tests`, and outline doc/test updates needed for the verification workflow.
 
-## Delegation Brief – Compiler Instrumentation Agent
-- **Mandate**: Implement the compiler-side hooks in `doc/agents/ast/instrumentation-plan.md`, ensuring Harbour emits token and AST events backed by `HB_PP_TRACEINFO`.
-- **Scope**:
-  - Wire `hb_pp_setTraceCallback()` in `hb_comp_new()` / `hb_comp_free()` and manage `HB_PP_TRACEINFO` lifetimes.
-  - Emit `HB_AST_EVENT_TOKEN` and boundary events from `hb_comp_yylex` (`src/compiler/complex.c`), aligning with the hook table.
-  - Introduce guarded parser instrumentation in `src/compiler/harbour.y` (function declarations first), attaching stable node IDs and token references.
-  - Respect feature toggles so tracing can be disabled without touching existing behaviour.
-- **Task breakdown**:
-  1. **Trace callback foundation** — implement registration/teardown (`hb_comp_new`, `hb_comp_free`), add stress tests for retain/release accounting. *Status: COMPLETED 2025-10-18 (trace helper in `hbtraceast.c`, cmocka `traceinfo_lifetime_balances`).*
-  2. **Lexer emission pass** — instrument `hb_comp_yylex` with event emission and stable token IDs; capture sample event logs for fixtures in the verification matrix. *Status: COMPLETED 2025-10-18 (token/boundary events via `hb_compAstTracePublishToken/Return`).*
-  3. **Parser hook pilot** — add reduction hooks for function declarations; produce a follow-up checklist for additional grammar nodes (stored below). *Status: COMPLETED 2025-10-18 (function enter/leave instrumentation in `harbour.y`).*
-  4. **Stabilisation & notes** — update developer commentary/helpers as needed; highlight any helper APIs or toggles introduced. *Status: COMPLETED 2025-10-20 (PP sink + CLI/env toggles + parser hook extensions landed).*
-  5. **Verification sweep** — run matrix suites after each milestone (`hbmk2 -w3`, cmocka, `scripts/test-ast.sh`), attaching summaries and outstanding issues to the session report. *Status: COMPLETED 2025-10-22 (`hbmk2 -w3` harness landed, `tests/ast/compilebuf-tests` validates trace emission); continue with `hb_compileBuf` golden snapshot work below.*
-  6. **Golden traces & diagnostics** — extend instrumentation to `hb_compParserRun` (single-module path), add optional debug counters, and promote compile-buffer/CLI traces to golden JSON snapshots stored under `tests/ast/fixtures/`. *Next session priority; coordinate with tooling team for schema updates.*
-- **Incremental execution guidance**:
-  - If the session approaches token limits, finish the current step, summarise partial results, and record next actions + test status in both `doc/agents/ast/progress.md` and a short note in `doc/agents/ast/draft.md`.
-  - Each sub-step can be delivered as a separate delegated session; ensure code is left in a buildable/tested state with feature flags disabled by default if work is mid-flight.
-- **Dependencies & references**:
-  - Decision criteria (Phase 0) for what stays in core.
-  - Alignment timeline (core hardening week of 2025-10-20).
-  - Hook map and migration guidance in `doc/agents/ast/instrumentation-plan.md`.
-  - Verification matrix for required test suites and fixtures.
-- **Validation**:
-  - `hbmk2 -w3` over affected fixtures; core regression suites as needed.
-  - `tests/ast` cmocka harness (expanded with trace retention checks).
-  - `scripts/test-ast.sh` driven by compiler events; verify snapshot parity.
-  - Confirm `HB_PP_TRACEINFO` retain/release counts net to zero post-run.
-- **Deliverables**:
-  - Patched source files with instrumentation guards and any helper APIs.
-  - Session report summarising hooks implemented, tests executed, and residual risks/open questions.
-  - Updated log entries noting which parts of the task breakdown are complete and what remains for the next session.
+## Delegation Brief – Compiler Instrumentation Agent (Template)
 
-### Session transfer — CLI trace validation hand-off
-- **Objective**: Extend Harbour’s AST instrumentation workflow so `.prg` fixtures compiled via `harbour` / `hbmk2` with `--ast-trace` emit JSON that cmocka tests compare against `tests/ast/fixtures/*.ast.json`.
+### Overview
+- **Mandate**: Keep Harbour’s compiler as the single source of truth by emitting token, boundary, node, and preprocessor events backed by `HB_PP_TRACEINFO` (see `doc/agents/ast/instrumentation-plan.md`).
+- **Scope**: Manage PP trace lifecycle (`hb_pp_setTraceCallback`), instrument `hb_comp_yylex`, parser reductions (`harbour.y` / `hbmain.c`), feature toggles, and trace dump/compile-buffer paths.
+
+### Inputs & References
+- Phase 0 decision criteria & parser-hook backlog (this draft).
+- Instrumentation plan (`doc/agents/ast/instrumentation-plan.md`) – hook map, run log, open questions (golden snapshots, diagnostics counters).
+- Progress log (`doc/agents/ast/progress.md`) – recent session reports/testing evidence.
+- Compile-buffer evaluation (`doc/agents/ast/hb_compilebuf_evaluation.md`) – golden snapshot design.
+- Verification matrix (this draft) – hbmk2 sweeps, cmocka suites, `scripts/test-ast.sh`, snapshot rules.
+- If inheriting work, review the latest “Session transition” note before editing and preserve uncommitted changes.
+
+### Milestone Ledger (2025-10-23)
+| Milestone | Status | Notes |
+| --- | --- | --- |
+| Trace callback foundation | ✅ | `hbtraceast.c`, retain/release tests. |
+| Lexer emission pass | ✅ | Tokens/boundaries published from `hb_comp_yylex`. |
+| Parser hook pilot | ✅ | Functions/classes/control-flow instrumented; backlog tracks remaining reductions. |
+| Stabilisation & toggles | ✅ | PP sink + CLI/env toggles documented. |
+| Verification sweep | ✅ | `hbmk2-fixtures`, `compilebuf-tests`, `ast_trace_tests`, `scripts/test-ast.sh` integrated. |
+| Golden traces & diagnostics | 🔄 | **Next**: single-module coverage, debug counters, golden JSON snapshots. |
+
+### Active Objectives (next sessions)
+1. **Single-module coverage** – instrument `hb_compParserRun` eager-token path; add regression tests.  
+2. **Diagnostics toggles** – optional counters (token/node totals, retained traceinfo) gated by instrumentation flag.  
+3. **Golden snapshots** – promote compile-buffer & CLI trace dumps to JSON fixtures in `tests/ast/fixtures/`; coordinate schema/tooling updates.  
+4. **Docs & cleanup** – update `instrumentation-plan.md`, `hb_compilebuf_evaluation.md`, CLI/env docs.  
+5. **Verification sweep** – rerun full matrix and capture command summaries for the session report.
+
+> Aim for one objective per session. If stopping mid-step, leave code buildable, run available tests, and log the next action for the hand-off.
+
+### Execution Checklist
+**Start**  
+1. Read latest entries in `doc/agents/ast/progress.md`.  
+2. Confirm `git status`; review prior “Session transition” if work is in progress.  
+3. Note which objective(s) you plan to tackle.
+
+**During**  
+- Keep feature flags disabled until stable.  
+- Update docs/fixtures with related code changes.  
+- Run targeted tests after each major edit.
+
+**Before hand-off**  
+1. Run applicable tests (`hbmk2 -w3`, cmocka suites, `scripts/test-ast.sh`, snapshot checks).  
+2. Log results + completed work in `doc/agents/ast/progress.md`.  
+3. Refresh this draft (milestones, objectives, follow-ups).  
+4. Prepare commits or clearly state pending work if handing over without committing.
+
+### Testing Expectations
+- `tests/ast` cmocka suites: `ast_trace_tests`, `hbmk2-fixtures`, `compilebuf-tests`, `hbmk-ast-tests`.  
+- `scripts/test-ast.sh`.  
+- `hbmk2 -w3` on every affected `.prg`/`.ch` (no warnings allowed).  
+- Golden trace comparison once fixtures are established.  
+- Verify `HB_PP_TRACEINFO` retain/release balances return to zero.
+
+### Reporting Template
+Include in final session note (and summarise in commit message):
+- Objectives completed (reference list above).  
+- Tests executed (commands + pass/fail).  
+- Docs/fixtures/code added or changed.  
+- Remaining risks or TODOs.
+
+### Session Transition Notes
+- **Focus**: Extend CLI/compile-buffer trace validation—`hb_compMainExtModule()`, finish callback, and `--ast-trace`/`--ast-trace-dump=-` pipeline already landed; `tests/ast/hbmk-ast-tests` validates `fixture_demo.ast.json`.  
+- **Pending**: Add additional fixtures, publish JSON snapshots via compile-buffer harness, document CLI/env usage (`HB_AST_TRACE`, `HB_AST_TRACE_DUMP`), clean temporary artefacts after tests.  
+- **Prompt for next delegate**: “Record completed subtasks, outstanding items, test outcomes, and uncommitted file status in both `doc/agents/ast/progress.md` and `doc/agents/ast/draft.md` before ending the session. If work was inherited mid-task, describe exactly what remains.”
+
+### Open Follow-ups
+- Instrument `hb_compParserRun` (single-module coverage) and validate sequencing.  
+- Add instrumentation debug counters/toggles.  
+- Promote compile-buffer/CLI traces to golden JSON fixtures; define refresh workflow.  
+- Expand `hbmk-ast-tests` fixture matrix; refresh CLI/env documentation.  
+- Continue parser-hook backlog (expression reductions, error recovery, exit/return handling).
 - **Current state**: `hb_compMainExtModule()` + `--ast-trace-dump` (`HB_AST_TRACE_DUMP`) landed; `hbtraceast.c` streams JSON via `hb_compAstTraceDumpJson`; `tests/ast/hbmk-ast-tests.c` runs `fixture_demo.prg` with `--ast-trace --ast-trace-dump=-`, scrubs the banner, and matches `tests/ast/fixtures/fixture_demo.ast.json`; `tests/ast/Makefile` and `.gitignore` already cover the harness.
 - **Open items**:
   - [x] Fix CLI handling so `--ast-trace-dump=-` routes to stdout without triggering error `F0035` (2025-10-23: `cmdcheck.c` sentinel parsing tightened).
