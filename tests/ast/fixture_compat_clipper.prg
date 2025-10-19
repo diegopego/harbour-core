@@ -30,8 +30,9 @@ FUNCTION FixtureCompatClipper( xValue )
          BREAK oBreak
       ENDIF
    RECOVER USING oErr
-   FixtureCompatLog( aLog, "recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
-ENDSEQUENCE
+      FixtureCompatLog( aLog, "recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
+   ENDSEQUENCE
+   FixtureCompatLog( aLog, "after:primary" )
 
    BEGIN SEQUENCE WITH {|oErr| FixtureCompatLog( aLog, "alt:handler:" + ;
          IIf( oErr == NIL, "none", oErr:Description ) ) }
@@ -41,7 +42,9 @@ ENDSEQUENCE
       BREAK oSecondary
    RECOVER USING oErr
       FixtureCompatLog( aLog, "alt:recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
+      FixtureCompatLog( aLog, "alt:linger" )
    ENDSEQUENCE
+   FixtureCompatLog( aLog, "alt:exit" )
 
    FixtureCompatLog( aLog, "compat:CLIPPER:end" )
 

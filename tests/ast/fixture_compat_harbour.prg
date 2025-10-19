@@ -28,6 +28,7 @@ FUNCTION FixtureCompatHarbour( xValue )
    RECOVER USING oErr
       FixtureCompatLog( aLog, "recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
    ENDSEQUENCE
+   FixtureCompatLog( aLog, "after:outer" )
 
    BEGIN SEQUENCE WITH {|oErr| FixtureCompatLog( aLog, "nested:handler:" + ;
          IIf( oErr == NIL, "none", oErr:Description ) ) }
@@ -44,9 +45,11 @@ FUNCTION FixtureCompatHarbour( xValue )
          oInner:Description := oInner:Description + ":reraised"
          BREAK oInner
       ENDSEQUENCE
+      FixtureCompatLog( aLog, "nested:innerexit" )
    RECOVER USING oErr
       FixtureCompatLog( aLog, "nested:recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
    ENDSEQUENCE
+   FixtureCompatLog( aLog, "nested:outerexit" )
 
    FixtureCompatLog( aLog, "compat:HARBOUR:end" )
 
