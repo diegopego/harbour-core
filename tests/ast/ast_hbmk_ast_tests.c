@@ -167,7 +167,8 @@ static const HB_AST_FIXTURE s_cases[] =
 {
    { "tests/ast/fixture_demo.prg", "tests/ast/fixtures/fixture_demo.ast.json" },
    { "tests/ast/fixture_blocks.prg", "tests/ast/fixtures/fixture_blocks.ast.json" },
-   { "tests/ast/fixture_ppdirectives.prg", "tests/ast/fixtures/fixture_ppdirectives.ast.json" }
+   { "tests/ast/fixture_ppdirectives.prg", "tests/ast/fixtures/fixture_ppdirectives.ast.json" },
+   { "tests/ast/fixture_statements.prg", "tests/ast/fixtures/fixture_statements.ast.json" }
 };
 
 static void hb_astCompileFixture_default( void ** state )

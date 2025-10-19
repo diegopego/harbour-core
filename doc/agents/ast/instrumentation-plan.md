@@ -161,9 +161,12 @@ Use the following naming when documenting fixtures, tests, and instrumentation s
 | **Preprocessor command / translate** | `#command`, `#translate`, `#xcommand`, `#xtranslate` | Preprocessor rewrite that expands to Harbour source prior to parsing | Commonly called “PP commands” in Clipper/Harbour docs. They are not runtime macros. |
 | **Preprocessor pragma** | `#pragma`, including `#pragma -k*`, `#pragma __text`, `#pragma __stream`, `#pragma __endtext`, `#pragma /B-` | Preprocessor phase | Pragmas may toggle compiler switches or inject code templates. Refer to them as **PP pragmas**. |
 | **Preprocessor text block** | `TEXT ... ENDTEXT`, `TEXT TO VAR ... ENDTEXT`, `TEXT INTO ... ENDTEXT` | Lowered to `#pragma __text/__stream/__cstream` before parsing | Treat these as **PP text blocks**; instrumentation should attribute expansions to the underlying pragmas. |
-| **Compiler directive keyword** | `REQUEST`, `ANNOUNCE`, `STATIC`, `MEMVAR`, `FIELD`, `THREAD STATIC`, `LOCAL`, `EXTERN` | Parser/semantic analysis (after preprocessor) | These are compile-time directives that affect symbol tables and linking. Do **not** call them macros; refer to them as **compiler directives**. |
 | **Runtime macro operator** | `&cSymbol`, `&( cExpr )`, `&("Func")()` | Evaluated by the VM at runtime | This is the traditional Clipper “macro”. When instrumentation observes these expressions, label them as **runtime macro operator** usage. |
 
 By default, reserve the word **macro** for the runtime `&` operator or explicitly qualify it (e.g., “PP directive”, “PP command”) when referring to preprocessor constructs.
+
+#### Canonical language reference
+
+Harbour maintains source compatibility with CA-Clipper. When Harbour documentation does not spell out nomenclature or token classification, consult the original Clipper 5.3 Programming Guide (e.g. `clc53/doc/en/c53g01c.txt` from the `ng-hbdoc` archive). Treat that manual as the authoritative reference for naming conventions and statement categories when updating fixtures, tests, or docs.
 
 Once these questions are resolved, the instrumentation plan is ready for delegation to the Compiler Instrumentation Agent and the AST Tooling Agent.

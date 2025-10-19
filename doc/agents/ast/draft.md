@@ -100,7 +100,7 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 | Parser hook pilot | ✅ | Functions/classes/control-flow instrumented; backlog tracks remaining reductions. |
 | Stabilisation & toggles | ✅ | PP sink + CLI/env toggles documented. |
 | Verification sweep | ✅ | `hbmk2-fixtures`, `compilebuf-tests`, `ast_trace_tests`, `scripts/test-ast.sh` integrated. |
-| Golden traces & diagnostics | 🔄 | Single-module coverage landed (`hb_compParserRun` instrumentation + `compilebuf-tests` `-m` harness); fixture matrix now includes `fixture_blocks` + `fixture_ppdirectives` JSON dumps; diagnostics counters/toggles shipped; pending broader golden snapshot workflow. |
+| Golden traces & diagnostics | 🔄 | Single-module coverage landed (`hb_compParserRun` instrumentation + `compilebuf-tests` `-m` harness); fixture matrix now includes `fixture_blocks`, `fixture_ppdirectives`, and `fixture_statements` JSON dumps; diagnostics counters/toggles shipped; pending broader golden snapshot workflow. |
 
 ### Active Objectives (next sessions)
 1. ✅ **Single-module coverage** – `hb_compParserRun` now routes through `hb_comp_yylex`; both compile-buffer and CLI harnesses iterate over `fixture_demo` and `fixture_blocks` under default/`-m` modes. Next: document the behaviour and backfill additional fixtures before snapshot promotion.  
