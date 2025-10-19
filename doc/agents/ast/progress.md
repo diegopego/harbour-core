@@ -3,9 +3,9 @@
 ## 2025-10-24 – Single-Module Trace Coverage
 
 - **Code updates**: Routed `hb_compParserRun()` through `hb_comp_yylex()` unconditionally so instrumentation emits token/boundary events even when `-m` (`fSingleModule`) suppresses module enrollment. The eager-token path now mirrors the standard lexer flow without side effects.
-- **Testing**: `make -C tests/ast compilebuf-tests`; `./tests/ast/compilebuf-tests` (verifies both default and `-m` runs). All tests pass.
-- **Fixtures**: `tests/ast/ast_compilebuf_tests.c` gained a `-m` execution path that asserts trace capture from `hb_compMainExtModule()` remains intact while single-module mode is active.
-- **Follow-up**: Fold `-m` coverage into the CLI (`hbmk-ast-tests`) sweep and confirm downstream snapshot tooling handles the stricter token stream; plan additional fixtures before promoting new golden traces.
+- **Testing**: `make -C tests/ast compilebuf-tests`; `./tests/ast/compilebuf-tests` (verifies both default and `-m` runs); `make -C tests/ast hbmk-ast-tests`; `./tests/ast/hbmk-ast-tests`. All tests pass.
+- **Fixtures**: `tests/ast/ast_compilebuf_tests.c` gained a `-m` execution path that asserts trace capture from `hb_compMainExtModule()` remains intact while single-module mode is active. `tests/ast/ast_hbmk_ast_tests.c` now shares the capture harness and exercises CLI trace dumps with and without `-m`.
+- **Follow-up**: Expand the fixture matrix (additional `.prg`/`.ch` pairs) before minting new golden snapshots, and prepare diagnostics counters to capture token/node totals during future runs.
 
 ## 2025-10-23 – CLI Trace Dump Sentinel
 

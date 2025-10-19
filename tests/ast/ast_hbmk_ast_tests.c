@@ -64,23 +64,15 @@ static char * hb_astReadStream( FILE * fp )
    return buffer;
 }
 
-static void hb_astCompileFixture( void ** state )
+static void hb_astAssertFixtureDump( size_t argc, const char * const argv[] )
 {
-   const char * argv[] =
-   {
-      "hb_comp",
-      "--ast-trace",
-      "--ast-trace-dump=-",
-      "tests/ast/fixture_demo.prg"
-   };
-   char * actualRaw;
    char * actual;
    char * jsonStart;
+   char * actualRaw;
    char * expected;
    FILE * capture;
    int savedStdout;
-
-   HB_SYMBOL_UNUSED( state );
+   int iStatus;
 
    remove( "tests/ast/fixture_demo.c" );
    remove( "fixture_demo.c" );
@@ -92,29 +84,24 @@ static void hb_astCompileFixture( void ** state )
    assert_true( savedStdout >= 0 );
    assert_true( HB_DUP2( fileno( capture ), fileno( stdout ) ) >= 0 );
 
-   {
-      int iStatus = hb_compMainExtModule( HB_SIZEOFARRAY( argv ), argv,
-                                          NULL, NULL,
-                                          NULL, NULL, 0,
-                                          NULL, NULL, NULL, NULL, NULL );
-
-      if( iStatus != EXIT_SUCCESS )
-      {
-         char * dump;
-
-         fflush( stdout );
-         assert_true( HB_DUP2( savedStdout, fileno( stdout ) ) >= 0 );
-         HB_CLOSE( savedStdout );
-         dump = hb_astReadStream( capture );
-         fprintf( stderr, "%s", dump );
-         free( dump );
-         fail_msg( "hb_compMainExtModule() returned %d", iStatus );
-      }
-   }
+   iStatus = hb_compMainExtModule( ( int ) argc, argv,
+                                   NULL, NULL,
+                                   NULL, NULL, 0,
+                                   NULL, NULL, NULL, NULL, NULL );
 
    fflush( stdout );
    assert_true( HB_DUP2( savedStdout, fileno( stdout ) ) >= 0 );
    HB_CLOSE( savedStdout );
+
+   if( iStatus != EXIT_SUCCESS )
+   {
+      char * dump = hb_astReadStream( capture );
+
+      fprintf( stderr, "%s", dump );
+      free( dump );
+      fclose( capture );
+      fail_msg( "hb_compMainExtModule() returned %d", iStatus );
+   }
 
    actualRaw = hb_astReadStream( capture );
    fclose( capture );
@@ -126,21 +113,54 @@ static void hb_astCompileFixture( void ** state )
    memcpy( actual, jsonStart, strlen( jsonStart ) + 1 );
    free( actualRaw );
 
-   expected = hb_astLoadFile( "tests/ast/fixtures/fixture_demo.ast.json" );
-   assert_string_equal( actual, expected );
-
-   free( expected );
-   free( actual );
-
    remove( "tests/ast/fixture_demo.c" );
    remove( "fixture_demo.c" );
+
+   expected = hb_astLoadFile( "tests/ast/fixtures/fixture_demo.ast.json" );
+   assert_non_null( expected );
+   assert_string_equal( actual, expected );
+   free( expected );
+
+   free( actual );
+}
+
+static void hb_astCompileFixture_default( void ** state )
+{
+   const char * argv[] =
+   {
+      "hb_comp",
+      "--ast-trace",
+      "--ast-trace-dump=-",
+      "tests/ast/fixture_demo.prg"
+   };
+
+   HB_SYMBOL_UNUSED( state );
+
+   hb_astAssertFixtureDump( HB_SIZEOFARRAY( argv ), argv );
+}
+
+static void hb_astCompileFixture_single_module( void ** state )
+{
+   const char * argv[] =
+   {
+      "hb_comp",
+      "-m",
+      "--ast-trace",
+      "--ast-trace-dump=-",
+      "tests/ast/fixture_demo.prg"
+   };
+
+   HB_SYMBOL_UNUSED( state );
+
+   hb_astAssertFixtureDump( HB_SIZEOFARRAY( argv ), argv );
 }
 
 int main( void )
 {
    const struct CMUnitTest tests[] =
    {
-      cmocka_unit_test( hb_astCompileFixture ),
+      cmocka_unit_test( hb_astCompileFixture_default ),
+      cmocka_unit_test( hb_astCompileFixture_single_module ),
    };
 
    return cmocka_run_group_tests( tests, NULL, NULL );
