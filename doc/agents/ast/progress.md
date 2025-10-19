@@ -4,6 +4,7 @@
 
 - **Testing**: Ran `hbmk2 -w3` against `tests/ast/fixture_demo.prg`, `tests/ast/preprocessor/fixtures/macro_trace.prg`, and `tests/ast/preprocessor/fixtures/command_trace.prg`. After refactoring the fixture to functions and adding `CallIncludedProc()` to exercise the static helper, the sweep now completes without warnings.
 - **Outcome**: Compiler instrumentation behaved as expected under strict warnings and the helper include is fully consumed. Fixtures are back to warning-free state for the verification matrix.
+- **Automation**: Added a `cmocka` runner (`tests/ast/hbmk2-fixtures`) that globs all `.prg` fixtures, shells out to `hbmk2 -w3`, and fails the suite if warnings/errors appear; wired into `tests/ast/Makefile`.
 - **Open items**: Re-run `hbmk2 -w3` when new fixtures land, and continue evaluating `hb_compileBuf` golden tests for broader coverage.
 
 ## 2025-10-21 – Compiler Instrumentation Hardening

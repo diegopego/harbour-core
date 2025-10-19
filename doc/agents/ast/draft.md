@@ -10,6 +10,7 @@
 - DONE 2025-10-18: Delegation briefs prepared for Compiler Instrumentation Agent and AST Tooling Agent (see dedicated sections below).
 - Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
 - Track post-session follow-ups: expanded parser hooks and `hbmk2 -w3` sweeps (event sink + instrumentation toggle landed 2025-10-20).
+- 2025-10-22: Added `tests/ast/hbmk2-fixtures` cmocka runner to enforce `hbmk2 -w3` cleanliness for all `.prg` fixtures.
 - Evaluate adding `hb_compileBuf`-based fixtures as golden AST references so only Harbour-compilable `.prg`/`.ch` inputs drive instrumentation tests.
 - Consider lightweight debug counters inside trace helpers to diagnose event sequencing (token/node counts, retained traceinfo) when future sessions debug hooks.
 - 2025-10-22: `hbmk2 -w3` sweep recorded; fixture tweaks (function conversions + `CallIncludedProc()`) cleared prior warnings so the matrix is green again.
@@ -35,7 +36,7 @@
   - `tests/ast` cmocka suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
   - `scripts/test-ast.sh`: rerun snapshot comparisons using compiler-sourced events; failures indicate divergence from the schema/fixtures.
 - **Run log**:
-  - 2025-10-22: `hbmk2 -w3` run logged; fixtures now compile cleanly after exercising the static helper include.
+  - 2025-10-22: `hbmk2 -w3` run logged; fixtures now compile cleanly after exercising the static helper include, and the new `hbmk2-fixtures` cmocka target automates the check.
 - **Fixtures & snapshots**:
   - Reuse existing `tests/ast/fixture_*.prg`, `.ch`, `.json`, `.ppo`, `.trace.json` files; add new variants for nested macros, conditionals, and dialect switches once instrumentation lands.
   - Maintain golden snapshots for both token streams and AST payloads; store under extracted tooling repo but reference versions in Harbour core for parity checks.

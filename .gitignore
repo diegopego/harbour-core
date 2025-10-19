@@ -46,6 +46,7 @@ tests/ast/builder-test
 tests/tooling/cmocka/a.out
 tests/ast/pp-trace
 tests/ast/trace-events
+tests/ast/hbmk2-fixtures
 tests/ast/fixture_demo
 command_trace
 fixture_demo
