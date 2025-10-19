@@ -33,6 +33,7 @@
 
 
 #include "hbcomp.h"
+#include "hbasttrace.h"
 
 /* Compile using: bison -d -v harbour.y */
 
@@ -326,10 +327,24 @@ Line       : LINE NUM_LONG Crlf
                     $5.dealloc = HB_FALSE; }
            ;
 
-Function   : FUNCTION  IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, 0 ); } Crlf
-           | PROCEDURE IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, HB_FUNF_PROCEDURE ); } Crlf
-           | FUNCTION  IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, 0 ); HB_COMP_PARAM->iVarScope = HB_VSCOMP_PARAMETER; } '(' Params ')' Crlf
-           | PROCEDURE IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, HB_FUNF_PROCEDURE ); HB_COMP_PARAM->iVarScope = HB_VSCOMP_PARAMETER;} '(' Params ')' Crlf
+Function   : FUNCTION  IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, 0 );
+                                   hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION,
+                                                            HB_COMP_PARAM->functions.pLast,
+                                                            hb_compAstTraceLastTokenId( HB_COMP_PARAM ) ); } Crlf
+           | PROCEDURE IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, HB_FUNF_PROCEDURE );
+                                   hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION,
+                                                            HB_COMP_PARAM->functions.pLast,
+                                                            hb_compAstTraceLastTokenId( HB_COMP_PARAM ) ); } Crlf
+           | FUNCTION  IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, 0 );
+                                   hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION,
+                                                            HB_COMP_PARAM->functions.pLast,
+                                                            hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+                                   HB_COMP_PARAM->iVarScope = HB_VSCOMP_PARAMETER; } '(' Params ')' Crlf
+           | PROCEDURE IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, HB_FUNF_PROCEDURE );
+                                   hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION,
+                                                            HB_COMP_PARAM->functions.pLast,
+                                                            hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+                                   HB_COMP_PARAM->iVarScope = HB_VSCOMP_PARAMETER;} '(' Params ')' Crlf
            ;
 
 Params     : /*no parameters */ { $$ = 0; }

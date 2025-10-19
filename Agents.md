@@ -59,7 +59,7 @@ Maintain a **continuous, auditable exchange** between implementation sessions an
 - **Checkpoint planning**: Overseer reviews outstanding work, updates roadmap entries, and confirms baseline status (`git status`, diff against `cfb7bdc2`).
 - **Delegation packets**: For each substantive task, create a session brief detailing scope, files, tests, and success criteria.
 - **Implementation**: Agents modify code within guarded flags or scratch branches when experimenting; permanent changes align with the agreed plan.
-- **Validation**: Run `tests/tooling/cmocka`, `scripts/test-ast.sh`, and any new suites. Failures block progress until resolved.
+- **Validation**: Run the `tests/ast` cmocka harness, `scripts/test-ast.sh`, and any new suites. Failures block progress until resolved.
 - **Review & Commit**: Overseer inspects diffs, records outcomes in `doc/agents/ast/progress.md`, and shares suggested commit messages; the user applies commits.
 
 ## Documentation & Logging

@@ -1,5 +1,26 @@
 # AST Tooling Progress Log
 
+## 2025-10-19 – Trace Callback Foundation
+
+- **Code updates**: Instrumentation scaffold added (`include/hbasttrace.h`, `src/compiler/hbtraceast.c`, `include/hbcompdf.h`, `src/compiler/hbcomp.c`, `src/compiler/Makefile`) and preprocessor helpers exported (`include/hbpp.h`, `src/pp/ppcore.c`, `src/harbour.def`) to make `hb_pp_traceinfoRetain/Release` available to the compiler.
+- **Lifecycle wiring**: `hb_comp_new()` now delegates to `hb_compAstTraceInit()` and `hb_comp_free()` shuts down the callback path, detaching `hb_pp_setTraceCallback()` so instrumentation remains opt-in via `hb_compAstTraceSetEnabled()`.
+- **Testing**: Added a cmocka stress test (`tests/ast/ast_trace_tests.c`) that exercises retain/release accounting; build runner not executed in this session (pending consolidated instrumentation harness).
+- **Open items**: Provide real event sinks in `hb_compAstTracePpSink`, surface a user-facing toggle (CLI/env) for enabling tracing, and integrate the cmocka target into the verification matrix runs.
+
+## 2025-10-19 – Lexer Emission Pass
+
+- **Code updates**: Instrumented `hb_comp_yylex` via `hb_compAstTracePublishToken/Boundary`, replaced raw returns with a guardable helper, and expanded `hbtraceast.c` to keep token/boundary queues with stable IDs and retained trace handles.
+- **Event schema**: `include/hbasttrace.h` now exposes `HB_COMP_AST_TRACE_TOKEN` / `_BOUNDARY` structures; documentation updated to describe payload fields and sequencing.
+- **Testing**: Added cmocka coverage (`lexer_respects_disabled_state`, `lexer_emits_tokens`) that initialises the real preprocessor, validates the disabled path, and asserts token/boundary capture. Test runner still pending integration (not executed this session) pending build wiring.
+- **Open items**: Flush buffers on feature toggle transitions for long-lived compilers, expose snapshot/export helpers for tooling consumers, and wire hbmk2/cmocka targets into the verification matrix.
+
+## 2025-10-19 – Parser Hook Pilot
+
+- **Code updates**: `harbour.y` now calls `hb_compAstTraceNodeEnter()` on function reductions, while `hb_compFinalizeFunction()` emits the matching leave via `hb_compAstTraceNodeLeave()`; `hbtraceast.c` gained node queues, stable IDs, and mapper bookkeeping.
+- **Data model**: Defined `HB_COMP_AST_TRACE_NODE_EVENT` (`id`, `sequence`, `kind`, `phase`, `tokenId`, `name`, `handle`) with mapping to `HB_HFUNC` handles so leave events reuse entry IDs.
+- **Testing**: Added cmocka coverage (`parser_emits_function_nodes`) in `tests/ast/ast_trace_tests.c` that runs the full parser/compile-end path to assert enter/leave pairs. Suite still not executed in-session (build integration pending).
+- **Open items**: Implement node publishers for class/method declarations, attach statement tree nodes (IF/LOOP/etc.), and extend tests to assert parent-child relationships once hooks land.
+
 ## 2025-10-18 – Oversight Baseline Review
 
 - **Repository status**: `git status -sb` shows local edits to `Agents.md` (roles rewrite) and an existing modification in `draft.md`. No other worktree changes detected; outstanding content in `draft.md` must be preserved when committing.

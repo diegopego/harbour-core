@@ -148,8 +148,8 @@ static PHB_PP_TRACEINFO hb_pp_traceinfoNew( PHB_PP_STATE pState,
                                             int iCallEndLine, int iCallEndColumn,
                                             HB_SIZE nCallOffset, HB_SIZE nCallEndOffset,
                                             PHB_PP_TRACEINFO pParent );
-static void hb_pp_traceinfoRetain( PHB_PP_TRACEINFO pInfo );
-static void hb_pp_traceinfoRelease( PHB_PP_TRACEINFO pInfo );
+HB_EXPORT void hb_pp_traceinfoRetain( PHB_PP_TRACEINFO pInfo );
+HB_EXPORT void hb_pp_traceinfoRelease( PHB_PP_TRACEINFO pInfo );
 
 
 static const HB_PP_OPERATOR s_operators[] =
@@ -370,13 +370,13 @@ static void hb_membufAddStr( PHB_MEM_BUFFER pBuffer, const char * szText )
    hb_membufAddData( pBuffer, szText, strlen( szText ) );
 }
 
-static void hb_pp_traceinfoRetain( PHB_PP_TRACEINFO pInfo )
+HB_EXPORT void hb_pp_traceinfoRetain( PHB_PP_TRACEINFO pInfo )
 {
    if( pInfo )
       ++pInfo->nRefCount;
 }
 
-static void hb_pp_traceinfoRelease( PHB_PP_TRACEINFO pInfo )
+HB_EXPORT void hb_pp_traceinfoRelease( PHB_PP_TRACEINFO pInfo )
 {
    if( pInfo && --pInfo->nRefCount == 0 )
    {

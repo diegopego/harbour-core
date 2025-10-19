@@ -6,10 +6,11 @@ CC      ?= gcc
 CFLAGS  ?=
 LDFLAGS ?=
 
-INCLUDES := -I$(ROOT)/include
+INCLUDES := -I$(ROOT)/include -I$(ROOT)/src/compiler
 LIBDIR   := $(ROOT)/lib/$(HB_PLATFORM)/$(HB_COMPILER)
 LIBS     := -L$(LIBDIR) \
             -lhbastlex \
+            -lhbcplr \
             -lhbpp \
             -lhbrtl \
             -lhbvm \
@@ -20,7 +21,7 @@ LIBS     := -L$(LIBDIR) \
 CMOCKA_INC  ?= -I/usr/local/include
 CMOCKA_LIBS ?= -L/usr/local/lib -lcmocka
 
-TARGETS := smoke snapshot rename builder-test pp-trace
+TARGETS := smoke snapshot rename builder-test pp-trace trace-events
 
 .PHONY: all clean build tests suite
 
@@ -41,6 +42,9 @@ builder-test: ast_builder_test.c
 pp-trace: ast_preprocessor_trace_test.c
 	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
 
+trace-events: ast_trace_tests.c
+	$(CC) $(CFLAGS) $(INCLUDES) $(CMOCKA_INC) $< $(LIBS) $(CMOCKA_LIBS) $(LDFLAGS) -o $@
+
 clean:
 	rm -f $(TARGETS)
 
@@ -52,3 +56,4 @@ tests: build
 	(cd $(ROOT) && ./tests/ast/snapshot)
 	(cd $(ROOT) && ./tests/ast/builder-test)
 	(cd $(ROOT) && ./tests/ast/pp-trace)
+	(cd $(ROOT) && ./tests/ast/trace-events)

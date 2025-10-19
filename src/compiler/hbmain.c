@@ -32,6 +32,7 @@
 #endif
 
 #include "hbcomp.h"
+#include "hbasttrace.h"
 #include "hbset.h"
 
 static int hb_compCompile( HB_COMP_DECL, const char * szPrg, const char * szBuffer, int iStartLine );
@@ -1918,6 +1919,9 @@ static void hb_compFinalizeFunction( HB_COMP_DECL ) /* fixes all last defined fu
          hb_compPCodeTraceOptimizer( HB_COMP_PARAM );
          hb_compOptimizeJumps( HB_COMP_PARAM );
       }
+
+      if( ( pFunc->funFlags & HB_FUNF_FILE_DECL ) == 0 )
+         hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION, pFunc );
    }
 }
 

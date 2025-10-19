@@ -28,7 +28,7 @@
   - `hbmk2 -w3` on all `.prg` fixtures touched by instrumentation to ensure no new warnings/errors surface.
   - Harbour compiler self-tests covering macro-heavy code paths where traces are emitted.
 - **Tooling harness**:
-  - `tests/tooling/cmocka` suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
+  - `tests/ast` cmocka suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
   - `scripts/test-ast.sh`: rerun snapshot comparisons using compiler-sourced events; failures indicate divergence from the schema/fixtures.
 - **Fixtures & snapshots**:
   - Reuse existing `tests/ast/fixture_*.prg`, `.ch`, `.json`, `.ppo`, `.trace.json` files; add new variants for nested macros, conditionals, and dialect switches once instrumentation lands.
@@ -41,6 +41,13 @@
 - **Reporting**:
   - Log matrix status in `doc/agents/ast/progress.md` for each session touching instrumentation.
   - Implementation agents attach test output summaries to their session reports.
+
+## Parser Hook Backlog
+- [ ] Emit node enter/leave events for class declarations (`DECLARE CLASS`, `DECLARE MEMBER`).
+- [ ] Capture statement-level reductions (IF/ELSE, FOR/NEXT, WHILE/ENDDO) with parent-child references.
+- [ ] Track codeblock (`{|| ... }`) entry/exit, linking to originating tokens.
+- [ ] Surface inline (`INLINE`) definitions and `INIT/EXIT` procedures with dedicated node kinds.
+- [ ] Map macro-generated constructs to node events once traceinfo-to-node bindings are stabilised.
 
 ## Alignment Memo (Draft)
 - **Stay in Harbour core**:
@@ -82,7 +89,7 @@
   - Verification matrix for required test suites and fixtures.
 - **Validation**:
   - `hbmk2 -w3` over affected fixtures; core regression suites as needed.
-  - `tests/tooling/cmocka` (expanded with trace retention checks).
+  - `tests/ast` cmocka harness (expanded with trace retention checks).
   - `scripts/test-ast.sh` driven by compiler events; verify snapshot parity.
   - Confirm `HB_PP_TRACEINFO` retain/release counts net to zero post-run.
 - **Deliverables**:
@@ -108,7 +115,7 @@
 - **Dependencies & references**:
   - Alignment roadmap (tooling extraction week of 2025-10-27; integration week of 2025-11-03).
   - Hook map specifics on available payload fields.
-  - Verification matrix for mandatory suites (`tests/tooling/cmocka`, `scripts/test-ast.sh`) and fixture upkeep.
+  - Verification matrix for mandatory suites (`tests/ast` cmocka harness, `scripts/test-ast.sh`) and fixture upkeep.
 - **Validation**:
   - Run tooling cmocka suites against compiler-delivered streams; include assertions about node/token coverage.
   - Execute `scripts/test-ast.sh` to compare generated artefacts to golden snapshots, updating them only when instrumentation changes are intentional.

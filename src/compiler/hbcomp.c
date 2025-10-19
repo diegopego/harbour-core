@@ -45,6 +45,7 @@
  */
 
 #include "hbcomp.h"
+#include "hbasttrace.h"
 
 static PHB_EXPR hb_compExprAlloc( HB_COMP_DECL )
 {
@@ -251,6 +252,7 @@ PHB_COMP hb_comp_new( void )
       pComp->funcs = &s_comp_funcs;
 
       pComp->pLex->pPP = pPP;
+      hb_compAstTraceInit( pComp );
 
       /* various compatibility flags (-k switch)
          activate Harbour extensions by default. */
@@ -304,11 +306,12 @@ void hb_comp_free( PHB_COMP pComp )
     * other cases expressions should be always cleanly freed so
     * executing hb_compExprLstDealloc() may only hides some real
     * memory leaks
-    */
+   */
    if( pComp->iErrorCount != 0 )
       hb_compExprLstDealloc( pComp );
 
    hb_compIdentifierClose( pComp );
+   hb_compAstTraceShutdown( pComp );
 
    if( pComp->pOutPath )
       hb_xfree( pComp->pOutPath );

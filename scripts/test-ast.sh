@@ -13,6 +13,10 @@ run_make() {
 
 run_make src/ast/lexer clean
 run_make src/ast/lexer
+run_make src/pp clean
+run_make src/pp
+run_make src/compiler clean
+run_make src/compiler
 run_make utils/hbast clean
 run_make utils/hbast
 run_make tests/ast clean

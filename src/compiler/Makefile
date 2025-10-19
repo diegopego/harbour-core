@@ -34,6 +34,7 @@ C_SOURCES := \
    hbopt.c \
    hbpcode.c \
    hbstripl.c \
+   hbtraceast.c \
    hbusage.c \
    ppcomp.c \
 

@@ -90,7 +90,7 @@ static void hb_pp_writeToken( FILE * fout, PHB_PP_TOKEN pToken,
          fprintf( fout, ", NULL%*s", i, "" );
 
       i = 16 - ( int ) strlen( pToken->value );
-      fprintf( fout, ", \"%s\", %*s %2d,%2d, 0x%04x, %u }%s\n",
+      fprintf( fout, ", \"%s\", %*s %2d,%2d, 0x%04x, %u, NULL, 0, 0, 0, ( HB_SIZE ) -1, ( HB_SIZE ) -1, NULL }%s\n",
                pToken->value,
                i < 0 ? 0 : i, "",
                ( int ) pToken->len, ( int ) pToken->spaces,

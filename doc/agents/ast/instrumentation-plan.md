@@ -47,10 +47,10 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 
 | File | Function / Rule | Insertion site | Captured data | Emitted event / action |
 | --- | --- | --- | --- | --- |
-| `src/compiler/complex.c` | `hb_comp_yylex` | Immediately after `pToken = hb_pp_tokenGet( pLex->pPP );` and null-check | `HB_PP_TOKEN` fields (`value`, `type`, `szModule`, `iLine`, `iColumn`, `nOffset`, `pTraceInfo`) | Call `hb_astPublishToken( pComp, pToken )` → emits `HB_AST_EVENT_TOKEN` |
-| `src/compiler/complex.c` | `hb_comp_yylex` (pre-return) | Right before returning `0`, `ENDERR`, or any token code | Token ID returned to parser, `pLex->iState`, end-of-command markers | Call `hb_astPublishTokenBoundary( pComp, code )` to delimit statements/lines |
-| `src/compiler/harbour.y` | `Function` rule actions (`Function` productions at lines ~329-334) | After existing `hb_compFunctionAdd()` calls | New function symbol (`HB_COMP_PARAM->functions.pLast`), start token IDs | Invoke `hb_astPublishNodeEnter( HB_AST_NODE_FUNCTION, pFunction )` |
-| `src/compiler/harbour.y` | `Function` rule trailing actions (`Function : ... Crlf`) | Immediately before rule completes | Captured function body expression list | Invoke `hb_astPublishNodeLeave( HB_AST_NODE_FUNCTION, pFunction )` |
+| `src/compiler/complex.c` | `hb_comp_yylex` | Immediately after `pToken = hb_pp_tokenGet( pLex->pPP );` and null-check | `HB_PP_TOKEN` fields (`value`, `type`, `szModule`, `iLine`, `iColumn`, `nOffset`, `pTraceInfo`) | Call `hb_compAstTracePublishToken( pComp, pToken )` → emits `HB_AST_EVENT_TOKEN` |
+| `src/compiler/complex.c` | `hb_comp_yylex` (pre-return) | Right before returning `0`, `ENDERR`, or any token code | Token ID returned to parser, `pLex->iState`, end-of-command markers | Call `hb_compAstTracePublishBoundary( pComp, code, pLex->iState )` to delimit statements/lines |
+| `src/compiler/harbour.y` | `Function` rule actions (`Function` productions at lines ~329-334) | After existing `hb_compFunctionAdd()` calls | New function symbol (`HB_COMP_PARAM->functions.pLast`), start token IDs | Invoke `hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION, pFunc, hb_compAstTraceLastTokenId( HB_COMP_PARAM ) )` |
+| `src/compiler/hbmain.c` | `hb_compFinalizeFunction` | After function cleanup and before return | Currently active `HB_HFUNC` pointer | Invoke `hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION, pFunc )` |
 | `src/compiler/harbour.y` | Representative expression reductions (e.g., `Expression : Expression '+' Expression`) | Inside each action that returns a `PHB_EXPR` | Newly constructed `PHB_EXPR`, source token IDs | Wrap existing builder call with `HB_AST_TRACE_REDUCTION( <node_kind>, pExpr )` macro that publishes `HB_AST_EVENT_NODE_REDUCE` |
 | `src/compiler/hbcomp.c` | `hb_comp_new` | After `pComp->pLex->pPP = pPP;` | `PHB_PP_STATE`, compiler context pointer | Register trace callback: `hb_pp_setTraceCallback( pPP, hb_astTraceSink, pComp )` |
 | `src/compiler/hbcomp.c` | `hb_comp_free` | Before `hb_pp_free( pComp->pLex->pPP );` | Compiler context | Call `hb_pp_setTraceCallback( pComp->pLex->pPP, NULL, NULL )` to detach sink |
@@ -63,11 +63,11 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
    - On every macro application, `hb_pp_traceinfoNew()` creates an `HB_PP_TRACEINFO` record with expansion ID, call site module/line/byte offsets, and parent pointer.
    - When the new compiler trace callback is set, `hb_pp_Process()` and friends emit `HB_PP_TRACE_EVENT` snapshots containing source/result text and associated trace info.
 2. **Compiler lexer** (`hb_comp_yylex`):
-   - Wrap retrieved `HB_PP_TOKEN` objects in `HB_AST_TOKEN_EVENT` payloads: `{ stable_id, lexeme, kind, channel, source_range, trace_id }`.
-   - Retain the referenced `HB_PP_TRACEINFO` until tooling acknowledges the event (mirroring current retain/release helpers).
-3. **Parser reductions** (`harbour.y`):
-   - Whenever a `PHB_EXPR` is produced or a function/module scope opens/closes, emit node events referencing the tokens collected above.
-   - Node events include stable node IDs (`file:offset:kind@hash`), parent/child relationships, and the set of contributing token IDs.
+   - Wrap retrieved `HB_PP_TOKEN` objects in `HB_COMP_AST_TRACE_TOKEN` payloads: `{ id, sequence, type, value, source_range, traceInfo }`.
+   - Retain the referenced `HB_PP_TRACEINFO` until instrumentation releases it (mirroring current retain/release helpers).
+3. **Parser reductions** (`harbour.y` / `hbmain.c`):
+   - Function headers call `hb_compAstTraceNodeEnter()` with the freshly allocated `HB_HFUNC`, while `hb_compFinalizeFunction()` emits the matching leave event.
+   - Node events (`HB_COMP_AST_TRACE_NODE_EVENT`) carry stable IDs, associated token IDs, and duplicated symbol names for downstream correlation.
 4. **AST tooling bridge** (new module to be reintroduced post-extraction):
    - Consumes the token and node streams, serializes into JSON/CBOR matching the schema already documented in `serialization-format.md`.
    - Macro traces remain linked via `HB_PP_TRACEINFO.nExpansionId` → `MacroExpansion.expansion_id`.
@@ -78,6 +78,23 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
   - `pszMacroName`, `pszCallModule` – null-terminated strings.
   - `iCallLine`, `iCallColumn`, `iCallEndLine`, `iCallEndColumn` – 1-based coordinates.
   - `nCallOffset`, `nCallEndOffset` – byte offsets within the module.
+
+### Token and Boundary Payloads
+- `HB_COMP_AST_TRACE_TOKEN`
+  - `id`, `sequence` – stable identifiers for token tracking and total ordering.
+  - `type`, `markerIndex`, `spaces`, `length` – verbatim metadata copied from the originating `HB_PP_TOKEN`.
+  - `value`, `module` – heap-duplicated strings that survive beyond the preprocessor arena.
+  - `line`, `column`, `endColumn`, `offset`, `endOffset` – 1-based coordinates and byte offsets for downstream mapping.
+  - `traceInfo` – retained `HB_PP_TRACEINFO` handle (released when instrumentation clears the event queue).
+- `HB_COMP_AST_TRACE_BOUNDARY`
+  - `sequence` – shares the global event counter so tokens/boundaries can be merged chronologically.
+  - `tokenId` – references the most recent token emitted prior to the boundary.
+  - `code`, `lexState` – parser return code and lexer state snapshot at the boundary.
+- `HB_COMP_AST_TRACE_NODE_EVENT`
+  - `id`, `sequence` – mirror token sequencing so enter/leave events can be matched reliably.
+  - `kind`, `phase` – node classification (function, etc.) and whether the event marks entry or exit.
+  - `tokenId` – token associated with the declaration site (enter) or the latest token seen when exiting.
+  - `name`, `handle` – duplicated symbol name and underlying compiler handle (`HB_HFUNC *`) for consumers needing deep linkage.
   - `pParent` – pointer to parent expansion; retain/release managed by instrumentation sink.
 - Example JSON projection consumed by tooling:
   ```json
@@ -110,7 +127,7 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 - **Performance overhead**: Token event emission must be amortized; use ring buffers and lazy JSON serialization to avoid excessive allocations.
 - **Trace retention leaks**: Mismanaged retain/release could leak memory. Add cmocka tests that compile macro-heavy fixtures while checking for outstanding `HB_PP_TRACEINFO` references.
 - **Cross-version compatibility**: Downstream tools must cope with absent trace callbacks (older compilers). Provide capability negotiation and ensure `hb_pp_setTraceCallback` is optional.
-- **Testing coverage gaps**: Expand fixtures to cover nested macros, inline functions, and dialect switches. Require `hbmk2 -w3`, `tests/tooling/cmocka`, and `scripts/test-ast.sh` before merging instrumentation patches.
+- **Testing coverage gaps**: Expand fixtures to cover nested macros, inline functions, and dialect switches. Require `hbmk2 -w3`, the `tests/ast` cmocka harness, and `scripts/test-ast.sh` before merging instrumentation patches.
 
 ## Open Questions & Verification Plan
 - **Stable token IDs**: Confirm the formula (`file_id`, original range, token kind, macro depth) fits within existing Harbour data types. Prototype helper in `src/compiler/complex.c` and write cmocka tests.

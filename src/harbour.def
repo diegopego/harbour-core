@@ -3108,6 +3108,8 @@ hb_pp_tokenToString
 hb_pp_tokenUpper
 hb_pp_traceFile
 hb_pp_setTraceCallback
+hb_pp_traceinfoRetain
+hb_pp_traceinfoRelease
 hb_pp_traceFileName
 hb_printerIsReady
 hb_printf_params

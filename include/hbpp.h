@@ -713,6 +713,8 @@ extern HB_EXPORT HB_BOOL hb_pp_inFile( PHB_PP_STATE pState, const char * szFileN
 extern HB_EXPORT HB_BOOL hb_pp_outFile( PHB_PP_STATE pState, const char * szOutFileName, FILE * file_out );
 extern HB_EXPORT HB_BOOL hb_pp_traceFile( PHB_PP_STATE pState, const char * szTraceFileName, FILE * file_trace );
 extern HB_EXPORT void    hb_pp_setTraceCallback( PHB_PP_STATE pState, PHB_PP_TRACE_EMIT_FUNC pTraceFunc, void * cargo );
+extern HB_EXPORT void    hb_pp_traceinfoRetain( PHB_PP_TRACEINFO pTraceInfo );
+extern HB_EXPORT void    hb_pp_traceinfoRelease( PHB_PP_TRACEINFO pTraceInfo );
 extern HB_EXPORT char *  hb_pp_fileName( PHB_PP_STATE pState );
 extern HB_EXPORT int     hb_pp_line( PHB_PP_STATE pState );
 extern HB_EXPORT HB_BOOL hb_pp_eof( PHB_PP_STATE pState );

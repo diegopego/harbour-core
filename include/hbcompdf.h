@@ -760,6 +760,7 @@ typedef struct _HB_COMP
 
    /* compiler only members */
    PHB_COMP_LEX      pLex;
+   struct _HB_COMP_AST_TRACE * pAstTrace;
    PHB_EXPRLST       pExprLst;
 
    PHB_HASH_TABLE    pIdentifiers;
@@ -850,6 +851,7 @@ typedef struct _HB_COMP
    HB_BOOL           fNoArchDefs;         /* do not define architecture dependent macros: __PLATFORM__*, __ARCH??BIT__, __*_ENDIAN__ */
    HB_BOOL           fMeaningful;         /* do not generate warnings about meaningless expression usage */
    HB_BOOL           fINCLUDE;            /* use INCLUDE envvar as header path (default) */
+   HB_BOOL           fAstTraceEnabled;    /* compiler instrumentation toggle */
 } HB_COMP, * PHB_COMP;
 
 typedef struct

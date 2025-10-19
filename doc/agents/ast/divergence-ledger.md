@@ -7,7 +7,7 @@ Definitions:
 
 | Path | Category | Recommendation | Dependencies / Notes |
 | --- | --- | --- | --- |
-| .gitignore | Build hygiene | Isolate | Ignores artefacts produced by `tests/ast` and `tests/tooling`; only needed if tooling stays in-tree. |
+| .gitignore | Build hygiene | Isolate | Ignores artefacts produced by `tests/ast`; only needed if tooling stays in-tree. |
 | Agents.md | Governance doc | Keep | Defines oversight model referenced by all sessions. |
 | Makefile | Build wiring | Isolate | `test-ast` target invokes tooling harness (`scripts/test-ast.sh`). |
 | README-AST.MD | Tooling doc | Isolate | Describes standalone AST toolkit. |
@@ -46,8 +46,8 @@ Definitions:
 | tests/ast/preprocessor/fixtures/macro_trace.ppo | Tooling fixture | Isolate | Paired with tooling trace tests. |
 | tests/ast/preprocessor/fixtures/macro_trace.prg | Tooling fixture | Isolate | Paired with tooling trace tests. |
 | tests/ast/preprocessor/fixtures/macro_trace.trace.json | Tooling fixture | Isolate | Paired with tooling trace tests. |
-| tests/tooling/cmocka/README.md | Tooling doc | Isolate | Describes tooling cmocka harness. |
-| tests/tooling/cmocka/test.c | Tooling harness | Isolate | Launches tooling suites. |
+| tests/ast/README.md | Tooling doc | Isolate | Describes tooling cmocka harness. |
+| tests/ast/ast_trace_tests.c | Tooling harness | Isolate | Launches tooling suites. |
 | utils/Makefile | Build wiring | Isolate | Adds `hbast` and `hbrename` utilities. |
 | utils/hbast/Makefile | Tooling build | Isolate | Builds AST CLI. |
 | utils/hbast/hbast.c | Tooling utility | Isolate | CLI for tooling AST export. |
