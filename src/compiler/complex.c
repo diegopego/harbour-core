@@ -1416,50 +1416,45 @@ void hb_compParserRun( HB_COMP_DECL )
 
    while( ! HB_COMP_PARAM->fExit && HB_COMP_PARAM->iErrorCount == 0 )
    {
+      iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
+      if( iToken == 0 )
+         break;
+
       if( HB_COMP_PARAM->fSingleModule )
-      {
-         PHB_PP_TOKEN pToken = hb_pp_tokenGet( HB_COMP_PARAM->pLex->pPP );
-         if( ! pToken )
-            break;
-      }
-      else
+         continue;
+
+      if( iToken == DOIDENT )
+         hb_compModuleAdd( HB_COMP_PARAM, yylval.string, HB_FALSE );
+      else if( iToken == PROCREQ )
       {
          iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
-         if( iToken == 0 )
-            break;
-         if( iToken == DOIDENT )
-            hb_compModuleAdd( HB_COMP_PARAM, yylval.string, HB_FALSE );
-         else if( iToken == PROCREQ )
+         if( iToken == LITERAL )
          {
-            iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
-            if( iToken == LITERAL )
-            {
-               const char * szFile, * szExt = NULL;
+            const char * szFile, * szExt = NULL;
 
-               if( yylval.valChar.dealloc )
-                  szFile = hb_compIdentifierNew( HB_COMP_PARAM, yylval.valChar.string, HB_IDENT_FREE );
-               else
-                  szFile = yylval.valChar.string;
+            if( yylval.valChar.dealloc )
+               szFile = hb_compIdentifierNew( HB_COMP_PARAM, yylval.valChar.string, HB_IDENT_FREE );
+            else
+               szFile = yylval.valChar.string;
+            iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
+            if( iToken == '+' )
+            {
                iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
-               if( iToken == '+' )
+               if( iToken == LITERAL )
                {
-                  iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
-                  if( iToken == LITERAL )
-                  {
-                     if( yylval.valChar.dealloc )
-                        szExt = hb_compIdentifierNew( HB_COMP_PARAM, yylval.valChar.string, HB_IDENT_FREE );
-                     else
-                        szExt = yylval.valChar.string;
-                  }
-                  iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
+                  if( yylval.valChar.dealloc )
+                     szExt = hb_compIdentifierNew( HB_COMP_PARAM, yylval.valChar.string, HB_IDENT_FREE );
+                  else
+                     szExt = yylval.valChar.string;
                }
-               if( iToken == ')' )
-               {
-                  if( szExt && *szExt )
-                     szFile = hb_compIdentifierNew( HB_COMP_PARAM,
-                        hb_xstrcpy( NULL, szFile, szExt, NULL ), HB_IDENT_FREE );
-                  hb_compModuleAdd( HB_COMP_PARAM, szFile, HB_FALSE );
-               }
+               iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
+            }
+            if( iToken == ')' )
+            {
+               if( szExt && *szExt )
+                  szFile = hb_compIdentifierNew( HB_COMP_PARAM,
+                     hb_xstrcpy( NULL, szFile, szExt, NULL ), HB_IDENT_FREE );
+               hb_compModuleAdd( HB_COMP_PARAM, szFile, HB_FALSE );
             }
          }
       }

@@ -1,5 +1,12 @@
 # AST Tooling Progress Log
 
+## 2025-10-24 – Single-Module Trace Coverage
+
+- **Code updates**: Routed `hb_compParserRun()` through `hb_comp_yylex()` unconditionally so instrumentation emits token/boundary events even when `-m` (`fSingleModule`) suppresses module enrollment. The eager-token path now mirrors the standard lexer flow without side effects.
+- **Testing**: `make -C tests/ast compilebuf-tests`; `./tests/ast/compilebuf-tests` (verifies both default and `-m` runs). All tests pass.
+- **Fixtures**: `tests/ast/ast_compilebuf_tests.c` gained a `-m` execution path that asserts trace capture from `hb_compMainExtModule()` remains intact while single-module mode is active.
+- **Follow-up**: Fold `-m` coverage into the CLI (`hbmk-ast-tests`) sweep and confirm downstream snapshot tooling handles the stricter token stream; plan additional fixtures before promoting new golden traces.
+
 ## 2025-10-23 – CLI Trace Dump Sentinel
 
 - **Code updates**: Adjusted `src/compiler/cmdcheck.c` so `--ast-trace-dump=-` is parsed as a stdout sentinel rather than a stray option, keeping `HB_COMP_PARAM->szAstTraceDump` consistent for downstream dumping.

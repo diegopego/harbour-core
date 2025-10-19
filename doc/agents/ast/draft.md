@@ -92,7 +92,7 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 - Verification matrix (this draft) – hbmk2 sweeps, cmocka suites, `scripts/test-ast.sh`, snapshot rules.
 - If inheriting work, review the latest “Session transition” note before editing and preserve uncommitted changes.
 
-### Milestone Ledger (2025-10-23)
+### Milestone Ledger (2025-10-24)
 | Milestone | Status | Notes |
 | --- | --- | --- |
 | Trace callback foundation | ✅ | `hbtraceast.c`, retain/release tests. |
@@ -100,10 +100,10 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 | Parser hook pilot | ✅ | Functions/classes/control-flow instrumented; backlog tracks remaining reductions. |
 | Stabilisation & toggles | ✅ | PP sink + CLI/env toggles documented. |
 | Verification sweep | ✅ | `hbmk2-fixtures`, `compilebuf-tests`, `ast_trace_tests`, `scripts/test-ast.sh` integrated. |
-| Golden traces & diagnostics | 🔄 | **Next**: single-module coverage, debug counters, golden JSON snapshots. |
+| Golden traces & diagnostics | 🔄 | Single-module coverage landed (`hb_compParserRun` instrumentation + `compilebuf-tests` `-m` harness); pending debug counters and golden JSON snapshots. |
 
 ### Active Objectives (next sessions)
-1. **Single-module coverage** – instrument `hb_compParserRun` eager-token path; add regression tests.  
+1. ✅ **Single-module coverage** – `hb_compParserRun` now routes through `hb_comp_yylex`; `tests/ast/ast_compilebuf_tests` exercises `-m`. Follow-up: mirror the `-m` path in CLI (`hbmk-ast-tests`) and document the behaviour.  
 2. **Diagnostics toggles** – optional counters (token/node totals, retained traceinfo) gated by instrumentation flag.  
 3. **Golden snapshots** – promote compile-buffer & CLI trace dumps to JSON fixtures in `tests/ast/fixtures/`; coordinate schema/tooling updates.  
 4. **Docs & cleanup** – update `instrumentation-plan.md`, `hb_compilebuf_evaluation.md`, CLI/env docs.  
@@ -143,12 +143,14 @@ Include in final session note (and summarise in commit message):
 - Remaining risks or TODOs.
 
 ### Session Transition Notes
-- **Focus**: Extend CLI/compile-buffer trace validation—`hb_compMainExtModule()`, finish callback, and `--ast-trace`/`--ast-trace-dump=-` pipeline already landed; `tests/ast/hbmk-ast-tests` validates `fixture_demo.ast.json`.  
-- **Pending**: Add additional fixtures, publish JSON snapshots via compile-buffer harness, document CLI/env usage (`HB_AST_TRACE`, `HB_AST_TRACE_DUMP`), clean temporary artefacts after tests.  
+- **Focus**: Single-module instrumentation is in place; next sessions should broaden CLI (`hbmk-ast-tests`) and snapshot coverage while preparing diagnostics counters.  
+- **Pending**: Add additional fixtures, publish JSON snapshots via compile-buffer harness, document CLI/env usage (`HB_AST_TRACE`, `HB_AST_TRACE_DUMP`), extend `hbmk-ast-tests` to exercise `-m`, and clean temporary artefacts after runs.  
+- **Tests executed**: `make -C tests/ast compilebuf-tests`; `./tests/ast/compilebuf-tests` (passes).  
+- **Working tree**: Uncommitted edits in `src/compiler/complex.c`, `tests/ast/ast_compilebuf_tests.c`, and documentation updates (`doc/agents/ast/*.md`).  
 - **Prompt for next delegate**: “Record completed subtasks, outstanding items, test outcomes, and uncommitted file status in both `doc/agents/ast/progress.md` and `doc/agents/ast/draft.md` before ending the session. If work was inherited mid-task, describe exactly what remains.”
 
 ### Open Follow-ups
-- Instrument `hb_compParserRun` (single-module coverage) and validate sequencing.  
+- Extend single-module coverage into CLI (`hbmk-ast-tests`, `--ast-trace-dump`) and verify trace dumps stay stable under `-m`.  
 - Add instrumentation debug counters/toggles.  
 - Promote compile-buffer/CLI traces to golden JSON fixtures; define refresh workflow.  
 - Expand `hbmk-ast-tests` fixture matrix; refresh CLI/env documentation.  

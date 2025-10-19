@@ -98,27 +98,25 @@ static void hb_trace_capture_release( HB_TRACE_CAPTURE * pCapture )
    memset( pCapture, 0, sizeof( *pCapture ) );
 }
 
-static void compilebuf_generates_trace_events( void ** state )
+static const char * const s_szSource =
+   "FUNCTION Demo()\n"
+   "   LOCAL n := 1\n"
+   "   RETURN n\n";
+static const char * const s_szModule = "compilebuf_fixture.prg";
+static const char * const s_szOutputTemp = "compilebuf_fixture.c";
+static const char * const s_szOutput = "tests/ast/compilebuf_fixture.c";
+
+static void compilebuf_expect_trace( size_t argc, const char * const argv[] )
 {
-   static const char * const s_szSource =
-      "FUNCTION Demo()\n"
-      "   LOCAL n := 1\n"
-      "   RETURN n\n";
-   static const char * const s_szModule = "compilebuf_fixture.prg";
-   static const char * const s_szOutputTemp = "compilebuf_fixture.c";
-   static const char * const s_szOutput = "tests/ast/compilebuf_fixture.c";
-   const char * argv[] = { "hb_comp", "-q2", "--ast-trace" };
    HB_TRACE_CAPTURE capture;
    int iResult;
-
-   HB_SYMBOL_UNUSED( state );
 
    memset( &capture, 0, sizeof( capture ) );
 
    remove( s_szOutput );
    remove( s_szOutputTemp );
 
-   iResult = hb_compMainExtModule( HB_SIZEOFARRAY( argv ), argv,
+   iResult = hb_compMainExtModule( ( int ) argc, argv,
                                    NULL, NULL,
                                    s_szModule, s_szSource, 0,
                                    NULL, NULL, NULL,
@@ -151,11 +149,30 @@ static void compilebuf_generates_trace_events( void ** state )
    hb_trace_capture_release( &capture );
 }
 
+static void compilebuf_generates_trace_events( void ** state )
+{
+   const char * argv[] = { "hb_comp", "-q2", "--ast-trace" };
+
+   HB_SYMBOL_UNUSED( state );
+
+   compilebuf_expect_trace( HB_SIZEOFARRAY( argv ), argv );
+}
+
+static void compilebuf_generates_trace_events_single_module( void ** state )
+{
+   const char * argv[] = { "hb_comp", "-q2", "-m", "--ast-trace" };
+
+   HB_SYMBOL_UNUSED( state );
+
+   compilebuf_expect_trace( HB_SIZEOFARRAY( argv ), argv );
+}
+
 int main( void )
 {
    const struct CMUnitTest tests[] =
    {
       cmocka_unit_test( compilebuf_generates_trace_events ),
+      cmocka_unit_test( compilebuf_generates_trace_events_single_module ),
    };
 
    return cmocka_run_group_tests( tests, NULL, NULL );
