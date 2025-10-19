@@ -25,6 +25,37 @@
 - The harness currently validates token sequencing; AST node capture remains optional until parser hooks guarantee coverage for buffer-based compilations.
 - Next step is to extend the harness to serialize trace buffers (tokens/boundaries/nodes) into deterministically ordered snapshots and compare them against golden fixtures.
 
+## Snapshot regeneration workflow (2025-10-25)
+1. **Refresh CLI golden dumps** – run the compiler against each fixture from the repository root so `-iinclude` resolves the shared headers:
+   ```
+   bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_demo.ast.json tests/ast/fixture_demo.prg
+   bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_blocks.ast.json tests/ast/fixture_blocks.prg
+   bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_ppdirectives.ast.json tests/ast/fixture_ppdirectives.prg
+   bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_statements.ast.json tests/ast/fixture_statements.prg
+   bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_expressions.ast.json tests/ast/fixture_expressions.prg
+   bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_includes.ast.json tests/ast/fixture_includes.prg
+   bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_compat_clipper.ast.json tests/ast/fixture_compat_clipper.prg
+   bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_compat_harbour.ast.json tests/ast/fixture_compat_harbour.prg
+   ```
+2. **Verify harness parity** – execute the hbmk harness (covers both default and `-m` modes) and the compile-buffer tests to confirm runtime capture continues to match the refreshed snapshots:
+   ```
+   tests/ast/hbmk-ast-tests
+   ./tests/ast/compilebuf-tests
+   ```
+3. **Enforce warning-free fixtures** – keep the matrix clean under `hbmk2 -w3`:
+   ```
+   bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_demo.prg
+   bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_blocks.prg
+   bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_ppdirectives.prg
+   bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_statements.prg
+   bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_expressions.prg
+   bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_includes.prg
+   bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_clipper.prg
+   bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_harbour.prg
+   ```
+4. **Clean temp artefacts** – remove any generated `.c` files or stray stdout captures (`fixture_*.c`, `compilebuf_fixture.c`, etc.) before handing off so subsequent sessions start from a tidy tree.
+5. **Package the trace pack** – mirror the distribution step with `zip -j tests/ast/trace-pack/core-trace-pack-2025-10-25.zip tests/ast/fixture_*.prg tests/ast/fixture_*.ch tests/ast/fixtures/fixture_*.ast.json`.
+
 ## Open questions
 - Should the callback own releasing retained `HB_PP_TRACEINFO` references, or should `hb_compAstTraceShutdown()` remain responsible after snapshotting?
 - Where should JSON serialization live? Options include:

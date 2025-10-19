@@ -158,6 +158,48 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 - Harness integration: `tests/ast/hbmk-ast-tests` exercises both fixtures (default and `-m` single-module modes) and `tests/ast/compilebuf-tests` currently covers the Clipper variant via in-memory compilation; the Harbour compile-buffer case reuses the same helper but does not yet snapshot its output.
 - FINALLY/RETRY status: attempts to include `FINALLY` or `RETRY` blocks in these fixtures (with the current pragma combinations) trigger parser error `E0020`. Until the compiler supports those constructs under the selected dialect flags, the fixtures log post-recover state explicitly instead of relying on `FINALLY`.
 
+### Snapshot Regeneration Workflow (2025-10-25)
+
+Use the compiler as the sole source for golden traces. Regenerate the minimal fixture matrix with the commands below (all run from the repository root so `-iinclude` resolves standard headers):
+
+```
+bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_demo.ast.json tests/ast/fixture_demo.prg
+bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_blocks.ast.json tests/ast/fixture_blocks.prg
+bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_ppdirectives.ast.json tests/ast/fixture_ppdirectives.prg
+bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_statements.ast.json tests/ast/fixture_statements.prg
+bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_expressions.ast.json tests/ast/fixture_expressions.prg
+bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_includes.ast.json tests/ast/fixture_includes.prg
+bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_compat_clipper.ast.json tests/ast/fixture_compat_clipper.prg
+bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_compat_harbour.ast.json tests/ast/fixture_compat_harbour.prg
+```
+
+After refreshing snapshots, rerun the hbmk harness (covers default and `-m` single-module modes) to verify parity:
+
+```
+tests/ast/hbmk-ast-tests
+```
+
+Every `.prg` touched by the regeneration must remain warning-free under `hbmk2 -w3`:
+
+```
+bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_expressions.prg
+bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_includes.prg
+bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_blocks.prg
+bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_ppdirectives.prg
+bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_statements.prg
+bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_clipper.prg
+bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_harbour.prg
+bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_demo.prg
+```
+
+Clean up transient C artefacts produced by the compiler once the snapshots are confirmed so the working tree stays focused on the `.prg` sources and JSON outputs.
+
+Repackage the frozen set for distribution with:
+
+```
+zip -j tests/ast/trace-pack/core-trace-pack-2025-10-25.zip tests/ast/fixture_*.prg tests/ast/fixture_*.ch tests/ast/fixtures/fixture_*.ast.json
+```
+
 ### Harbour / Clipper Source Terminology Matrix
 
 Use the following naming when documenting fixtures, tests, and instrumentation so we consistently distinguish preprocessor activity from compiler directives and runtime macro evaluation.
