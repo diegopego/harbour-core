@@ -1,5 +1,11 @@
 # AST Tooling Progress Log
 
+## 2025-10-22 – Verification Sweep (`hbmk2 -w3`)
+
+- **Testing**: Ran `hbmk2 -w3` against `tests/ast/fixture_demo.prg`, `tests/ast/preprocessor/fixtures/macro_trace.prg`, and `tests/ast/preprocessor/fixtures/command_trace.prg`. After refactoring the fixture to functions and adding `CallIncludedProc()` to exercise the static helper, the sweep now completes without warnings.
+- **Outcome**: Compiler instrumentation behaved as expected under strict warnings and the helper include is fully consumed. Fixtures are back to warning-free state for the verification matrix.
+- **Open items**: Re-run `hbmk2 -w3` when new fixtures land, and continue evaluating `hb_compileBuf` golden tests for broader coverage.
+
 ## 2025-10-21 – Compiler Instrumentation Hardening
 
 - **Code updates**: Finalised lifecycle wiring so `hb_comp_new()`/`hb_comp_free()` install and tear down the PP trace callback, ensured `hb_comp_yylex` routes all returns through `hb_compAstTraceReturn()`, and exercised the expression/statement macros (`HB_AST_TRACE_EXPR`, stack helpers) with refreshed cmocka coverage (`expression_nodes_capture_reductions` fix).

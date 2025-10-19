@@ -9,10 +9,10 @@
 - DONE 2025-10-18: `doc/agents/ast/instrumentation-plan.md` documents hooks in `complex.c`, `harbour.y`, `hbcomp.c`, plus data contracts to tooling.
 - DONE 2025-10-18: Delegation briefs prepared for Compiler Instrumentation Agent and AST Tooling Agent (see dedicated sections below).
 - Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
-- Track post-session follow-ups: expanded parser hooks and `hbmk2 -w3` run (event sink + instrumentation toggle landed 2025-10-20).
+- Track post-session follow-ups: expanded parser hooks and `hbmk2 -w3` sweeps (event sink + instrumentation toggle landed 2025-10-20).
 - Evaluate adding `hb_compileBuf`-based fixtures as golden AST references so only Harbour-compilable `.prg`/`.ch` inputs drive instrumentation tests.
 - Consider lightweight debug counters inside trace helpers to diagnose event sequencing (token/node counts, retained traceinfo) when future sessions debug hooks.
-- 2025-10-21: Instrumentation status table added to the plan; remaining action is to schedule `hbmk2 -w3` before merge readiness.
+- 2025-10-22: `hbmk2 -w3` sweep recorded; fixture tweaks (function conversions + `CallIncludedProc()`) cleared prior warnings so the matrix is green again.
 
 ## Phase 0 Assessment TODOs
 - DONE 2025-10-18: Divergence ledger recorded in `doc/agents/ast/divergence-ledger.md` (`keep / isolate / drop` vs `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`).
@@ -35,7 +35,7 @@
   - `tests/ast` cmocka suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
   - `scripts/test-ast.sh`: rerun snapshot comparisons using compiler-sourced events; failures indicate divergence from the schema/fixtures.
 - **Run log**:
-  - 2025-10-21: `scripts/test-ast.sh` passes with tracing enabled/disabled; `hbmk2 -w3` remains pending.
+  - 2025-10-22: `hbmk2 -w3` run logged; fixtures now compile cleanly after exercising the static helper include.
 - **Fixtures & snapshots**:
   - Reuse existing `tests/ast/fixture_*.prg`, `.ch`, `.json`, `.ppo`, `.trace.json` files; add new variants for nested macros, conditionals, and dialect switches once instrumentation lands.
   - Maintain golden snapshots for both token streams and AST payloads; store under extracted tooling repo but reference versions in Harbour core for parity checks.
@@ -86,7 +86,7 @@
   2. **Lexer emission pass** — instrument `hb_comp_yylex` with event emission and stable token IDs; capture sample event logs for fixtures in the verification matrix. *Status: COMPLETED 2025-10-18 (token/boundary events via `hb_compAstTracePublishToken/Return`).*
   3. **Parser hook pilot** — add reduction hooks for function declarations; produce a follow-up checklist for additional grammar nodes (stored below). *Status: COMPLETED 2025-10-18 (function enter/leave instrumentation in `harbour.y`).*
   4. **Stabilisation & notes** — update developer commentary/helpers as needed; highlight any helper APIs or toggles introduced. *Status: COMPLETED 2025-10-20 (PP sink + CLI/env toggles + parser hook extensions landed).*
-  5. **Verification sweep** — run matrix suites after each milestone (`hbmk2 -w3`, cmocka, `scripts/test-ast.sh`), attaching summaries and outstanding issues to the session report. *Partial: cmocka + `scripts/test-ast.sh` pass; `hbmk2 -w3` pending; evaluate `hb_compileBuf` golden tests for future coverage.*
+  5. **Verification sweep** — run matrix suites after each milestone (`hbmk2 -w3`, cmocka, `scripts/test-ast.sh`), attaching summaries and outstanding issues to the session report. *Partial: cmocka + `scripts/test-ast.sh` pass; `hbmk2 -w3` executed with fixture warnings to resolve; evaluate `hb_compileBuf` golden tests for future coverage.*
 - **Incremental execution guidance**:
   - If the session approaches token limits, finish the current step, summarise partial results, and record next actions + test status in both `doc/agents/ast/progress.md` and a short note in `doc/agents/ast/draft.md`.
   - Each sub-step can be delivered as a separate delegated session; ensure code is left in a buildable/tested state with feature flags disabled by default if work is mid-flight.
@@ -146,4 +146,4 @@
 ## Oversight Session 2025-10-21 Notes
 - Compiler instrumentation hooks (lifecycle, lexer, parser, expression helpers) verified against the plan; documentation updated with status tracking.
 - cmocka `expression_nodes_capture_reductions` fixed to unblock trace-events target; `scripts/test-ast.sh` executed successfully.
-- Outstanding work before hand-off: run `hbmk2 -w3`, assess single-module `hb_compParserRun` buffering, and continue expression backlog audit for remaining grammar reductions.
+- Outstanding work before hand-off: keep `hbmk2 -w3` in the regression rotation, assess single-module `hb_compParserRun` buffering, and continue expression backlog audit for remaining grammar reductions.

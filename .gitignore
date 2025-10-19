@@ -47,3 +47,6 @@ tests/tooling/cmocka/a.out
 tests/ast/pp-trace
 tests/ast/trace-events
 tests/ast/fixture_demo
+command_trace
+fixture_demo
+macro_trace
