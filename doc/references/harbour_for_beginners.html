@@ -1,0 +1,2942 @@
+<html lang="en"><head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Harbour manual for beginners - part III</title>
+  <meta name="description" content="Harbour programming - a manual for beginners - part III Differences from Clipper - a brief description">
+  <meta name="keywords" content="Harbour,programming,FAQ,guide,manual,Linux,Unix,Clipper,xbase,source,code">
+  <link rel="stylesheet" type="text/css" href="../images/table.css">
+  <link type="text/css" rel="stylesheet" href="../images/shCoreDefault.css">
+  <script type="text/javascript" async="" src="https://mc.yandex.ru/metrika/watch.js"></script><script type="text/javascript" src="../js/ak_mix.js"></script>
+  <script type="text/javascript" src="../js/menuen.js"></script>
+<script type="text/javascript">
+var mnu;
+onready.run( function() {
+  BuildMenu( "d_menu","Manuals","Harbour for beginners" );
+  mnu = new Menu("menu");
+  mnu.init();
+} )
+</script>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <table width="100%"><tbody><tr>
+    <td style="text-align: left;"><div id="logo"> Alexander Kresin<br><span class="subt">software</span> </div></td>
+    <td style="text-align: right;"><div>
+      <div id="lang">
+        <a href="../hrbfaq_3.html" class="link">Rus</a> &nbsp;&nbsp; <span class="sel">Eng</span>
+      </div>
+      <div id="d_menu"></div>
+    </div></td>
+    </tr></tbody></table>
+  </div>
+</div>
+
+<div>
+  <div>
+
+   <h1> Harbour for beginners</h1>
+   Alexander Kresin<br>
+   2003 - 2016<br><br>
+
+   <ul>
+     <li><a name="_Doc1" href="#Doc1">3.1 Overview</a>
+     </li><li><a name="_Doc2" href="#Doc2">3.2 Some language extensions</a>
+     </li><li><a name="_Doc3" href="#Doc3">3.3 Classes and objects</a>
+     </li><li><a name="_Doc4" href="#Doc4">3.4 Lang API (the language of the program)</a>
+     </li><li><a name="_Doc5" href="#Doc5">3.5 Codepage API</a>
+     </li><li><a name="_Doc6" href="#Doc6">3.6 Working with hrb - files</a>
+     </li><li><a name="_Doc7" href="#Doc7">3.7 The built-in C</a>
+     </li><li><a name="_Doc8" href="#Doc8">3.8 Hash arrays </a>
+     </li><li><a name="_Doc9" href="#Doc9">3.9 Regular expressions</a>
+     </li><li><a name="_Doc10" href="#Doc10">3.10 INET subsystem</a>
+     </li><li><a name="_Doc11" href="#Doc11">3.11 Multithreading</a>
+     </li><li><a name="_Doc12" href="#Doc12">3.12 File IO API</a></li>
+     <li><a name="_Doc13" href="#Doc13">3.13 Internationalization (hbi18n)</a></li>
+     <li><a name="_Doc14" href="#Doc14">3.14 Miscellaneous functions</a></li>
+     <ul>
+       <li><a href="hrbfaq_3.html#Doc14_1">3.14.1  Built-in compiler</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_2">3.14.2  File functions</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_3">3.14.3  hb_fname...() functions</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_4">3.14.4  String functions</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_5">3.14.5  Array functions</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_6">3.14.6  Processes</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_7">3.14.7  Bit operations</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_8">3.14.8  Functions for a manipulation with variables</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_9">3.14.9  hb_WildMatch...()</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_10">3.14.10  Strings packing/unpacking, based on <i>zlib</i></a>
+       </li><li><a href="hrbfaq_3.html#Doc14_11">3.14.11  Idle state</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_12">3.14.12  JSON</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_13">3.14.13  Encryption</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_14">3.14.14  HiPer-SEEK (Fast Text Search)</a>
+       </li><li><a href="hrbfaq_3.html#Doc14_15">3.14.15  Miscellaneous</a>
+     </li></ul>
+   </ul>
+
+   <p><strong class="title"><a name="Doc" href="hrbfaq.html#_Doc"> 3. Differences from Clipper - a brief description</a></strong><br>
+   </p><p><strong class="subhead"><a name="Doc1" href="hrbfaq.html#_Doc1"> 3.1 Overview</a></strong><br>
+   </p><p> Harbour was created as a compiler fully compatible with Clipper. This means,
+   that any program written in Clipper, Harbour should compile without problems 
+   and work in the same way as if it had been compiled with Clipper. In many cases it is so,
+   but, of course, problems can also arise  - not everything goes as planned, Harbour was not free from errors and defects.<br>
+   Another possible source of problems in the transition from Clipper to 
+   the Harbour - it's the additional
+   libraries, inserts of the C and assembler, if you use them - 16-bit objects
+   can not be linked to the 32-bit application.
+   If you have the source of these modules, you can try to recompile them, 
+   though the success is not guaranteed here - not all of the features
+   of a 16-bit C compiler are available in 32-bit.</p>
+   <p> But, of course, the Harbour does not simply repeat the functionality 
+   of the Clipper, it significantly expands it - otherwise, it 
+   wouldn't make sense! In addition to extensions related to the 
+   transition from 16 to 32 bit code ( removal of restrictions on memory, 
+   on the dimension of the array and the length of the strings ), the Harbour offers the language extensions, 
+   and additional functionality. They will be discussed below.<br>
+   I just want to warn that this list will be incomplete - something I could
+    forget, something I might have not written simply because of the lack of time and 
+   patience.
+   I'll start gradually, and then I will expand this description.
+   I recommend that you also use the documentation on the <a target="_blank" href="http://www.harbour-project.org/">the Harbour official site</a>,
+   and also on the constantly renewable <a target="_blank" href="https://docs.google.com/folder/d/0B8GgbIH3gP2WYjUxZjU5OTItZjM3Yy00NTVhLTllNWQtZGU2MjkyNTlkYWI0/edit?pli=1"> collection on the docs.google.com</a>.
+   Highly recommend is also the already mentioned here
+   English-language document <i>xhb-diff.txt</i>that can be found in any Harbour distributive 
+   in the <i>Doc</i> directory. There you can find a description of the most important language extensions
+   of the Harbour ( compared with Clipper ) and the differences between their implementations from xHarbour.</p>
+   <p>And a couple words about the language changes. Personally I use them only when 
+   extreme necessiry. Don't forget that the farther you are from the traditional Clipper code
+   the more problems you will have with having to go to any other compiler -
+   who knows, what in this life you may need. Even during the transition from Harbour to xHarbour
+   problems can arise , because there are many of the innovations  implemented in different ways - see. <i>xhb-diff.txt</i>.
+   And even if the transition to a different compiler may look like a distant prospect,
+   the need to browse/convert/modify your dbf with the third-party tools
+   may appear in any moment - that's why I never use the new types of fields
+   in the dbf files, the more so as all the necessary functionality can be implemented without them.
+   </p>
+
+   <p><strong class="subhead"><a name="Doc2" href="hrbfaq.html#_Doc2"> 3.2 Some language extensions</a></strong><br>
+   </p><p>Here we consider several new operators appeared in the Harbour. Let's start with <b>FOR EACH</b>:</p>
+   <pre class="code">      FOR EACH var1 [,var255] IN expr1 [,expr255] [DESCEND]
+         [EXIT]
+         [LOOP]
+         ...
+      NEXT
+   </pre>
+   - expr - can be a regular array, a hash array, or text string;<br>
+   - in the variable <code>var&lt;n&gt;</code> ( var1, ... ) ( enumerator - so 
+   we will continue to call it ) there is a reference to an element of the 
+   array or a string (if the string passed by the reference - see the example below ) 
+   expr&lt;n&gt;,
+   thus, when you give it a value, we change the corresponding element of
+    the array or string.<br>
+   - after the completion of the cycle the enumerator has the same value as before the cycle;<br>
+   <pre class="brush: prg;">      Local c := "alles", s := "abcdefghijk"
+      FOR EACH c IN @s
+         IF c $ "aei"
+            c := UPPER( c )
+         ENDIF
+      NEXT
+      ? s      // AbcdEfghIjk
+      ? c      // alles
+   </pre>
+   - enumerator has properties that can be accessed using OOP syntax:<br>
+   &nbsp;&nbsp;&nbsp;:__enumindex - the index number of the current element in an array/string;<br>
+   &nbsp;&nbsp;&nbsp;:__enumbase - the <code>expr&lt;n&gt;</code> ;<br>
+   &nbsp;&nbsp;&nbsp;:__enumvalue - value of the variable;<br>
+   &nbsp;&nbsp;&nbsp;:__enumkey - the key element of the hash array.
+
+   <p>Another new operator - <b>WITH OBJECT</b>:</p>
+   <pre class="code">      WITH OBJECT expression
+         ...
+      ENDWITH
+   </pre>
+   It allows to simplify the code for the reasonable use :
+   <pre class="code">      // you can write
+      WITH OBJECT myobj:a[1]:myitem
+         :message( 1 )
+         :value := 9
+      ENDWITH
+
+      // instead of
+      myobj:a[1]:myitem:message( 1 )
+      myobj:a[1]:myitem:value := 9
+   </pre>
+   <p>And, finally, <b>SWITCH</b>:</p>
+   <pre class="code">      SWITCH expr
+        CASE value
+          [EXIT] 
+        ... 
+        OTHERWISE 
+      ENDSWITCH
+   </pre>
+
+   It looks like this:
+   <pre class="brush: prg;">      SWITCH a
+      CASE 1
+         ? "FOUND: 1"
+      CASE "2"
+         ? "FOUND: 2"
+      OTHERWISE
+         ? "other"
+      END
+   </pre>
+
+   This is a C-like operator, it is similar to the Clipper's DO CASE ... ENDCASE and IF ... ELSEIF ... ELSE ... ENDIF,
+   but it doesn't allow to use the expressions as a condition, and due to the peculiarities of the implementation it
+   works much faster, so that it makes sense to use it in cycles.
+
+   <p>In the Harbour there are essentially expanded possibilities of using macros. So, now
+   in macros ( and in codeblocs ) you can use the operators ++, --, +=, -=, etc., nested code-blocs,
+   expressions of arbitrary length. Also you may use the lists:</p>
+
+   <pre class="brush: prg;">      cMacro := "1, 150, 'Alexey Ivanov', 20, .T."
+      { &amp;cMacro } // массив
+      SomeFun( &amp;cMacro ) // Список аргументов
+
+      cMacro := "1,10"
+      SomeArray[ &amp;cMacro ] // индексы массива
+   </pre>
+
+   Macros can be used for the names of the variables of objects:
+   <pre class="brush: prg;">      proc main()
+         memvar var
+         local o := errorNew(), msg := "cargo"
+         private var := "CAR"
+
+         o:&amp;msg := "/cargo/"
+         o:&amp;( upper( msg ) ) += "/value/"
+         ? o:&amp;var.go
+   </pre>
+
+   <p>Harbour provides extended codeblocks. Such a codeblock includes
+   a multiline code snippet, which allows any any language elements,
+   including the <i>Local</i> and <i>Static</i> variables and is, in fact, function,
+   nested within a function: </p>
+   <pre class="brush: prg;">      Function Main
+
+         Local b1, b2
+
+         b1 := Fnc1( Seconds() )
+         ? Eval( b1 )
+
+         ? "Press any key"
+         inkey(0)
+
+         b2 := Fnc1( Seconds() )
+         ? Eval( b2 )
+
+         ? "Press any key"
+         inkey(0)
+
+         ? Eval( b1,Seconds() )
+
+         ? "Press any key"
+         inkey(0)
+
+         ? Eval( b1 )
+         ?
+
+      Return Nil
+
+      Function Fnc1( nSec )
+
+         Local bCode := {|p1|
+            Local tmp := nSec
+            IF p1 != Nil
+               nSec := p1
+            ENDIF
+            Return tmp
+         }
+
+      Return bCode
+   </pre>
+
+   <p> This example is not as simple as it seems at first glance, it shows an interesting
+   feature of the codeblocks, which existed in Clipper, but to fully
+   was able to open up to these extended codeblocks. Note the <i>nSec</i> parameter,
+   which is a local variable of <i>Fnc1()</i>. It is external to the
+   codeblock <i>bCode</i>, but after the completion of <i>Fnc1()</i> continues to "live"
+   with <i>bCode</i>. At first glance it may seem that such a variable -
+   an analogue of <i>Static</i>, but it is not - the fact is that every instance of
+   codeblock will have its own copy of this variable, which is initialized during the call and work
+   of the <i>Fnc1()</i>. This is called <i>closure</i> (
+   <a target="_blank" href="http://en.wikipedia.org/wiki/Closure_%28computer_science%29"> see the Wikipedia entry </a>) -
+   element, well known for some modern programming languages. In Javascript,
+   for example, it is widely used and is considered as one of the most interesting and powerful
+   tools.</p>
+
+   <p>The elements of the array, hash-array and objects in the Harbour you can pass by the reference:</p>
+   <pre class="brush: prg;">      function main()
+      Local arr := { 1,2,3 } 
+
+         ? arr[1], arr[2], arr[3]   // 1   2   3
+         p( @arr[2] )
+         ? arr[1], arr[2], arr[3]   // 1  12   3
+
+      return nil
+
+      Function p( x )
+         x += 10
+      return nil
+   </pre>
+
+   <p>Functions with a variable number of parameters. Harbour allows you to declare in
+   the function declaration the named parameters and then unnamed. These unnamed
+   parameters can then be used with the help of "...":</p>
+   <pre class="brush: prg;">      // as the array elements
+      proc main()
+         AEval( F( "1", "2", "A", "B", "C" ), {|x, i| qout( i, x ) } )
+
+      func f( p1, p2, ... )
+         ? "P1:", p1
+         ? "P2:", p2
+         ? "other parameters:", ...
+      return { "X", ... , "Y", ... "Z" }
+
+      // as indexes of the array:
+      proc main()
+         local a := { { 1, 2 }, { 3, 4 }, 5 }
+         ? aget( a, 1, 2 ), aget( a, 2, 1 ), aget( a, 3 )
+
+      func aget( aVal, ... )
+      return aVal[ ... ]
+
+      // as the parameters of the function:
+      proc main()
+         info( "test1" )
+         info( "test2", 10, date(), .t. )
+
+      proc info( msg, ... )
+         qout( "[" + msg +"]: ", ... )
+   </pre>
+
+   The function <b>hb_aParams()</b> returns a list of the passed parameters, named
+   and unnamed.<br>
+   The function <b>hb_arrayToParams()</b> converts an array to a list of elements, which then
+   can be used as the function parameters, the array indices, etc.:
+   <pre class="brush: prg;">      // hb_arrayToParams( <avalue> ) -&gt; <avalue>[ 1 ] [, <avalue>[ N ] ]
+      // Например:
+      proc main( ... )
+         local aParams := hb_aParams(), n
+         /* remove the options that start with '--' */
+         n := 1
+         while n &lt; len( aParams )
+            if left( aParams[ n ], 2 ) == "--"
+               hb_adel( aParams, n, .t. )
+            else
+               ++n
+            endif
+         enddo
+         ? "Public parameters:", hb_arrayToParams( aParams )
+      return
+   </avalue></avalue></avalue></pre>
+
+   <p>A new type of data - <i>TIMESTAMP</i>, it is defined in RDD (i.e., can be used
+   as the field type in the dbf), and in the VM (virtual machine). For the <i>TIMESTAMP</i> variable
+   the function Valtype() returns "T", it is possible to produce operations of addition, subtraction and comparison.
+   Constants of this data type can be declared in the program as follows:</p>
+   <pre class="brush: prg;">      // { ^ [ YYYY-MM-DD [,] ] [ HH[:MM[:SS][.FFF]] [AM|PM] ] }
+      // t"YYYY-MM-DD [H[H][:M[M][:S[S][.f[f[f[f]]]]]]] [PM|AM]"
+      // t"YYYY-MM-DDT[H[H][:M[M][:S[S][.f[f[f[f]]]]]]] [PM|AM]"
+      proc main()
+         Local t1 := {^ 2012-11-28 10:22:30 }   // или {^ 2012/11/28 10:22:30 }
+         Local t2 := t"2009-03-21 17:31:45.437" // или t"2009-03-21T17:31:45.437"
+
+         ? t1 + 1      // 11/29/12 10:22:30.000
+         ? t1 - t2     // 1347.701905
+   </pre>
+
+   By the way, since we were talking about the announcement of the constants - 
+   in the Harbour you can declare constants of <i>DATE</i> type as below:
+   <pre class="brush: prg;">      Local d1 := 0d20121201  // Template: 0dYYYYMMDD
+   </pre>
+
+   And string constants can be declared, as in <i>C</i>using literal e"...":
+   <pre class="brush: prg;">      Local str1 := e"Helow\r\nWorld \x21\041\x21\000abcdefgh"
+   </pre>
+
+   Integers can be declared in hexademical format:
+   <pre class="code">      Local n := 0x1F
+   </pre>
+
+   <p>Another interesting innovation in the Harbour - pointers to functions. They can be created on the
+   stage of building the application, using the expression <code>@&lt;funcName&gt;()</code>, or dynamically during
+   execution with the help of the macro: <code>&amp;("@&lt;funcName&gt;()")</code>. Valtype()
+   returns <i>S</i> for such pointers.</p>
+   <pre class="brush: prg;">      proc main()
+         local funcSym
+         funcSym := @str()
+         ? funcSym:name, "=&gt;", funcSym:exec( 123.456, 10, 5 )
+         funcSym := &amp;( "@upper()" )
+         ? funcSym:name, "=&gt;", funcSym:exec( "Harbour" )
+      return
+   </pre>
+
+   <br>
+   <p><strong class="subhead"><a name="Doc3" href="hrbfaq.html#_Doc3"> 3.3 Classes and objects</a></strong><br>
+   </p><p>Implementation of OOP ( object oriented programming ) is perhaps the first thing added by developers
+   of the Harbour to the standard language. Clipper's latest versions contained elements of the OOP. There was
+   several predefined classes, you could create their objects, but it wasn't possible to create own classes.
+   There were however some of the undocumented possibilities, which allowed to do it, several <i>3rd party</i> libraries 
+   that implement the OOP for Clipper were based on them, the most known of them
+   are <i>Fivewin</i> (more precisely, <i>Objects.lib</i> from the <i>Fivewin</i>) and <i>Class(y)</i>.
+   To use the classes in the Harbour you don't need to link additional libraries, the OOP support
+   is part of the language and, as the funds are the part of the kernel, the Harbour provides
+   more possibilities than Clipper with all third-party libraries.</p>
+   <p>So, to create a new class, use the command <b>CLASS ... ENDCLASS</b>:</p>
+
+   <pre class="code">      [CREATE] CLASS &lt;cClassName&gt; [ FROM | INHERIT &lt;cSuperClass1&gt; [, ... ,&lt;cSuperClassN&gt;] ]
+                [ MODULE FRIENDLY ] [ STATIC ] [ FUNCTION &lt;cFuncName&gt; ]
+
+      [HIDDEN:]
+         [ CLASSDATA | CLASSVAR  | CLASS VAR &lt;DataName1&gt;]
+         [ DATA | VAR  &lt;DataName1&gt; [,&lt;DataNameN&gt;] [ AS &lt;type&gt; ] [ INIT &lt;uValue&gt; ]
+                [[EXPORTED | VISIBLE] | [PROTECTED] | [HIDDEN]] [READONLY | RO] ]
+         ...
+         [ METHOD &lt;MethodName&gt;( [&lt;params,...&gt;] ) [CONSTRUCTOR] ]
+         [ METHOD &lt;MethodName&gt;( [&lt;params,...&gt;] ) INLINE &lt;Code,...&gt; ]
+         [ METHOD &lt;MethodName&gt;( [&lt;params,...&gt;] ) BLOCK  &lt;CodeBlock&gt; ]
+         [ METHOD &lt;MethodName&gt;( [&lt;params,...&gt;] ) EXTERN &lt;funcName&gt;([&lt;args,...&gt;]) ]
+         [ METHOD &lt;MethodName&gt;( [&lt;params,...&gt;] ) SETGET ]
+         [ METHOD &lt;MethodName&gt;( [&lt;params,...&gt;] ) VIRTUAL ]
+         [ METHOD &lt;MethodName&gt;( [&lt;params,...&gt;] ) OPERATOR &lt;op&gt; ]
+         [ ERROR HANDLER &lt;MethodName&gt;( [&lt;params,...&gt;] ) ]
+         [ ON ERROR &lt;MethodName&gt;( [&lt;params,...&gt;] ) ]
+         ...
+      [PROTECTED:]
+         ...
+      [VISIBLE:]
+      [EXPORTED:]
+         ...
+
+      [FRIEND CLASS &lt;ClassName,...&gt;]
+      [FRIEND FUNCTION &lt;FuncName,...&gt;]
+
+      [SYNC METHOD &lt;cSyncMethod&gt;]
+
+      ENDCLASS [ LOCK | LOCKED ]
+   </pre>
+
+   <p>A class can be declared as the heir of one or more parents
+   (especially multiinheritance - multiple inheritance we will consider later)
+   with the help of the clause <i>FROM</i> or <i>INHERIT</i>. This means that it
+   receives from the parent class all its variables and methods (except those marked as <i>HIDDEN</i>).
+   Any of the inherited methods can be overridden. The parent
+   method can be invoked as <code>Super:&lt;methodName&gt;()</code> or <code>::&lt;cSuperClass&gt;:&lt;methodName&gt;()</code>
+   (if it is not <i>HIDDEN</i>).</p>
+   <p>I want to mention one interesting peculiarity related to inheritance. If the child
+   class has a variable with the same name as the parent, then each object contains
+   two variables with the same name. One of them should be adressed to as <code>obj:&lt;varName&gt;</code>,
+   the other - <code>obj:&lt;cSuperClass&gt;:&lt;varName&gt;</code>.</p>
+   <p>A class can be declared as <i>STATIC</i> - i.e. it cannot be used outside of the current module.</p>
+   <p>A class can be declared as <i>MODULE FRIENDLY</i> - this means that all
+   classes and functions, which are declared in the current module, are his <i>friends</i>, i.e., have an
+   access to his <i>HIDDEN</i> and <i>PROTECTED</i> variables and methods. And since we're talking
+   about the friendly functions pay attention to clauses <i>FRIEND CLASS</i> and
+   <i>FRIEND FUNCTION</i> - they determine friendly for this class classes and functions.</p>
+   <p>The words <code>FUNCTION &lt;cFuncName&gt;</code> in the declaration of a class define it as a scalar class.</p>
+   <p>Clauses <i>DATA</i> or <i>VAR</i> - a definition of variables of a class. During this there can be
+   strictly defined the type of the variable <code>AS &lt;type&gt;</code> (Character, Numeric, Date,
+   Logical, Codeblock, Nil), can be set its initial default value <code>INIT &lt;uValue&gt;</code>
+   and defined <i>Scope</i> (Hidden,Protected,Exported,Readonly). <i>Scope</i> can be
+   set for each variable separately ( in the <i>DATA</i> clause ), and for the
+   group of variables and methods:</p>
+     &nbsp;&nbsp;&nbsp; - HIDDEN - variable or method are only available within the
+   class, where they are identified and are not inherited;<br>
+     &nbsp;&nbsp;&nbsp; - PROTECTED - are available only to the class, where they
+   are determined for the heirs;<br>
+     &nbsp;&nbsp;&nbsp; - EXPORTED ( or VISIBLE ) - are available on every side;<br>
+     &nbsp;&nbsp;&nbsp; - READONLY ( or RO ) - if the variable is defined as <i>EXPORTED</i>,
+   then modification of its value can only be done from his class and his heirs,
+   if as <i>PROTECTED</i>, then only from his class.
+   <p>Variables can belong to the object and to the whole class - 
+   the last are declared as <i>CLASSDATA</i>, <i>CLASSVAR</i> or <i>CLASS VAR</i>. Such a variable
+   is available from any object of a class as a <code>obj:&lt;DataName&gt;</code>but it is stored not in the areas of data objects,
+   but in one place, in the field of the class data , and therefore it has the same value for all the objects of a class.
+   There is another difference in the implementation of <i>CLASSDATA</i> on the one hand, and <i>CLASSVAR</i>
+   or <i>CLASS VAR</i> on the other. These variables can be declared as <i>SHARED</i>.
+   This means that if the parent class has such a variable, then the derived classes
+   use the same single copy of it, share it. If the same <i>SHARED</i> 
+   is not declared, then the derived classes inherit it in the usual way, creating a new copy of
+   the variable for each class of the heir. So, for the <i>CLASSVAR</i> and <i>CLASS VAR</i>
+   it works, as it was described above, and <i>CLASSDATA</i> variables behave like
+   <i>SHARED</i> regardless of whether you use this word in the ad or not. It was
+   for the backward compatibility with Fivewin programs for Clipper.</p>
+
+   <p>Clause <i>METHOD</i> - this is the definition of the methods of the class. In general case if the method is
+   not <i>INLINE</i>, not <i>BLOCK</i> and not <i>VIRTUAL</i>, after the definition of the class (after <i>ENDCLASS</i>)
+   you must put the implementation of the method:</p>
+
+   <pre class="brush: prg;">      METHOD <methodname>( [<params,...>] ) CLASS <classname>
+         ...
+      RETURN Self
+   </classname></params,...></methodname></pre>
+
+   The method should return a reference to the object ( Self ), if it is used as a constructor.
+   <p>The following are different ways of declaring a method:</p>
+     &nbsp;&nbsp;&nbsp; - <i>INLINE</i> allows you to put the implementation of the method in the same line, where it is declared.
+   This method can be used when the code is fairly small, it is
+   making an announcement of the method more simple and demonstrative.<br>
+     &nbsp;&nbsp;&nbsp; - <i>BLOCK</i> similar to the <i>INLINE</i>but he expects the record representes
+   method in the form of codeblock and allows you to send arbitrary number of parameters.<br>
+     &nbsp;&nbsp;&nbsp; - <code>EXTERN &lt;funcName&gt;([&lt;args,...&gt;])</code> is applied, if the external function
+   &lt;funcName&gt;() implements what this method needs.<br>
+     &nbsp;&nbsp;&nbsp; - <i>SETGET</i> is used for the data to be calculated, it allows you to use the name of the method
+   as the name of the variable to be read / write data. For example, if your class is a variable,
+   value of which is not desirable to install directly, since it should have 
+   a certain format or should be only in a certain range. You define this
+   variable as <i>HIDDEN</i> to exclude its direct change, and define <i>SETGET</i>
+   the method that will be used to set the value of a variable, it
+   checks the passed value, formats it as it should be and so on. Now, to set
+   the value of a variable, you write: <code> obj:&lt;methodName&gt; := &lt;value&gt;</code> .<br>
+     &nbsp;&nbsp;&nbsp; - <i>VIRTUAL</i> this method does nothing. It can be used for basic, parental
+   classes - in this case, the concrete realization of the method will be made in the heir classes.<br>
+     &nbsp;&nbsp;&nbsp; - <code>OPERATOR &lt;op&gt;</code> is used to overload the operator &lt;op&gt;
+   ( "+", "-", ... ) - i.e. when the  &lt;op&gt; action on the object in the program
+   is taking place, this action is implemented by the method,
+   which is indicated with the word <i>OPERATOR</i>. As a parameter to the method the second
+   object participating in the operation &lt;op&gt; is passed.<br>
+   <p>Another way of declaring a method is to set it with the help of <i>ERROR HANDLER</i> or
+   <i>ON ERROR</i>. This method is invoked in the case, if the object class to which 
+   it belongs to, was sent a message not specified for this class; in other words,
+   a method or variable which is not present in this class is being called to. You can, of course, use
+   such a method for the direct purpose - for the treatment of errors, but there are more interesting
+   ways to use it. So, it can be used dynamically to simulate the availability of the
+   the object's variables, which were not defined in the class declaration, and in different
+   objects of the same class different methods and
+   the variables can be simulated.</p>
+   <p><i>SYNC METHOD</i> is used to synchronize the execution of the methods in the
+   multithread application. If a method is marked as <i>SYNC</i>then it will not run
+   two or more threads simultaneously for one object.</p>
+
+   <p>Option <i>LOCK</i> or <i>LOCKED</i> of the <i>ENDCLASS</i> prevents
+   subsequent modification of this class, it can be used in the design of large
+   projects of the group of developers, if you do not want, that someone hacks your class.</p>
+
+   <p>To create and test a simple class it is enough to write:</p>
+   <pre class="brush: prg;">      #include "hbclass.ch"
+      FUNCTION Main
+      Local obj := myFirstClass():New(3)
+
+         ? obj:x       // 3
+         ?
+      RETURN Nil
+
+      CLASS myFirstClass
+         VAR   x
+         METHOD New( n )   INLINE ( ::x := n, Self )
+      ENDCLASS
+   </pre>
+
+   <p>I announced here the <i>INLINE</i> (built-in) method to do only
+   the design of the <b>CLASS ... ENDCLASS</b> and do not describe the method <i>New(n)</i> separately.
+   Here we should pay attention to the following moments:</p>
+     &nbsp;&nbsp;&nbsp; - you must include the hbclass.ch in the prg, containing the class declaration;<br>
+     &nbsp;&nbsp;&nbsp; - object variable inside a method of this object is preceded by a double colon <i>::x</i>;<br>
+     &nbsp;&nbsp;&nbsp; - the object inside the method is called <i>Self</i>;<br>
+     &nbsp;&nbsp;&nbsp; - the method used to create a new object must return a reference to this object: <i>Self</i>;<br>
+     &nbsp;&nbsp;&nbsp; - how to create a new object: <code>&lt;className&gt;():&lt;method&gt;() </code> ( <code>obj := myFirstClass():New(3)</code> ).
+   <p>Now one more complicated example:</p>
+
+   <pre class="brush: prg;">      #include "hbclass.ch"
+      FUNCTION Main
+         Local obj1, obj2
+
+         obj1 := mySecondClass():New( 10,"Alex" )
+         ? "Всего объектов mySecondClass:", mySecondClass():nKolObj
+         obj2 := mySecondClass():New( 11,"Mike" )
+         ? "Всего объектов mySecondClass:", mySecondClass():nKolObj
+         ? obj1:x, obj2:x
+         ? 
+      RETURN Nil
+
+      CLASS myFirstClass
+         VAR   x
+         METHOD New( n )   INLINE ( ::x := n, Self )
+      ENDCLASS
+
+      CLASS mySecondClass  FROM myFirstClass
+      HIDDEN:
+         VAR   cStringS
+
+      EXPORTED:
+         CLASS VAR  nKolObj     INIT 0
+         VAR        cString1    INIT "Sample"
+         METHOD New( n, s )
+      ENDCLASS
+
+      METHOD New( n, s ) CLASS mySecondClass
+
+         Super:New( n )
+         ::nKolObj ++
+         ::cStringS := s
+      RETURN Self
+   </pre>
+
+   Here appeared such new features:<br>
+     &nbsp;&nbsp;&nbsp; - we have two classes, <i>myFirstClass</i> and <i>mySecondClass</i>, and the <i>mySecondClass</i> is the heir of <i>myFirstClass</i>;<br>
+     &nbsp;&nbsp;&nbsp; - two variables, <i>nKolObj</i> and <i>cString1</i>, in the declaration of a class the initial values are assigned, they will stay for any new object of the class;<br>
+     &nbsp;&nbsp;&nbsp; - the method <i>New</i> of the class <i>mySecondClass</i> is described separately with the help of <code>METHOD &lt;methodName&gt; CLASS &lt;className&gt;</code>;<br>
+     &nbsp;&nbsp;&nbsp; - in this method <code>Super:New(n)</code> is used to call an identically named method of the parent class to initialize the object's variables inherited from a parent.<br>
+     &nbsp;&nbsp;&nbsp; - <i>mySecondClass</i> variable <i>cStringS</i> has the attribute (scope) <i>HIDDEN</i> (i.e., it is only available from methods of the class), and the rest of the variables and the method of <i>New</i> marked as <i>EXPORTED</i> (i.e., accessible from everywhere);<br>
+     &nbsp;&nbsp;&nbsp;  - in the <i>mySecondClass</i> the <code>CLASS VAR nKolObj</code> appeared - variable, which belongs not to the object, but to the whole class, here it is used as a counter of objects of this class;<br>
+
+   <p>Another example showing the method declarations as <i>BLOCK</i> and <i>EXTERN</i>:</p>
+   <pre class="brush: prg;">      #include "hbclass.ch"
+      function Main()
+      Local o1 := HSamp1():New()
+      Local o2 := HSamp2():New()
+
+         ? o1:x, o2:x                        // 10       20
+         ? o1:Calc( 2,3 ), o2:Mul( 2,3 )     // 60      120
+         ? o1:Sum( 5 )                       // 15
+         ?
+
+      return nil
+
+      CLASS HSamp1
+
+         DATA x   INIT 10
+         METHOD New()  INLINE Self
+         METHOD Sum( y )  BLOCK {|Self,y|::x += y}
+         METHOD Calc( y,z ) EXTERN fr1( y,z )
+      ENDCLASS
+
+      CLASS HSamp2
+
+         DATA x   INIT 20
+         METHOD New()  INLINE Self
+         METHOD Mul( y,z ) EXTERN fr1( y,z )
+      ENDCLASS
+
+      Function fr1( y, z )
+      Local o := QSelf()
+      Return o:x * y * z
+   </pre>
+
+   Note the function call <i>QSelf()</i>, it returns a reference to the object, in the context of
+   which it is located, i.e., the object which is called <i>Self</i> in the methods of the class.
+
+   <p>And here is an example of use of <i>ERROR HANDLER</i>:</p>
+   <pre class="brush: prg;">      #include "hbclass.ch"
+      FUNCTION Main
+         LOCAL oTable
+
+         oTable := Table():Create( "sample.dbf", { {"F1","C",10,0}, {"F2","N",8,0} } )
+         oTable:AppendRec()
+         oTable:F1 := "FirstRec"
+         oTable:F2 := 1
+         oTable:AppendRec()
+         ? oTable:nRec                // 2
+         oTable:nRec := 1
+         ? oTable:nRec                // 1
+         ? oTable:F1, oTable:F2       // "FirstRec"     1
+         ?
+
+         RETURN nil
+
+      CLASS Table
+
+         METHOD Create( cName, aStru )
+         METHOD AppendRec()   INLINE dbAppend()
+         METHOD nRec( n )     SETGET
+
+         ERROR HANDLER OnError( xParam )
+      ENDCLASS
+
+      METHOD Create( cName, aStru ) CLASS Table
+
+         dbCreate( cName, aStru )
+         USE (cName) NEW EXCLUSIVE
+      RETURN Self
+
+      METHOD nRec( n ) CLASS Table
+
+         IF n != Nil
+            dbGoTo( n )
+         ENDIF
+      RETURN Recno()
+
+      METHOD OnError( xParam ) CLASS Table
+      Local cMsg := __GetMessage(), cFieldName, nPos
+      Local xValue
+
+         IF Left( cMsg, 1 ) == '_'
+            cFieldName := Substr( cMsg,2 )
+         ELSE
+            cFieldName := cMsg
+         ENDIF
+         IF ( nPos := FieldPos( cFieldName ) ) == 0
+            Alert( cFieldName + " wrong field name!" )
+         ELSEIF cFieldName == cMsg
+            RETURN FieldGet( nPos )
+         ELSE
+            FieldPut( nPos, xParam )
+         ENDIF
+
+      Return Nil
+   </pre>
+
+   This shows extremely simplified class <i>Table</i>, every object of
+   <i>oTable</i> should correspond to the newly created or opened ( method <i>Open</i> is omitted here )
+   table (dbf file). We want to refer to the fields of the table as to the properties (variables) of an object
+   <i>oTable</i>. But we can't enter the names of the fields in a class declaration, because they, generally
+   speaking, are not known at the time of writing the class, and they are simply different for different
+   tables. Here <i>ERROR HANDLER</i> will help. When a non-existent variable ( or methods ) of the class
+   is called, an error is produced and the
+   method is called defined as <i>ERROR HANDLER</i> ( or <i>ON ERROR</i> ). From this
+   method you can get the same non-existent name of the called variable with the 
+   help of the function <i>__GetMessage()</i>. Moreover, if there was an attempt to write something in this
+   variable, then the name is preceded by the symbol "_" and the method is passed
+   by the recorded value as the first parameter. All the rest I think is clear from the example.<br>
+   In the code above we saw also an example of the use of
+   <i>SETGET</i> method. Note that a call to <i>SETGET</i> method
+   <i>nRec</i> occurs as a variable of the object. If we try to set it
+   (<code> oTable:nRec := 1 </code>), the method gets the set value
+   as a parameter and it produces the movement in the database, but if we read
+   (<code> ? oTable:nRec </code>), it simply returns the result <i>Recno()</i>.
+
+   <p>A list of functions for the manipulation of classes and objects follows:</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>lExist := __objHasData( oObject, cName )</code></nobr></td><td>Returns a Boolean value,
+         specifies whether the object <i>oObject</i> has a variable name <i>cName</i>
+      </td></tr><tr><td><nobr><code>lExist := __objHasMethod( oObject, cName )</code></nobr></td><td>Returns a Boolean value,
+         specifies whether the object <i>oObject</i> has the method with the name <i>cName</i>
+      </td></tr><tr><td><code>aNames := __objGetMsgList( oObject, [lData], [nClassType] )</code></td><td> Returns an array of
+         the names of all the variables and methods of an object <i>oObject</i>; <i>lData</i>
+         specifies that the required methods ( .F. ), or variables ( .T., the default value );
+         <i>nClassType</i> specifies what variables should be included in the list.
+         3 values are possible defined in <i>hboo.ch</i>:<br>
+        <pre class="code">        HB_MSGLISTALL    0   все переменные
+        HB_MSGLISTCLASS  1   переменные класса CLASS DATA
+        HB_MSGLISTPURE   2   переменные объекта DATA
+        </pre>
+      </td></tr><tr><td><nobr><code>aNames := __objGetMethodList( oObject )</code></nobr></td><td> Returns an array of
+        the names of all the methods of an object <i>oObject</i>
+      </td></tr><tr><td><nobr><code>conveys := __objGetValueList( oObject, [aExcept] )</code></nobr></td><td>Returns a two-dimensional array
+        of all the variables of the object <i>oObject</i> ( name and value ); <i>aExcept</i> - an array of the names of variables,
+        which should not be included in the result.
+      </td></tr><tr><td><nobr><code>oObject := __ObjSetValueList( oObject, conveys )</code></nobr></td><td>Sets the value of
+        the object's variables <i>oObject</i>, <i>conveys</i> - two-dimensional array of name / value
+      </td></tr><tr><td><code>oObject := __objAddMethod( oObject, сMethodName, nFuncPtr )</code></td><td>Adds a method in the
+        already existing class to which the object belongs in <i>oObject</i>; 
+        <i>сMethodName</i> - the name of the method, <i>nFuncPtr</i> is a pointer to a function that implements
+        this method ( the pointers to the functions, see the section <a href="#Doc2">3.2</a>:<br>
+        <pre class="brush: prg;">        oHappy := HBClass():New( "THappy" )
+        __objAddMethod( oHappy, "Smile", @MySmile() )
+        ? oHappy:Smile( 1 )
+
+        Static Function MySmile( nType )
+        Return Iif( nType==0,":)",":):)" )
+        </pre>
+
+      </td></tr><tr><td><code>oObject := __objAddInline( oObject, cInlineName, bInline )</code></td><td>Adds the inline
+        method in the already existing class to which the object belongs in <i>oObject</i>; 
+        <i>сInlineName</i> - the name of the method, <i>bInline</i> - a codeblock that implements this method.
+      </td></tr><tr><td><nobr><code>oObject := __objAddData( oObject, cDataName )</code></nobr></td><td>Adds a variable
+        in the already existing class to which the object belongs in <i>oObject</i>; 
+        <i>cDataName</i> - the name of the new variable
+      </td></tr><tr><td><code>oObject := __objModMethod( oObject, сMethodName, nFuncPtr )</code></td><td>Replaces the implementation of the method in the
+        existing class to which the object belongs in <i>oObject</i>; 
+        <i>сMethodName</i> - the name of the method, <i>nFuncPtr</i> is a pointer to a function that implements
+        this method ( see description of functions <i>__objAddMethod()</i> )
+      </td></tr><tr><td><code>oObject := __objAddInline( oObject, cInlineName, bInline )</code></td><td>Replaces the implementation of inline
+        method in an existing class to which the object belongs in <i>oObject</i>; 
+        <i>сInlineName</i> - the name of the method, <i>bInline</i> - a codeblock that implements this method. ( see description of functions <i>__objAddInline()</i> )
+      </td></tr><tr><td><nobr><code>oObject := __objDelMethod( oObject, сMethodName )</code></nobr></td><td>Delete method,
+        or inline method with the name of <i>сMethodName</i> the class to which the object belongs in <i>oObject</i>
+      </td></tr><tr><td><nobr><code>oObject := __objDelInline( oObject, сMethodName )</code></nobr></td><td>Delete method,
+        or inline method with the name of <i>сMethodName</i> the class to which the object belongs in <i>oObject</i>
+      </td></tr><tr><td><nobr><code>oObject := __objDelData( oObject, сDataName )</code></nobr></td><td> Removes a variable
+        with the name of <i>сDataName</i> the class to which the object belongs in <i>oObject</i>
+      </td></tr><tr><td><nobr><code>lIsParent := __objDerivedFrom( oObject, xSuper )</code></nobr></td><td> Returns a Boolean value,
+        indicates whether the class is <i>xSuper</i> (which can be set as an object or a class name ),
+        a parent for the class to which the object belongs in <i>oObject</i>
+      </td></tr><tr><td><nobr><code>oNew := __objClone( oSource )</code></nobr></td><td> Clone an object.
+      </td></tr><tr><td><nobr><code>xResult := __objSendMsg( oObject, cName [,xParams...] )</code></nobr></td><td>Send a message to an object <i>oObject</i>: 
+        may be used to get a value of an object variable <i>cName</i> or to set a new one ( in this case
+        the variable name should be prefixed by "_", or to call an object method.
+    </td></tr></tbody></table>
+
+   <br>
+   <p><strong class="subhead"><a name="Doc4" href="hrbfaq.html#_Doc4"> 3.4 Lang API (the language of the program)</a></strong><br>
+    </p><p> This subsystem is intended for output of alarm messages and the result
+   of CMonth(), CDow() functions - but, unlike Clipper, it allows you to
+   to change language of the program during execution.<br>
+   To link it to your application, you must specify the hblang.lib library in the link - script
+   and include in chief prg file the REQUEST sentenses with the names of the languages, which
+   you intend to use, for example:</p>
+   <pre class="code">     REQUEST HB_LANG_RU866
+     REQUEST HB_LANG_RUWIN
+   </pre>
+
+   <table border="1">
+     <tbody><tr><td><nobr><code>Hb_LangSelect( cLangID ) --&gt; cLangID</code></nobr></td><td>Sets the language of the program, returns the ID of the previous language.
+     </td></tr><tr><td><nobr><code>Hb_LangName() --&gt; cLangID</code></nobr></td><td>Returns the name of the program language.
+     </td></tr><tr><td><nobr><code>Hb_LangErrMsg( nError ) --&gt; cError</code></nobr></td><td>Returns the error number.
+     </td></tr><tr><td><nobr><code>Hb_LangMessage( nMessage ) --&gt; cMessage</code></nobr></td><td>Returns the text of the alarm messages by number.
+   </td></tr></tbody></table>
+      <br>
+
+   <p><strong class="subhead"><a name="Doc5" href="hrbfaq.html#_Doc5"> 3.5 Codepage API</a></strong><br>
+    </p><p> This subsystem provides support for national code pages for your data.
+   To link it to your application you must specify the library hbcpage.lib in a link - script
+   and include in a chief prg file the proposal REQUEST with the names of the code pages, which
+   you intend to use, for example:</p>
+   <pre class="code">     REQUEST HB_CODEPAGE_RU866
+     REQUEST HB_CODEPAGE_RUKOI8
+     REQUEST HB_CODEPAGE_RU1251
+   </pre>
+
+    <p> Further, you may determine the main code page of the application. This code page will 
+   be used for the IsUpper(), IsLower(), IsAlpha(), Upper() and Lower(), Transform (), and when comparing strings. In the console
+   applications, one should use the OEM codepage ( "RU866" for Russian ) and in the Windows GUI application - ANSI ( "RU1251" for Russian ).<br>
+   To set the code page the hb_cdpSelect() function is used</p>
+   <pre class="code">     hb_cdpSelect( sCodepage )
+      // for example:
+     hb_cdpSelect( "RU866" )
+   </pre>
+
+    <p>Such a possibility can be found by Clipper as well ( by connecting the special obj ), but in the Harbour,
+   in addition to that you can define the code page for any opened file data, all the strings
+   will be automatically translated into the main code page of the application for reading and return - when recording,
+   the strings in dbSeek(), dbLocate(), dbSetFilter() will be translated, too. It is enough to specify the code page
+   when opening a file, and all subsequent work with it will look as if the data is in the main
+   code page:</p>
+   <pre class="code">      USE file_name ... CODEPAGE "RU1251"
+      // or
+      dbUseArea( .T.,,file_name,,.T.,.F.,"RU1251" ) 
+   </pre>
+
+    <p>By default the file opens with the main code page of the application.<br>
+   This possibility ( the definition of the code page of the file ) should only be used with
+   family RDD - DBFNDX and DBFCDX.<br>
+   ADS RDD provides for these purposes other tools ( setting up the ini file or SET CHARTYPE TO OEM/ANSI ).
+   </p>
+    <p> Codepage API also includes a function for translation of strings from one codepage to another:</p>
+   <pre class="code">      Hb_Translate( sData, sCodepageIN, sCodepageOUT )
+      // for example:
+      Hb_Translate( "Привет", "RU1251", "RU866" )
+   </pre>
+
+    <p>and a set of functions for utf8:</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>hb_StrToUtf8( sData, sCodepageIN ) </code></nobr></td><td> Translates sData from a codepage sCodepageIN to utf8
+      </td></tr><tr><td><nobr><code>hb_Utf8ToStr( sData, sCodepageOUT ) </code></nobr></td><td> Translates sData from utf8 to a sCodepageOUT codepage
+      </td></tr><tr><td>&nbsp;</td><td>&nbsp;
+      </td></tr><tr><td><nobr><code>hb_Utf8Len( sData ) </code></nobr></td><td> The Len() function for utf8 strings
+      </td></tr><tr><td><nobr><code>hb_utf8Chr( n ) </code></nobr></td><td> The Chr() function for utf8 strings
+      </td></tr><tr><td><nobr><code>hb_utf8Asc( sData ) </code></nobr></td><td> The Asc() function for utf8 strings
+      </td></tr><tr><td><nobr><code>hb_utf8Substr( sData, n1, n2 ) </code></nobr></td><td> The Substr() function for utf8 strings
+      </td></tr><tr><td><nobr><code>hb_utf8Left( sData, n1 ) </code></nobr></td><td> The Left() function for utf8 strings
+      </td></tr><tr><td><nobr><code>hb_utf8Right( sData, n1 ) </code></nobr></td><td> The Right() function for utf8 strings
+      </td></tr><tr><td><nobr><code>hb_utf8Stuff( sData, n1, n2, cNew ) </code></nobr></td><td> The Stuff() function for utf8 strings
+      </td></tr><tr><td><nobr><code>hb_utf8Peek( sData, n1 ) </code></nobr></td><td> The Peek() function for utf8 strings
+      </td></tr><tr><td><nobr><code>hb_utf8Poke( sData, n1, n ) </code></nobr></td><td> The Poke() function for utf8 strings
+    </td></tr></tbody></table>
+   <p><strong class="subhead"><a name="Doc6" href="hrbfaq.html#_Doc6"> 3.6 Working with hrb - files</a></strong><br>
+    </p><p> I have already mentioned <a href="hrbfaq.html#Compile6"> here</a>that instead of the <i>C</i> file Harbour can create
+   a special type of file from your prg with the .hrb extension, which contains the p-code of your program and
+   can be executed by the utility <i>Hbrun.exe</i>.<br>
+   But the <i>hrb</i> can be called for execution directly from your program -
+   there are special functions for this:<br></p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>hb_hrbRun( hrbName, ... (parameters))</code></nobr></td><td>Executes a <i>hrb</i>file with the name <i>hrbname</i>, passes to it the list of parameters and returns the result.
+      </td></tr><tr><td><code>handle := hb_hrbLoad( [ nOptions, ] hrbName [, xparams,... ] )</code></td><td>Loads into memory <i>p-code</i> from a <i>hrb</i>file with the name <i>hrbname</i>, returns a pointer to these instructions;
+        <i>xparams</i> - parameters, which are passed to the INIT PROCEDURE of <i>hrb</i>-module;<br>
+        <i>nOptions</i> - optional parameter (if it is absent, the first will be <i>hrbname</i>), which may have following values (constants are defined in hbhrb.ch):
+         <pre class="code">   HB_HRB_BIND_DEFAULT    0x0  /* do not overwrite any functions, ignore
+                               public HRB functions if functions with the same
+                               names already exist */
+   HB_HRB_BIND_LOCAL      0x1  /* do not overwrite any functions, but keep local
+                               references, so if module has public function FOO
+                               and this function exists already, then the
+                               function in HRB is converted to STATIC one */
+   HB_HRB_BIND_OVERLOAD   0x2  /* overload all existing public functions */
+   HB_HRB_BIND_FORCELOCAL 0x3  /* convert all public functions to STATIC ones */
+   HB_HRB_BIND_LAZY       0x4  /* Doesn't check references, allows load HRB with
+                               unresolved references */
+         </pre>
+      </td></tr><tr><td><nobr><code>hb_hrbDo( handle, ... (parameters))</code></nobr></td><td>Executes <i>p-code</i> from <i>hrb</i> file, pre-loaded with the help of hb_hrbLoad(), which specifies <i>handle</i>, passes a list of parameters and returns the result.
+      </td></tr><tr><td><nobr><code>hb_hrbUnload( handle )</code></nobr></td><td>Unloads <i>p-code</i>, to which the <i>handle</i> addresses, from the memory.
+      </td></tr><tr><td>&nbsp;</td><td>&nbsp;
+      </td></tr><tr><td><nobr><code>hb_hrbGetFunsym( handle, functionName )</code></nobr></td><td>Gets the pointer
+   to a function with the functionName identified in the hrb file; first it is needed to
+   load this hrb to the memory by using <code>handle := hb_HrbLoad( hrbName )</code>.
+   Execution of this function can be done with the help of the <code>Do( hFun, ... (parameters))</code>where hFun is an index
+   received from hb_hrbGetFunsym().
+       </td></tr><tr><td><code>aFuncs := hb_hrbGetFunList( handle, nType )</code></td><td>Returns functions list of <i>hrb</i>-module, <i>nType</i> defines the functions type (constants are defined in hbhrb.ch):
+         <pre class="code">   HB_HRB_FUNC_PUBLIC     0x1   /* locally defined public functions */
+   HB_HRB_FUNC_STATIC     0x2   /* locally defined static functions */
+   HB_HRB_FUNC_LOCAL      0x3   /* locally defined functions */
+   HB_HRB_FUNC_EXTERN     0x4   /* external functions used in HRB module */
+         </pre>
+    </td></tr></tbody></table>
+    <p></p>
+    <p> It is needed to ensure that the application has been built with all of the functions
+   which can be called from .hrb, otherwise the program might fall out while runtime.
+   The best way is to put in your program</p>
+   <pre class="code">     REQUEST <function_name>
+   </function_name></pre>
+   You can #include "hbextern.ch" - it contains the REQUEST's to all 
+   Harbour functions. The size of the program will, of course, 
+   increase at the end, but you will have a guarantee that all functions are 
+   enabled.
+   <p>Note that the <i>hrbname</i> parameter of the hb_hrbRun() and hb_hrbload() may contain
+   not only the name of the <i>hrb</i> file, but also the <i>p-code</i>, pre-loaded
+   with the help of, for example, Memoread(), or received as a result of compilation with the help of
+   hb_compileBuf() or hb_compileFromBuf() (see the description of these functions <a href="#Doc14_1">here</a>):</p>
+   <pre class="brush: prg;">      FUNCTION Main()
+      Local han, buf, cBuf := ""
+
+         cBuf += "Procedure MM" +Chr(13)+Chr(10)
+         cBuf += "? 'Just a test!'" +Chr(13)+Chr(10)
+
+         buf := hb_compileFromBuf( cBuf, "harbour", "/n" )
+         hb_hrbRun( buf )
+         ?
+      Return Nil
+   </pre>
+
+   <p>And one more interesting moment. I have already mentioned that <i>hrb</i> files are very similar
+   judjing by functionality to the <i>p-code dll</i>. And indeed, the function hb_hrbLoad() loads
+   <i>p-code</i> in the space of your application in the same way as a function of the hb_libLoad() loads
+   the shared library. And therefore, the functions of the <i>hrb</i> file can be called with the same
+   way, i.e. directly, without any hb_hrbGetFunsym() or Do(). To do this, as in the case of 
+   using the <i>p-code dll</i>, you must first declare these functions in your application
+   as <i>DYNAMIC</i>:</p>
+   <pre class="brush: prg;">      DYNAMIC HRBFUNC1
+      FUNCTION Main()
+      Local x, handle := hb_hrbLoad( "my.hrb" )
+      
+      x := hrbFunc1()   // hrbFunc1 - the function from my.hrb
+      
+      hb_hrbUnload( handle )
+      Return Nil
+   </pre>
+
+   <br>
+   <p><strong class="subhead"><a name="Doc7" href="hrbfaq.html#_Doc7"> 3.7 the Built-in C</a></strong><br>
+    </p><p>In the Harbour there is a possibility to insert fragments of <i>C</i> code in the prg file. This may be
+   conveniently, if you don't want to create a .c file for a pair of <i>C</i> functions and then putting it in the project.
+   This can be done with the help of directives <code>#pragma BEGINDUMP ... #pragma ENDDUMP</code>.</p>
+   <pre class="brush: prg;">   #pragma BEGINDUMP
+      #include &lt; extend.h &gt;
+      #include &lt; math.h &gt;
+      HB_FUNC( SIN )
+      {
+         double x = hb_parnd(1);
+         hb_retnd( sin( x ) );
+      }
+   #pragma ENDDUMP
+   </pre>
+
+   <p><strong class="subhead"><a name="Doc8" href="hrbfaq.html#_Doc8"> 3.8 Hash arrays</a></strong><br>
+   </p><p>Hash arrays or Hash tables - see. <a target="_blank" href="http://en.wikipedia.org/wiki/Hash_table"> article in Wikipedia</a> -
+   is one of the implementations of data structures, known under the name of <i>associative arrays</i>, which
+   stores the pair ( key,value ) and allows you to perform at least three operations:
+   add a new pair, search according to the key and delete the key. The support of associative
+   arrays is in many interpreted high-level programming languages,
+   for example, in Perl, PHP, Python, Ruby, and others. Now it is also implemented in the Harbour.</p>
+   <p>A new hash-array is created by the  function <b>hb_hash()</b>, it can be used
+   without a parameter ( in this case initialized with the empty hash array ) and with parameters,
+   defining an arbitrary number of pairs in the array.</p>
+   <pre class="brush: prg;">   FUNCTION Main
+   local harr := hb_Hash( "six", 6, "eight", 8, "eleven", 11 )
+
+      harr[10] := "str1"
+      harr[23] := "str2"
+      harr["fantasy"] := "fiction"
+
+      ? harr[10], harr[23]                                   // str1  str2
+      ? harr["eight"], harr["eleven"], harr["fantasy"]       // 8       11  fiction
+      ? len(harr)                                            // 6
+      ?
+
+      RETURN nil
+   </pre>
+   An alternative method for initializing the hash array:
+   <pre class="code">   local harr := hb_Hash( "six" =&gt; 6, "eight" =&gt; 8, "eleven" =&gt; 11 )
+   </pre>
+
+   <p>For hash array 4 flags are defined:</p>
+     &nbsp;&nbsp;&nbsp; - <i>Autoadd</i> - when set in TRUE (the default), the operation
+      assignment ( as <code>harr["fantasy"] := "fiction"</code> in the above example )
+      leads to the addition of a new pair, while the FALSE leads to an error;<br>
+     &nbsp;&nbsp;&nbsp; - <i>Binary</i> - when set in TRUE (the default), sorting
+      the array is made in accordance with the weight of the binary code of the character, without taking
+      into account the national code pages and the relevant rules of the sort. This
+      allows you to significantly speed up the manipulation with the hash of arrays;<br>
+     &nbsp;&nbsp;&nbsp; - <i>CaseMatch</i> - defines wether to take into consideration the <i>Case</i>
+      character ( big/small ) for sorting or not.
+     &nbsp;&nbsp;&nbsp; - <i>KeepOrder</i> - when set in TRUE, the order of the pairs in the array
+      corresponds to the priority of their add.
+
+   <p>Below is a table of functions for a hash of arrays.</p>
+    <table border="1">
+      <tbody><tr><td><code>aHash := hb_hash( [ Key1, Value1 ], ..., [ KeyN, ValueN ] ) </code></td><td>
+   Create, initialize the hash array
+      </td></tr><tr><td><nobr><code> lExists := hb_hHaskey( aHash, Key )</code></nobr></td><td> Returns a Boolean value,
+   indicates whether there is a pair with the key <i>Key</i> in the array <i>aHash</i>
+      </td></tr><tr><td><nobr><code> xValue := hb_hGet( aHash, Key ) </code></nobr></td><td> Returns the value of the pair with the key
+   <i>Key</i> in the array <i>aHash</i> - the same as <code>xValue := aHash[Key]</code>
+      </td></tr><tr><td><nobr><code> xValue := hb_hGetDef( aHash, Key, DefaultVal ) </code></nobr></td><td> Returns the value of the pair with the key
+   <i>Key</i> in the array <i>aHash</i> or <i>DefaultVal</i>if the key is not found
+      </td></tr><tr><td><nobr><code> hb_hSet( aHash, Key, xValue ) </code></nobr></td><td> Sets the value of the pair with the key
+   <i>Key</i> in the array <i>aHash</i> - the same as <code>aHash[Key] := xValue</code>
+      </td></tr><tr><td><nobr><code> hb_hDel( aHash, Key ) </code></nobr></td><td> Destroys a couple of key
+   <i>Key</i> from the array <i>aHash</i>
+      </td></tr><tr><td><nobr><code> nPosition := hb_hPos( aHash, Key ) </code></nobr></td><td> Returns the index of the pair with the key
+   <i>Key</i> in the array <i>aHash</i>
+      </td></tr><tr><td><nobr><code> Key := hb_hKeyAt( aHash, nPosition ) </code></nobr></td><td> Returns the key pair
+   in the array <i>aHash</i> with the index <i>nPosition</i>
+      </td></tr><tr><td><nobr><code> xValue := hb_hValueAt( aHash, nPosition, [NewValue] ) </code></nobr></td><td> Returns the value of a pair of
+        the array <i>aHash</i> with the index <i>nPosition</i> and establishes a new <i>NewValue</i>,
+        if it is set
+      </td></tr><tr><td><nobr><code> array := hb_hPairAt( aHash, nPosition ) </code></nobr></td><td> Returns a two-dimensional array of key/value
+   of the pairs in the array <i>aHash</i> with the index <i>nPosition</i>
+      </td></tr><tr><td><nobr><code> hb_hDelAt( aHash, nPosition ) </code></nobr></td><td> Destroys a couple of
+   from the array <i>aHash</i> with the index <i>nPosition</i>
+      </td></tr><tr><td><nobr><code> aKeys := hb_hKeys( aHash ) </code></nobr></td><td> Returns an array of all the keys
+   array <i>aHash</i>
+      </td></tr><tr><td><nobr><code> aValues := hb_hValues( aHash ) </code></nobr></td><td> Returns an array of all values
+   array <i>aHash</i>
+      </td></tr><tr><td><nobr><code> hb_hFill( aHash, xValue ) </code></nobr></td><td> Fills the array <i>aHash</i>
+   values <i>xValue</i>
+      </td></tr><tr><td><nobr><code> aHash2 := hb_hClone( aHash ) </code></nobr></td><td> Returns a copy of
+   array <i>aHash</i>
+      </td></tr><tr><td><nobr><code> aHash2 := hb_hCopy( aHash2, aHash, [nStart], [nCount] ) </code></nobr></td><td> Copies pairs
+   from the array <i>aHash</i> in <i>aHash2</i>. You can specify the <i>nStart</i> -
+   starting position from which to copy and <i>nCount</i> - how many pairs to copy
+      </td></tr><tr><td><nobr><code> aHash2 := hb_hMerge( aHash2, aHash, bBlock | nPosition ) </code></nobr></td><td> adds pairs
+   from the array <i>aHash</i> in <i>aHash2</i>. <i>bBlock</i> - codeblock, the executable for each
+   pair of source, it is given key, value and index. If <i>bBlock</i> returns
+   the truth, the pair is copied. <i>nPosition</i> - the index of the pair, which will be added to the <i>aHash</i>.
+      </td></tr><tr><td><nobr><code> aHash := hb_hEval( aHash, bBlock, [nStart], [nCount] ) </code></nobr></td><td> Performs codeblock
+   for each pair of array <i>aHash</i>, codeblock gets the key, value and index.
+      </td></tr><tr><td><code> nPosition := hb_hScan( aHash, xValue, [nStart], [nCount], [lExact] ) </code></td><td> Looks for value
+   <i>xValue</i> in the array <i>aHash</i>
+      </td></tr><tr><td><nobr><code> aHash2 := hb_hSort( aHash ) </code></nobr></td><td> Sorts an array <i>aHash</i>
+      </td></tr><tr><td><nobr><code> lPrevFlag := hb_hCaseMatch( aHash, [lFlag] ) </code></nobr></td><td> Sets a flag
+   "match case" for an array of <i>aHash</i> and returns the previous value.
+      </td></tr><tr><td><nobr><code> aHash := hb_hSetCaseMatch( aHash, [lFlag] ) </code></nobr></td><td> Sets a flag
+   "match case" for an array of <i>aHash</i>
+      </td></tr><tr><td><nobr><code> lPrevFlag := hb_hBinary( aHash, [lFlag] ) </code></nobr></td><td> Sets a flag
+   "binary" for an array of <i>aHash</i> and returns the previous value.
+      </td></tr><tr><td><nobr><code> aHash := hb_hSetBinary( aHash, [lFlag] ) </code></nobr></td><td> Sets a flag
+   "binary" for an array of <i>aHash</i>
+      </td></tr><tr><td><nobr><code> nPrevFlag := hb_hAutoAdd( aHash, [lFlag] ) </code></nobr></td><td> Sets a flag
+   "auto add" to the array <i>aHash</i> and returns the previous value.
+      </td></tr><tr><td><nobr><code> aHash := hb_hSetAutoAdd( aHash, [lFlag] ) </code></nobr></td><td> Sets a flag
+   "auto add" to the array <i>aHash</i>
+      </td></tr><tr><td><nobr><code> nPrevFlag := hb_hKeepOrder( aHash, [lFlag] ) </code></nobr></td><td> Sets a flag
+   "keep order" for an array of <i>aHash</i> and returns the previous value.
+      </td></tr><tr><td><nobr><code> aHash := hb_hSetOrder( aHash, [lFlag] ) </code></nobr></td><td> Sets a flag
+   "keep order" for an array of <i>aHash</i>
+      </td></tr><tr><td><nobr><code> hb_hAllocate( aHash, nItems ) </code></nobr></td><td> Reserves space for an array of <i>aHash</i>
+   in the number of <i>nItems</i> pairs.
+      </td></tr><tr><td><nobr><code> xPrevDef := hb_hDefault( aHash, DefaultValue ) </code></nobr></td><td> Sets the value of 
+   the default for the array <i>aHash</i> and returns the previous one.
+     </td></tr></tbody></table>
+   <br>
+   <p><strong class="subhead"><a name="Doc9" href="hrbfaq.html#_Doc9"> 3.9 Regular expressions</a></strong><br>
+    </p><p>Many people think ( and I thought ), that <a target="_blank" href="http://en.wikipedia.org/wiki/Regular_expression">regular expression</a> are the strings for searching,
+   where the "*" indicates a group of any characters, and "?" - any single character, the same as
+   that are used as masks for files. In fact it is a kind of language, enough
+   complex - the searching strings on it can shock at first. But if mastering
+   and understanding the logic of the language gradually you get used to its view and it ceases to be a
+   gobbledygook. </p>
+    <p>Regular expressions are a very powerful tool for searching in the text. Many
+   modern programming languages ( Perl, Php, Python, Ruby, Javascript, etc. )
+   have the built-in support of them. You can get acquainted with the regular expressions for example
+   <a target="_blank" href="http://www.pcre.ru/"> on pcre.ru</a>. </p>
+    <p>Further you will find a group of functions, similar in parameters structure. Here <i>cRegEx</i> - a string with a regular expression
+   ( text or already compiled ); <i>cString</i> - a string in which the search is conducted;
+   <i>lCase</i> specifies whether to take into account the register of symbols ( by default - to - .T. );
+   what about the parameter <i>lNewLine</i> - I have not yet managed to find it out, if someone tells me - I'll be glad;
+   <i>nMaxMatches</i> - the maximum number of matches, which should be returned (by default - without limitation - 0).
+   Functions have to be looking for in line <i>cString</i> fragments of the corresponding regular expression,
+   specified <i>cRegEx</i>. The regular expression can consist of parts that are separated by
+   round brackets. In this case, we call the fragment of the line corresponding to the entire expression the full coincidence,
+   and a substring of this fragment, corresponding to the relevant part of the
+   regular expression (dedicated round brackets) - the sub-coincidence.
+   So, for example:<br></p>
+
+   <pre class="brush: prg;">     s := "Claabrok abbey" // a String, where we will look 
+     cRegex : = (a+)(b+)"  // the Symbol '+' in the regular expression means that
+                           // the previous symbol occur 1 or more times
+     // Have 2 full matches:
+     // 1) 'REC', the 'aa' is the first sub-coincidence, 'b' - the second
+     // 2) 'abb'here 'a' is the first sub-coincidence, 'bb' - the second
+   </pre>
+
+    <table border="1">
+      <tbody><tr><td><code><nobr>aResult := hb_Regex( cRegex, cString, </nobr>[lCase], [lNewLine] )</code></td><td> Returns
+   a one-dimensional array, including the first full matches and all of its sub-matches (only the substring).
+      </td></tr><tr><td><code>lResult := hb_RegexLike( cRegEx, cString, [lCase], [lNewLine] )</code></td><td> Returns TRUE
+   if the string <i>cString</i> corresponds to the expression of <i>cRegEx</i>.
+      </td></tr><tr><td><code>lResult := hb_RegexHas( cRegEx, cString, [lCase], [lNewLine] )</code></td><td> Returns TRUE
+   if the line <i>cString</i> found at least one match expression <i>cRegEx</i>.
+      </td></tr><tr><td><code>as aresult := hb_RegexSplit( cRegEx, cString, [lCase], [lNewLine], [nMaxMatches] )</code></td><td> The function is looking for
+   a match in <i>cString</i>excludes the found string and returns an array of the remaining
+   parts. It splits the string into parts with the <i>cRegEx</i> substrings as a separator .
+      </td></tr><tr><td><code>as aresult := hb_RegexAtx( cRegEx, cString, [lCase], [lNewLine] )</code></td><td> Returns
+   a two-dimensional array, including the first full match and all of its sub-matches, for each array
+   with the corresponding substring, the start and end positions.
+      </td></tr><tr><td><code>as aresult := hb_RegexAll( cRegex, cString, [lCase], [lNewLine], [nMaxMatches], [nGetMatch], [lOnlyMatch] )</code></td><td> Here
+   the first five parameters were described above, <i>nGetMatch</i> determines the character of the returned array, if 0, the function returns 
+   both - full coincidences and sub-matches, if-1 - only complete word matches, if 2 - the first
+   sub-match, 3 - the second sub-matching, etc.; <i>lOnlyMatch</i>  - if .T.(the default),
+   in the returning array only substrings are included, if - .F., then in addition to them - the initial and final
+   positions of the found substrings. Depending on the combination of these two parameters the returned 
+   array can be one-dimensional, two-dimensional or three-dimensional. So, if <i>nGetMatch</i>
+   is not equal to 0 and <i>lOnlyMatch</i> is the truth, then a one-dimensional array returns from substrings
+   ( of full coincidence or sub-matches ). If <i>nGetMatch</i> equals 0 and
+   <i>lOnlyMatch</i> is the TRUE, then a two-dimensional array returns, each element of which is
+   an array of the substring - full coincidence and substrings - sub-coincidences ). If the same
+   <i>nGetMatch</i> equals 0 and <i>lOnlyMatch</i> - is false, then a three-dimensional array returns -
+   instead of each substring of the previous case an array appears, which includs the substring,
+   its start and end  position.
+    </td></tr></tbody></table>
+
+    <p>And another 3 functions:</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>pRegEx := hb_RegexComp( cRegEx, [lCase], [lNewLine] )</code></nobr></td><td> 
+   <i>cRegEx</i> is compiled- a string with a regular expression, and returns the compiled code; <i>lCase</i> specifies
+   wether the register of symbols should be taken inro account ( by default - to - .T. ).
+   It makes sense in order to accelerate the search operations if this expression will be used more than once.
+      </td></tr><tr><td><nobr><code>lGood := hb_isRegex( cRegEx )</code></nobr></td><td> Returns truth if the
+   <i>cRegEx</i> - compiled regular expression.
+      </td></tr><tr><td><code>cMatch := hb_Atx( cRegEx, cString, [lCase], [@nStart], [@nEnd] )</code></td><td> Searches
+   in the line <i>cString</i> coorespondance to the expression <i>cRegEx</i>; <i>lCase</i> specifies
+   wether the register of symbols should be taken inro account ( by default - to - .T. );
+   <i>nStart</i>, <i>nEnd</i> - from what position to start the search
+   and where end. Returns the first found substring ( or Nil, if not found ).
+   In the <i>nStart</i>if it is past with the link, the position of the found substring is recorded,
+   in the <i>nEnd</i> - its length.
+    </td></tr></tbody></table>
+
+   <p>And, finally, an example of the use of the simplest regular expression, already discussed above:</p>
+
+   <pre class="brush: prg;">   FUNCTION Main()
+   Local s := "ClaAbrok aBbey", n1, n2
+
+      ? hb_isregex( hb_regexcomp( "a+b+" ) )                // .T.
+      n1 := 1
+      n2 := Len( s )
+      ? hb_atx( "a+b+", s, .f., @n1, @n2 ), n1, n2          // aAb      3     3
+      ? hb_regexhas( "a+b+", s, .f. )                       // .T.
+      ? hb_regexhas( "a+b+", s )                            // .F.
+      ? hb_regexlike( "a+b+", s, .f. )                      // .F.
+
+      PrintArray( hb_regex( "a+b+",s,.f. ) )                // { aAb }
+      PrintArray( hb_regex( "(a+)(b+)",s,.f. ) )            // { aAb aA b }
+
+      PrintArray( hb_regexSplit( "a+b+",s,.f. ) )           // { Cl rok  ey }
+
+      PrintArray( hb_regexAtx( "a+b+",s,.f. ) )             // { { aAb 3 5 } }
+      PrintArray( hb_regexAtx( "(a+)(b+)",s,.f. ) )         // { { aAb 3 5 } { aA 3 4 } { b 5 5 } }
+
+      PrintArray( hb_regexAll( "a+b+",s,.f. ) )             // { { aAb aBb } }
+      PrintArray( hb_regexAll( "(a+)(b+)",s,.f. ) )         // { { aAb aA b } { aBb a Bb } }
+      PrintArray( hb_regexAll( "(a+)(b+)",s,.f.,,,1 ) )     // { aAb aBb }
+      PrintArray( hb_regexAll( "(a+)(b+)",s,.f.,,,2 ) )     // { aA a }
+      PrintArray( hb_regexAll( "(a+)(b+)",s,.f.,,,0,.f. ) ) 
+      // { { { aAb 3 5 } { aA 3 4 } { b 5 5 } } { { aBb 10 12 } { a 10 10 } { Bb 11 12 } } }
+      PrintArray( hb_regexAll( "(a+)(b+)",s,.f.,,,1,.f. ) ) // { { aAb 3 5 } { aBb 10 12 } }
+
+      ?
+   Return Nil
+
+   Function PrintArray( arr, lNoNewLine )
+   Local i
+
+      IF lNoNewLine == Nil .OR. !lNoNewLine
+         ?
+      ENDIF
+      ?? " {"
+      FOR i := 1 TO Len( arr )
+         IF Valtype( arr[i] ) == "A"
+            PrintArray( arr[i], .T. )
+         ELSE
+            ?? " " + Iif( Valtype( arr[i] ) == "N", Ltrim(Str(arr[i])), arr[i] )
+         ENDIF
+      NEXT
+      ?? " }"
+   Return Nil
+   </pre>
+
+   <br>
+
+   <p><strong class="subhead"><a name="Doc10" href="hrbfaq.html#_Doc10"> 3.10 INET subsystem</a></strong><br>
+    </p><p>This is a basic set of functions, designed for the work in networks using the IP protocol.
+   With their help it is possible to create a socket, to connect to another socket ( on the same
+   or on the remote computer ) and arrange the reception/transmission of data. This is the basic set, and as such it
+   implements the TCP/IP and UDP protocols. Using it, you can implement an exchange under the more high-leveled protocol
+    - HTTP, FTP, POP3, etc. One example of such an implementation is the
+   library <i>hbtip</i>, the sources of which are located in the harbour/contrib/hbtip. </p>
+
+    <table border="1">
+      <tbody><tr><td><nobr><code>lResult := hb_inetInit() </code></nobr></td><td> Initializes the
+   <i>INET</i> subsystem, returns <i>.T.</i> in the case of success.It should be called before
+   any calls of other <i>INET</i> functions ( in the beginning of the program, for example ).
+      </td></tr><tr><td><nobr><code>hb_inetCleanup() </code></nobr></td><td> Frees the resources busy with the
+   <i>INET</i> subsystem. It should be called at the end of a program that uses <i>INET</i> function.
+      </td></tr><tr><td><nobr><code>hSocket := hb_inetCreate( [nTimeOut] ) </code></nobr></td><td> Creates
+   and returns the handle of the socket ( <i>hSocket</i> ) for connection to resources in the network;
+   <i>nTimeOut</i> - timeout value for the socket in milliseconds. Timeout is set for blocking
+   operations, such as reading and writing data, i.e. those which stop the
+   program, put it in the standby mode of the completion of the current operation. If the time
+   expectations are greater than the specified timeout value, the operation immediately ends
+   and hb_inetErrorCode(hSocket) returns -1. Note that this is just
+   one blocking operation, and not the read/write hb_inet... Some
+   functions, for example, hb_inetRecvAll(), can cause such an operation a few times,
+   therefore, their execution time may exceed the time-out.<br>
+   The default timeout value is -1, i.e. the restriction has not been installed.
+      </td></tr><tr><td><nobr><code>nResult := hb_inetClose( hSocket ) </code></nobr></td><td> Closes the
+   previously created socket with <i>hSocket</i> and the appropriate connection.
+   Returns 0 by success or -1 in case of error. If you have other streams, which
+   use this socket, the waiting time is over and they are returned an error. This function
+   does not destroy the socket, so that other streams can refer to it to check, whether
+   it is closed  ( and, if Yes, complete the corresponding operations ).
+      </td></tr><tr><td><nobr><code>fd := hb_inetFD( hSocket, [l] ) </code></nobr></td><td> &nbsp;
+      </td></tr><tr><td><nobr><code>nResult := hb_inetDestroy( hSocket ) </code></nobr></td><td> Closes 
+   and destroys the socket, after calling this function socket can no longer be used.
+   Returns 0 by success or -1 in case of error.
+      </td></tr><tr><td><nobr><code>nResult := hb_inetStatus( hSocket ) </code></nobr></td><td> Returns
+   1, if the socket exists, or -1 in the opposite case.
+      </td></tr><tr><td><nobr><code>cResult := hb_inetCRLF() </code></nobr></td><td> Returns
+   the sequence CRLF ( return strings + new string )used in 
+   many of the protocols.
+      </td></tr><tr><td><nobr><code>lResult := hb_inetIsSocket( hSocket ) </code></nobr></td><td> Returns .T.,
+   if the passed parameter is the handle of the socket.
+      </td></tr><tr><td><nobr><code>nMillis := hb_inetTimeout( hSocket [,nMillis] ) </code></nobr></td><td> Sets
+   new, if you set the second parameter <i>nMillis</i>, and returns the old value of the timeout for socket <i>hSocket</i>.
+   Learn more about time-out, see the description of hb_inetCreate().
+      </td></tr><tr><td><nobr><code>hb_inetClearTimeout( hSocket ) </code></nobr></td><td>Clears ( set to -1 )
+   timeout value for the socket <i>hSocket</i>. Learn more about time-out, see the description of hb_inetCreate().
+      </td></tr><tr><td><nobr><code>nMillis := hb_inetTimeLimit( hSocket [,nMillis] ) </code></nobr></td><td> Sets
+   new, if you set the second parameter <i>nMillis</i>, and returns the old value of the <i>TimeLimit</i> for the socket <i>hSocket</i>.
+        <i>TimeLimit</i> works, if installed <i>xCallBack</i> - see below description of hb_inetPeriodCallback().
+      </td></tr><tr><td><nobr><code>hb_inetClearTimeLimit( hSocket ) </code></nobr></td><td>Clears ( set to -1 )
+   value <i>TimeLimit</i> for the socket <i>hSocket</i>.
+      </td></tr><tr><td><nobr><code>nResult := hb_inetErrorCode( hSocket ) </code></nobr></td><td>Returns the code of
+   completing of the last operation, 0 in case of success, 1 - connection is closed, the rest -
+   the standard error codes defined in the <i>Winsock</i> or <i>Unixsockets</i>.
+      </td></tr><tr><td><nobr><code>cString := hb_inetErrorDesc( hSocket ) </code></nobr></td><td>Returns
+   a string describing the error that occurred upon execution of the last operation.
+      </td></tr><tr><td><nobr><code>hb_inetClearError( hSocket ) </code></nobr></td><td>
+      </td></tr><tr><td><nobr><code>nResult := hb_InetCount( hSocket ) </code></nobr></td><td>Returns
+   the number of characters read or recorded during the last operation.
+      </td></tr><tr><td><nobr><code>cString := hb_InetAddress( hSocket ) </code></nobr></td><td>Returns
+   the address of the remote server ( or local address, if the socket belongs to a server )
+   in string form of four numbers, separated by dots.
+      </td></tr><tr><td><nobr><code>cString := hb_InetPort( hSocket ) </code></nobr></td><td> Returns the port,
+   to which the socket is bound, or the port number of the remote socket, to which there is a connection.
+      </td></tr><tr><td><code>xPrevCallback := hb_inetPeriodCallback( hSocket [,xCallback] ) </code></td><td>
+   Sets <i>xCallBack</i> for the socket <i>hSocket</i>. This is a codeblock, an array, or
+   something else that can be executed by the function hb_execFromArray() (it is described below
+   in <a href="#Doc14_15">section 3.14.15</a> ). <i>xCallBack</i> marks the blocking operation,
+   when the timeout expires, established for this socket. If <i>xCallBack</i> returns .F.,
+   reader/writer function stops trying to start blocking operation and returns
+   the error. If the same <i>xCallBack</i> returns .T., the function repeats the launch of the
+   read/write operations - and so til the <i>TimeLimit</i> (see above hb_inetTimeLimit()), if
+   it is set. If the <i>TimeLimit</i> is not set, the loop continues until the
+   read/write are performed, or until the <i>xCallBack</i> returns .F..<br>
+   So, for <i>xCallBack</i> to run, timeout for the socket needs to be set ; the <i>TimeLimit</i>if it is set, must be greater than the timeout.
+   In this case, the <i>xCallBack</i> will be launched with the frequency specified by 
+   timeout value, until you end the operations read/write or til the <i>TimeLimit</i>,
+   if it is set.
+      </td></tr><tr><td><nobr><code>hb_inetClearPeriodCallback( hSocket ) </code></nobr></td><td> Destroys
+   <i>xCallBack</i>installed with the help of hb_inetPeriodCallback().
+      </td></tr><tr><td><nobr><code>nResult := hb_inetGetSndBufSize( hSocket ) </code></nobr></td><td>Returns
+   the size of the write buffer, or -1 in case of error.
+      </td></tr><tr><td><nobr><code>nResult := hb_inetGetRecvBufSize( hSocket ) </code></nobr></td><td>Returns
+   the size of the read buffer, or -1 in case of error.
+      </td></tr><tr><td><nobr><code>nResult := hb_inetSetSndBufSize( hSocket, nSize ) </code></nobr></td><td>Sets
+   the size of the write buffer, or -1 in case of error.
+      </td></tr><tr><td><nobr><code>nResult := hb_inetSetRecvBufSize( hSocket, nSize ) </code></nobr></td><td>Sets
+   the size of the read buffer, or -1 in case of error.
+    </td></tr></tbody></table>
+    <br>
+
+    <table border="1">
+      <tbody><tr><td><code>hSocket := hb_inetServer( port [,hSocket [,cBindAddr [,nListenLimit]]] ) </code></td><td> Creates
+   a socket and returns a handle <i>hSocket</i>. This socket server, it can accept connections from clients
+   on the port <i>port</i>. Parameter <i>cBindAddr</i> serves to indicate the address of a particular interface
+   on the computer to which must be attached the server. This is necessary in cases when on the computer
+   there are several logical interfaces ( 2 or more network card, PPP, loopback, etc. ) and you
+   need server to answer requests only on one of them. <i>nListenLimit</i> is not usually required
+   indicate; if the socket will come <i>nListenLimit</i> attempts to connect from a client, and the program still
+   not had time to process a single one of them, the next attempt will be rejected by the kernel with the message that
+   the server is busy (busy). Usually the default value ( 10 ) enough even for heavily loaded server.
+      </td></tr><tr><td><code>hSocket := hb_inetAccept( hSocketSrv ) </code></td><td> Waits until some
+   client tries to connect to the server socket <i>hSocketSrv</i>, created with the help of hb_inetServer().
+   Returns a new socket, created specially for communication with the client. In case of error returns Nil
+   and in the <i>hSocketSrv</i> set the error code.
+      </td></tr><tr><td><code>hSocket := hb_inetConnect( cAddress, nPort ) </code></td><td> Carries out
+   connecting to the port <i>nPort</i> server ( local or remote ) to the address <i>cAddress</i>,
+   which can be referred to as <i>IP</i> address of 4 numbers separated by dots ("192.168.0.1") or
+   as the DNS host name ("www.kresin.ru"). Returns the handle of the newly created socket <i>hSocket</i>.
+      </td></tr><tr><td><code>hb_inetConnect( cAddress, nPort, hSocket ) </code></td><td> Carries out
+   connecting to the port <i>nPort</i> server ( local or remote ) to the address <i>cAddress</i>,
+   which can be referred to as <i>IP</i> address of 4 numbers separated by dots ("192.168.0.1") or
+   as the DNS host name ("www.kresin.ru"). Unlike the previous version of this function,
+   use the pre-prepared socket <i>hSocket</i>.
+      </td></tr><tr><td><nobr><code>hSocket := hb_inetConnectIP( cAddress, nPort ) </code></nobr></td><td>Works similarly to
+   hb_inetConnect(), but as the address takes only <i>IP</i> address and is <i>thread safe</i>,
+   i.e. it can be run simultaneously from multiple threads.
+      </td></tr><tr><td><code>hb_inetConnectIP( cAddress, nPort, hSocket ) </code></td><td>Works similarly to
+   hb_inetConnect(), but as the address takes only <i>IP</i> address and is <i>thread safe</i>,
+   i.e. it can be run simultaneously from multiple threads.
+      </td></tr></tbody></table>
+    <br>
+
+    <table border="1">
+      <tbody><tr><td><code>nResult := hb_inetRecv( hSocket, @cResult [,nAmount] ) </code></td><td> Reads
+   the received data from a socket <i>hSocket</i> in the pre-prepared
+   string <i>cResult</i> in a quantity not exceeding <i>nAmount</i>, if this parameter
+   is passed, or the length of <i>cResult</i> otherwise; returns the number of the read bytes. The function blocks the execution of
+   the program ( or thread ), while some of the data cannot be read from the socket, or
+   until any error occurs ( including the ending of time ). It won't
+   necessarily fill all the string, won't necessarily accept all data transferred
+   in a socket - in this case, you should call it again before the end of the full data reception.
+   To lock the stream til the end of the reception of the data, use the function
+   hb_inetRecvAll().
+      </td></tr><tr><td><code>nResult := hb_inetRecvAll( hSocket, @cResult [,nAmount] ) </code></td><td> Read
+   the received data from a socket <i>hSocket</i> in the pre-prepared
+   string <i>cResult</i> in a quantity not exceeding <i>nAmount</i>if this parameter is
+   passed, or the length of <i>cResult</i> otherwise; returns the number of read bytes.
+   Unlike hb_inetRecv() blocks the flow, until the required amount of data is not read.
+      </td></tr><tr><td><code>cResult := hb_inetRecvLine( hSocket [,@nBytesRead [,nMaxLength [,nBufSize]]] ) </code></td><td>
+   blocks the stream until it sequence <i>CRLF</i> is read and returns
+   the resulting string. If an error occurred, or the socket is closed before 
+   <i>CRLF</i> is read, the function does not return anything and will set the error code. The returned
+   line does not include <i>CRLF</i>. In <i>nBytesRead</i>,if it is transferred, there will be written the number of
+   the received bytes, including <i>CRLF</i> - i.e., in the normal completion this will be the length of the
+   the resulting string plus 2. <i>nMaxLength</i>if it is passed, specifies the maximum 
+   number of bytes that can be accepted, regardless of whether received <i>CRLF</i> or not.
+        <i>nBufSize</i> - size of the receive buffer,in default it is 80 bytes. If the string is longer then the 
+   piece of memory on the <i>nBufSize</i> allocates more and etc., ie for a long line the redistribution of memory can be many times required
+   , which is not very good. So with the help of instructions <i>nBufSize</i>
+   you can manage it. You can, for example, set <i>nBufSize</i> equal to <i>nMaxLength</i>  - then
+   soon the buffer will be allocated with the size <i>nMaxLength</i> and will not be anymore redistributed.
+      </td></tr><tr><td><code>cResult := hb_inetRecvEndBlock( hSocket [,cBlock [,@nBytesRead [,nMaxLength [,nBufSize]]]] ) </code></td><td>
+   This function behaves exactly the same as hb_inetRecvLine(), but the sign of the end of the reception here
+   is the string that is passed to the parameter <i>cBlock</i>. Default <code>cBlock == CRLF</code>,
+   so, if this parameter is not specified, the function is identical to hb_inetRecvLine().
+      </td></tr><tr><td><code>nResult := hb_inetDataReady( hSocket [,nMillis] ) </code></td><td> Checks whether 
+   the socket data is available for reading and returns 1 if there is, 0 if not, and -1 in the case of
+   the error. If you specify the <i>nMillis</i> the function awaits the appearance of the data in the <i>nMillis</i>
+   milliseconds, and returns the result as soon as the data. If this parameter is not specified, the function
+   returns the result immediately.
+      </td></tr><tr><td><code>nResult := hb_inetSend( hSocket, cBuffer [,nLength] ) </code></td><td>Sends data contained
+   in line <i>cBuffer</i> through a socket <i>hSocket</i>, returns the number of the sent bytes, 0 if the socket was closed
+   or -1 in case of error. The Parameter <i>nLength</i>if it is passed, specifies the number of bytes to be sent.
+   Note that this function does not guarantee that all the data will be stored, so you should check the returned
+   number.
+      </td></tr><tr><td><code>nResult := hb_inetSendAll( hSocket, cBuffer [,nLength] ) </code></td><td>Sends data contained
+   in line <i>cBuffer</i> through a socket <i>hSocket</i>, returns the number of the sent bytes , 0 if the socket was closed
+   or -1 in case of error. Parameter <i>nLength</i>if it is passed, specifies the number of bytes to be sent.
+   Unlike hb_inetSend() this function ensures that all data will be recorded only after that it will complete its work.
+      </td></tr></tbody></table>
+    <br>
+
+    <table border="1">
+      <tbody><tr><td><code>aHosts := hb_inetGetHosts( cName ) </code></td><td>Returns an array of IP addresses associated with
+   the host called <i>cName</i>.
+      </td></tr><tr><td><code>aHosts := hb_inetGetAlias( cName ) </code></td><td>Returns an array of aliases associated with 
+   the host called <i>cName</i>.
+      </td></tr><tr><td><code>hb_inetInfo() </code></td><td>
+    </td></tr></tbody></table>
+    <br>
+
+    <table border="1">
+      <tbody><tr><td><nobr><code>hSocket := hb_inetDGram( [lBroadCast] ) </code></nobr></td><td> Creates and returns a socket
+   to work on <i>UDP</i> Protocol. If <i>lBroadCast</i> set in .T., the socket will be able to send
+   and receive the broadcast messages; in most systems, the program must-have for
+   this special privileges.
+      </td></tr><tr><td><nobr><code>hSocket := hb_inetDGramBind( nPort [,cAddress [,lBroadCast]] ) </code></nobr></td><td> Creates and returns a socket
+   to work on <i>UDP</i> Protocol attached to the port <i>nPort</i> and to a certain
+   logical interface, described <i>cAddress</i> (if it is specified). If <i>lBroadCast</i> set in .T., the socket will be able to send
+   and receive the broadcast messages; in most systems the program must-have for
+   this special privileges.
+      </td></tr><tr><td><code>nBytesSent := hb_inetDGramSend( hSocket, cAddress, nPort, cBuffer [,nSize] ) </code></td><td> Sends
+   the data contained in the <i>cBuffer</i>through socket <i>hSocket</i> on <i>IP</i> address <i>cAddress</i>, port <i>nPort</i>.
+        <i>nSize</i> specifies the amount of data transferred; if this parameter is omitted, then all what is in <i>cBuffer</i> is transmitted. 
+   	 Returns the number of the sent bytes , or -1 in case of error.. Since the function does not guarantee
+   that all data will be transferred, the returned value should be checked.
+      </td></tr><tr><td><code>nBytesRead := hb_inetDGramRecv( hSocket, @cBuffer [,nSize] ) </code></td><td> Read
+   the received data from a socket <i>hSocket</i> in the pre-prepared
+   string <i>cResult</i> in a quantity not exceeding <i>nSize</i>if this parameter is
+   transferred, or the length of <i>cBuffer</i> in the opposite case. Returns the number of the read bytes
+   or -1 in case of error.
+      </td></tr></tbody></table>
+    <br>
+
+   <p>I propose you a useful example of using the above (INET) and below (multithreading) functions.
+   So, this is a 2-thread application inspecting every 2 minutes the updates on the forum clipper.borda.ru
+   ( do not forget that it must be compiled with support for multi-threading, otherwise it will not work ):</p>
+
+   <pre class="brush: prg;">   #include "box.ch"
+
+   REQUEST HB_CODEPAGE_RU866
+   REQUEST HB_CODEPAGE_RU1251
+
+   Static mutex1
+   Static aNew := {}
+
+   Function Main()
+   Local pThread, lEnd := .F., nkey
+
+      hb_cdpSelect( "RU866" )
+      hb_inetInit()
+
+      // Create a mutex to synchronize threads when accessing the array aNew
+      mutex1 := hb_mutexCreate()
+      // Create a thread to check for updates with clipper.borda.ru
+      pThread := hb_threadStart( @GetData(), @lEnd )
+
+      // Just waiting for user input.
+      CLEAR SCREEN
+      @ 24, 1 SAY "Press Esc to complete the program, F5 - changes"
+      read
+      DO WHILE ( nKey := Inkey(0) ) != 27
+         IF nKey == -4    // F5
+            ShowUpd()
+         ENDIF
+      ENDDO
+
+      // Send via lEnd completion signal to a thread and are looking forward to it.
+      lEnd := .T.
+      hb_threadJoin( pThread )
+
+      hb_inetCleanup()
+
+   Return .T.
+
+   // This function is called by F5 and shows the changes to the site
+   Function ShowUpd()
+   Local arr, bufc, i, l
+
+      // Here we need a mutex we read an array aNew, which could in this
+      // time modified by a second thread
+      hb_mutexLock( mutex1 )
+      IF ( l := !Empty( aNew ) )
+         arr := {}
+         FOR i := 1 TO Len( aNew )
+            Aadd( arr, Padr( hb_translate( Trim(aNew[i,2])+": " ;
+               +Trim(aNew[i,3])+" "+Trim(aNew[i,4]),"RU1251","RU866" ),64 ) )
+         NEXT
+      ENDIF
+      hb_mutexUnLock( mutex1 )
+
+
+      bufc := Savescreen( 7,7,13,73 )
+      @ 7,7,13,73 BOX B_DOUBLE_SINGLE + Space(1)
+      IF l
+         AChoice( 8,8,12,72,arr )
+      ELSE
+         @ 10, 35 SAY "Ничего нового..."
+         Inkey(1)
+      ENDIF
+      Restscreen( 7,7,13,73, bufc )
+      hb_dispOutAt( 0, 69, "          ", "GR+/N" )
+
+   Return .T.
+
+   // This function analyzes the main page of the site and looking for there the necessary changes.
+   // In order to better understand it, look at the source text of the main page clipper.borda.ru
+   Static Function CheckAns( cBuf )
+   Local nPos1 := 1, nPos2, aItems, aRes := {}
+   Local aStru := { {"ID","C",2,0}, {"NAME","C",16,0}, {"TM","C",10,0}, {"LOGIN","C",16,0}, {"TITLE","C",32,0} }
+   Local fname := "cl_borda.dbf", lFirstTime := .F.
+   Field ID, NAME, TM, LOGIN, TITLE
+
+      IF !File( fname )
+         dbCreate( fname, aStru )
+         lFirstTime := .T.
+      ENDIF
+      USE (fname) NEW EXCLUSIVE
+     
+      DO WHILE ( nPos1 := hb_At( "st(", cBuf, nPos1 ) ) != 0
+         IF ( nPos2 := hb_At( ")", cBuf, nPos1 ) ) != 0
+
+            aItems := hb_aTokens( Substr(cBuf,nPos1+3,nPos2-nPos1-3), ",", .T. )
+            aItems[1] := Padr( Substr( aItems[1], 2, Min( aStru[1,3],Len(aItems[1])-2 ) ), aStru[1,3] )
+            aItems[2] := Padr( Substr( aItems[2], 2, Min( aStru[2,3],Len(aItems[2])-2 ) ), aStru[2,3] )
+            aItems[5] := Padr( Substr( aItems[5], 2, Min( aStru[3,3],Len(aItems[5])-2 ) ), aStru[3,3] )
+            aItems[8] := Padr( Substr( aItems[8], 2, Min( aStru[4,3],Len(aItems[8])-2 ) ), aStru[4,3] )
+            aItems[9] := Padr( Substr( aItems[9], 2, Min( aStru[5,3],Len(aItems[9])-2 ) ), aStru[5,3] )
+
+            IF lFirstTime
+               APPEND BLANK
+               REPLACE ID WITH aItems[1], NAME WITH aItems[2], TM WITH aItems[5], ;
+                     LOGIN WITH aItems[8], TITLE WITH aItems[9]
+            ELSE
+               LOCATE FOR ID == aItems[1]
+               IF !Found()
+                  APPEND BLANK
+                  REPLACE ID WITH aItems[1], NAME WITH aItems[2], TM WITH aItems[5], ;
+                        LOGIN WITH aItems[8], TITLE WITH aItems[9]
+                  Aadd( aRes, {aItems[1],aItems[2],aItems[8],aItems[9]} )
+               ELSEIF TM != aItems[5] .OR. LOGIN != aItems[8] .OR. TITLE != aItems[9]
+                  REPLACE TM WITH aItems[5], LOGIN WITH aItems[8], TITLE WITH aItems[9]
+                  Aadd( aRes, {aItems[1],aItems[2],aItems[8],aItems[9]} )
+               ENDIF
+            ENDIF
+
+            nPos1 := nPos2 + 1
+         ELSE
+            EXIT
+         ENDIF
+      ENDDO
+      USE
+
+   Return aRes
+
+   // This is the 2nd flow
+   Function GetData( lEnd )
+   Local nCount := 0, hSocket, cUrl, cServer, cBuf, aRes
+
+      cServer := "clipper.borda.ru"
+      cURL := "GET http://" + cServer + "/ HTTP/1.1" +Chr(13)+Chr(10)
+      cURL += "Host: " + cServer + Chr(13)+Chr(10)
+      cURL += "User-Agent: test_util"+Chr(13)+Chr(10)
+      cUrl += Chr(13)+Chr(10)
+
+      DO WHILE !lEnd
+         IF nCount == 0
+            hb_dispOutAt( 0, 61, "Читаем.", "GR+/N" )
+            hSocket := hb_inetCreate()                   // create a socket
+            hb_inetConnect( cServer, 80, hSocket )       // connect to the web site of the forum
+            IF hb_inetErrorCode( hSocket ) != 0
+               hb_dispOutAt( 0, 61, "Сбой...", "GR+/N" ) 
+            ENDIF
+
+            // Send the request, formed above,  and waiting for a reply.
+            IF hb_inetSendAll( hSocket, cURL ) &gt; 0 .AND. !Empty( cBuf := hb_inetRecvEndBlock( hSocket, "main2(",,,4096 ) )
+               IF !Empty( aRes := CheckAns( cBuf ) )
+                  hb_dispOutAt( 0, 69, "!! Есть !!", "GR+/N" )
+                  // Use a mutex for the safe aNew modification
+                  hb_mutexLock( mutex1 )
+                  aNew := aRes
+                  hb_mutexUnLock( mutex1 )
+               ENDIF
+               hb_dispOutAt( 0, 61, "       ", "GR+/N" )
+            ELSE
+               hb_dispOutAt( 0, 61, "Сбой...", "GR+/N" )
+            ENDIF
+
+            // Close the socket
+            hb_inetClose( hSocket ) 
+         ENDIF
+         hb_idleSleep(2)
+         IF ++nCount &gt;= 60
+            nCount := 0
+         ENDIF
+      ENDDO
+
+   Return Nil
+   </pre>
+
+   <p>When changing the engine of the forum this program may stop working, because it implies
+   the presence of certain strings in the html code - searches for calls of <i>javascript</i> functions main2() and st().
+   </p>
+
+   <p><strong class="subhead"><a name="Doc11" href="hrbfaq.html#_Doc11"> 3.11 Multithreading</a></strong><br>
+   </p><p>Multithreading is a programming model that allows multiple threads to run
+   within the same process, the same application, interacting with each other, sharing the resources
+   of this application. Threads are performed by the operating system in parallel. If the system is a single-processor,
+   it is a quasiparallelism provided by the fact that the OS allocates the time between threads.
+   In a multiprocessor system threads can actually be performed in parallel on different processors,
+   providing a general improvement in the performance of the application. It is often convenient to use
+   separate threads for any action related to the lengthy computation or a lengthy waiting time
+   of any event, blocking the execution of the program ( for example, when working in a network
+   using sockets ); while the main thread continues to respond to user's actions.
+   </p>
+   <p>The Harbour application can be built for a single-threaded execution and for multi-threading. In
+   the last case it is necessary to use a multi-threaded version of the Harbour virtual machine -
+   the hbvmmt.lib library instead of a single-threaded hbvm.lib and the library of your <i>C</i>
+    compiler, containing functions for the realization of multi-threading (for Borland C it is cw32mt.lib). 
+   The most simple solution is to build your application using
+   <i>hbmk2</i> with the key <i>-mt</i>. Nothing prevents you from putting 
+   in the multi-threaded mode normal
+   single-threaded applications, but the way they will work is a little slower
+    and it will take a little more space on the disk and in memory.
+   </p>
+   <p>When creating a new thread inherits from the parent:<br>
+   &nbsp;&nbsp;&nbsp; - the code page installed hb_cdpSelect(),<br>
+   &nbsp;&nbsp;&nbsp; - language ( hb_langSelect() ),<br>
+   &nbsp;&nbsp;&nbsp; - all <i>SET</i> options,<br>
+   &nbsp;&nbsp;&nbsp; - RDD by default,<br>
+   &nbsp;&nbsp;&nbsp; - GT driver and console window,<br>
+   &nbsp;&nbsp;&nbsp; - options of I18N.
+   </p>
+   <p>These settings are initialized to its initial value ( a new copy is created ):<br>
+   &nbsp;&nbsp;&nbsp; - public variable Getlist := {},<br>
+   &nbsp;&nbsp;&nbsp; - an error handler, initialized by the Errorsys() call,<br>
+   &nbsp;&nbsp;&nbsp; - the handler of mathematical errors,<br>
+   &nbsp;&nbsp;&nbsp; - installation of a macrocomiler ( set hb_setMacro() ),<br>
+   &nbsp;&nbsp;&nbsp; - RDDI_* installation in standard RDD ( third-party RDD can use the global settings ),<br>
+   &nbsp;&nbsp;&nbsp; - <i>thread static</i> variables.
+   </p>
+   <p>Individual <i>Public</i> and <i>Private</i> variables can be passed to the thread when it is created.
+   </p>
+   <p>The following resources are used together:<br>
+   &nbsp;&nbsp;&nbsp; - functions and procedures,<br>
+   &nbsp;&nbsp;&nbsp; - definition of classes,<br>
+   &nbsp;&nbsp;&nbsp; - modules RDD,<br>
+   &nbsp;&nbsp;&nbsp; - GT drivers,<br>
+   &nbsp;&nbsp;&nbsp; - language modules,<br>
+   &nbsp;&nbsp;&nbsp; - modules of code pages,<br>
+   &nbsp;&nbsp;&nbsp; - static variables.
+   </p>
+   <p>Local resources of a thread:<br>
+   &nbsp;&nbsp;&nbsp; - <i>Public</i> and <i>Private</i> variables, except those that are used together,<br>
+   &nbsp;&nbsp;&nbsp; - working areas (workareas),<br>
+   &nbsp;&nbsp;&nbsp; - <i>thread static</i> variables.
+   </p>
+   <p>Below is a list of functions that are intended for management of threads, their creation and completion of:</p>
+    <table border="1">
+      <tbody><tr><td><code>pThID := hb_threadStart( @sStart() | bStart | cStart [, params,... ] )</code></td><td> Creates
+        the new thread, and returns a pointer to it <i>pThID</i>, or Nil if the thread's creation failed.
+        The first parameter of hb_threadStart() determines what code a new thread will execute. This
+        can be a pointer to a function, codeblock or the name of the function passed as a text string.
+        Following is a list of parameters passed to the function.
+      </td></tr><tr><td><code>pThID := hb_threadStart( nThreadAttrs, @sStart() | bStart | cStart [, params,... ] )</code></td><td> This
+        way of using the hb_threadStart() is different from the previous, it has the first parameter
+        <i>nThreadAttrs</i>, containing the attributes of the thread. These attributes are described in hbthread.ch:
+        <pre class="code">   #define HB_THREAD_INHERIT_PUBLIC 1
+   #define HB_THREAD_INHERIT_PRIVATE 2
+   #define HB_THREAD_INHERIT_MEMVARS 3
+   #define HB_THREAD_MEMVARS_COPY 4
+        </pre>
+        For instance, if we write <code>hb_threadStart( hb_bitor(HB_THREAD_INHERIT_PUBLIC,HB_THREAD_MEMVARS_COPY),@thFunc() )</code>,
+        the thread receives copies of all Public variables of the parent, and if
+        <code>hb_threadStart( HB_THREAD_INHERIT_MEMVARS,@thFunc() )</code>,
+        the thread shares all Public and Private variables with the parent, see the example harbour/tests/mt/mttest08.prg.
+      </td></tr><tr><td><nobr><code>pThID := hb_threadSelf()</code></nobr></td><td> Returns the index of the thread from
+        which this functionis called  . It can return Nil, if the stream is created not by means of the Harbour.
+      </td></tr><tr><td><nobr><code>nThNo := hb_threadId( [ pThID ] )</code></nobr></td><td> Returns the identifier of the
+        the thread in the index.
+      </td></tr><tr><td><nobr><code>lOk := hb_threadJoin( pThID [, @xRetCode ] )</code></nobr></td><td> Suspends
+        execution of the current thread, until you end the stream, on which the <i>pThID</i> points to.
+      </td></tr><tr><td><nobr><code>lOk := hb_threadDetach( pThID )</code></nobr></td><td> Disables the thread which
+        <i>pThID</i> indicates , making it separate. Now it is no longer necessary to attach function
+        hb_threadJoin (); it will release all their resources automatically after the completion of its work.
+      </td></tr><tr><td><nobr><code>lOk := hb_threadQuitRequest( pThID )</code></nobr></td><td> Sends
+        to the operating system a request to complete the thread, which <i>pThID</i> indicates and
+        suspends the current thread, waiting for the implementation of the completion of the thread of <i>pThID</i>.
+        Please note that this thread is "killed" from the outside, and the result of its work is unspecified.
+      </td></tr><tr><td><nobr><code>hb_threadTerminateAll()</code></nobr></td><td> Sends a request to the completion of the
+        all threads and waits till it happens. A function can be called only from
+        the main thread.
+      </td></tr><tr><td><nobr><code>hb_threadWaitForAll()</code></nobr></td><td> Waits for all the threads to be completed.
+      </td></tr><tr><td><code>nRes := hb_threadWait( pThID | apThID [, nTimeOut] [, lAll] )</code></td><td> Waits
+        <i>nTimeOut</i> seconds ( or unlimited period of time, if this parameter is not specified ) for the completion of the
+        thread <i>pThID</i>, or one of the threads in the array of pointers <i>apThID</i>, or
+        all the threads of this array, if the parameter <i>lAll</i> is specified and it is equal to .T.. Returns
+        the number of the comleted thread, or the number of threads comleted in the period of <i>nTimeOut</i> seconds,
+        if <i>lAll</i> is equal to .T..
+      </td></tr><tr><td><nobr><code>lOk := hb_mtvm()</code></nobr></td><td> Returns TRUE, if your program is compiled
+        with the ability to create threads.
+    </td></tr></tbody></table>
+
+    <p>Using these functions, we can now write the first simple multi-threaded applications, for example
+   this one, to display a clock on the screen:</p>
+   <pre class="brush: prg;">   FUNCTION Main()
+      LOCAL cVar := Space( 20 )
+
+      CLEAR SCREEN
+
+      IF !hb_mtvm()
+         ? "There is no support for multi-threading, clocks will not be seen."
+         WAIT
+      ELSE
+         hb_threadStart( @Show_Time() )
+      ENDIF
+
+      @ 10, 10 SAY "Enter something:" GET cVar
+      READ
+      SetPos( 12, 0 )
+      ? "You enter -&gt; [" + cVar + "]"
+      WAIT
+
+      RETURN Nil
+
+   FUNCTION Show_Time()
+      LOCAL cTime
+
+      DO WHILE .T.
+         cTime := Dtoc( Date() ) + " " + Time()
+         hb_dispOutAt( 0, MaxCol() - Len( cTime ) + 1, cTime, "GR+/N" )
+         hb_idleSleep( 1 )
+      ENDDO
+
+      RETURN nil
+   </pre>
+
+   <p>We have created a thread that began to perform the function of Show_Time(), constantly showing the current
+   time in the upper right corner of the screen. Please note,
+   that the function hb_dispOutAt() is used for showing the time on the screen, it does not change the current
+   cursor position and the color of the console.</p>
+   <p>If another function were used, for example, DispOut(), the cursor would have moved from the area of
+   input in the main thread, this would not help the preservation and restoration of its position
+   in Show_Time(). The fact is that the operating system can interrupt the thread and
+   pass control to the other at any moment of time, in the middle of any operation. You, for example,
+   are restoring the position of the cursor using the function SetPos(), but at any stage of its implementation ( as it is
+   a long serie of native code operations ) the operating system can interrupt it and return control to
+   the main thread, or any other, who also modifies at that moment the position of the cursor
+   and the result will be unpredictable. Therefore,in cases
+   when the use of any shared resources ( most often a variable ), required
+   the synchronization tool of the work threads so that they do not address to the general resources at the same time.
+   These means are semaphores, and one of them - <i>mutex</i>. Look below
+   a description of the relevant functions:
+   </p>
+
+    <table border="1">
+      <tbody><tr><td><nobr><code>pMtx := hb_mutexCreate()</code></nobr></td><td> Creates <i>mutex</i> and
+         returns its handle.
+      </td></tr><tr><td><nobr><code>lLocked := hb_mutexLock( pMtx [, nTimeOut] )</code></nobr></td><td> Blocks
+         <i>mutex</i> <i>pMtx</i> for the current thread. If this <i>mutex</i> is already blocked
+         by the other thread, then the current thread is suspended until the stream unlocks <i>mutex</i> <i>pMtx</i>,
+         or until the <i>nTimeOut</i> milliseconds, if this parameter is passed. Returns
+         .T. if <i>pMtx</i> is locked.
+      </td></tr><tr><td><nobr><code>lOk := hb_mutexUnlock( pMtx )</code></nobr></td><td> Unlocks the previously
+         blocked <i>mutex</i> <i>pMtx</i>.
+      </td></tr><tr><td><nobr><code>hb_mutexNotify( pMtx [, xVal] )</code></nobr></td><td> Sends a notification
+         to the next thread, signed to <i>mutex</i> <i>pMtx</i> with the help of the function hb_mutexSubscribe()
+         or hb_mutexSubscribeNow() and, therefore, gives him the opportunity to continue the work. If multiple threads
+         are signed on <i>pMtx</i> then the operating system itself chooses,
+         which of them to send the notification to. The parameter <i>xVal</i> is transmitted to the unlocked thread,
+         through the function hb_mutexSubscribe() of the thread, that writes <i>xVal</i> in the passed by
+         a reference third parameter.
+      </td></tr><tr><td><nobr><code>hb_mutexNotifyAll( pMtx [, xVal] )</code></nobr></td><td> is similar to hb_mutexNotify(),
+         but, unlike it, sends a notice not to one, but to all threads, "signed" on
+         <i>mutex</i> <i>pMtx</i>.
+      </td></tr><tr><td><code>lSubscribed := hb_mutexSubscribe( pMtx, [nTimeOut] [, @xVal] )</code></td><td> The function
+         suspends the execution of the current thread at a time in <i>nTimeOut</i> milliseconds ( or for an unlimited
+         time, if this parameter is not specified ), until another thread calls hb_mutexNotify() or
+         hb_mutexNotifyAll() for the same <i>mutex</i> <i>pMtx</i>. In the passed by the reference
+         <i>xVal</i> the value received from hb_mutexNotify() of the second parameter ( hb_mutexNotify() ) is recorded .
+         The function returns .T. if it is ended as a result of receipt of the notification, and .F. if - due to timeout.
+      </td></tr><tr><td><code>lSubscribed := hb_mutexSubscribeNow( pMtx, [nTimeOut] [, @xSubscribed] )</code></td><td> Is similar to
+         the previous function hb_mutexSubscribe(), but, unlike it ignores the notification sent
+         by challenges hb_mutexNotify() before the start of work of the function.
+      </td></tr><tr><td><code>xResult := hb_mutexEval( pMtx, bCode | @sFunc() [, params,...] )</code></td><td> Consistently
+         performs hb_mutexLock( pMtx ), the action specified by codeblock <i>bCode</i> or pointer
+         <i>@sFunc()</i> with parameters <i>params,...</i> and hb_mutexUnlock( pMtx ).
+      </td></tr><tr><td><nobr><code>hb_mutexQueueInfo( pMtx, @nWaiters, @nEvents )</code></nobr></td><td> Provides
+         information about a queue for <i>mutex</i> <i>pMtx</i>. In <i>nWaiters</i> the number of the recorded
+         thread, "signed" on <i>pMtx</i>, in <i>nEvents</i> - the number of notifications, 
+         not arrived to the subscribers.
+    </td></tr></tbody></table>
+
+    <p> So, to prevent simulteneous addressing of different threads to the same resource, do the following:<br>
+    &nbsp;&nbsp;&nbsp; 1) create <i>mutex</i>: <code>pMtx := hb_mutexCreate()</code><br>
+    &nbsp;&nbsp;&nbsp; 2) in those parts of the program which refer to protected resources, wrap
+   the code lock/unlocked <i>mutex</i>, but, i.e., put
+   before it <code>hb_mutexLock( pMtx )</code> and after it <code>hb_mutexUnLock( pMtx )</code> -
+   the same as if we are blocking/unblocking a record of an shared database while recording in it.
+   Don't forget that, unlike rlock(), hb_mutexLock() suspends the further execution of a thread,
+   if <i>mutex</i> is already blocked by something  - cases of carelessness can cause the <i>deadlock</i> -
+   the situation, when several threads mutually block the execution of each other.
+   </p>
+    <p>However, in our example with the clock this is not the case - if we used Setpos() and Dispout(),
+   <i>mutex</i>  would not have helped us. In the main thread the cursor control is not directly
+   in our program, but somewhere within the Harbour's RTL, in the implementation of the function Readmodal() -
+   and we can't insert there a lock <i>mutex</i>. Therefore let's expand a little our example by adding 
+   there the parameter setting of the date display:</p>
+   <pre class="brush: prg;">   #include "box.ch"
+
+   Static mutex1
+   Static cOpt := "DD.MM.YY"
+
+   FUNCTION Main()
+      LOCAL cVar := Space( 20 )
+
+      CLEAR SCREEN
+
+      IF !hb_mtvm()
+         ? "There is no support for multi-threading, hours will not be seen."
+         WAIT
+      ELSE
+         mutex1 := hb_mutexCreate()
+         hb_threadStart( @Show_Time() )
+      ENDIF
+
+      SET KEY -4 TO Options
+      @ 10, 10 SAY "Enter something:" GET cVar
+      READ
+      SET KEY -4 TO
+      SetPos( 12, 0 )
+      ? "You enter -&gt; [" + cVar + "]"
+      WAIT
+
+      RETURN Nil
+
+   FUNCTION Show_Time()
+      LOCAL cTime
+
+      DO WHILE .T.
+         hb_mutexLock( mutex1 )
+         cTime := Iif( !Empty( cOpt ), hb_Dtoc( Date(),cOpt ), Space(10) ) + " " + Time()
+         hb_mutexUnLock( mutex1 )
+         hb_dispOutAt( 0, MaxCol() - Len( cTime ) + 1, cTime, "GR+/N" )
+         hb_idleSleep( 1 )
+      ENDDO
+
+      RETURN nil
+
+   Function Options
+   Local bufc, n, aOpt := { "DD.MM.YYYY","DD/MM/YYYY","DD.MM.YY","YYYY.MM.DD","       " }
+
+      bufc := Savescreen( 7,31,13,49 )
+      @ 7,31,13,49 BOX B_DOUBLE_SINGLE + Space(1)
+      IF ( n := AChoice( 8,32,12,48,aOpt ) ) != 0
+         hb_mutexLock( mutex1 )
+         cOpt := aOpt[n]
+         hb_mutexUnLock( mutex1 )
+      ENDIF
+      Restscreen( 7,31,13,49, bufc )
+
+   Return Nil
+   </pre>
+
+   <p>So we have a variable <i>cOpt</i>, which contains the display format of the dates,
+   the function Options(), which is invoked by pressing the F5 key and changes the string format.
+   Since the thread executing Show_Time(), uses the string, we use <i>mutex</i> to avoid collisions.
+   </p>
+   <p>Another example of a multithreaded program with <i>mutex</i> see in the previous section.</p>
+    <p>2 more functions to synchronize actions between threads:</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>lFirstCall := hb_threadOnce( @onceControl [, bAction] )</code></nobr></td><td> Performs
+        <i>bAction</i> one time, <i>onceControl</i> - variable, which stores the status of the implementation,
+        it should be initialized to Nil, usually this is a static variable. When <i>bAction</i>
+        is performed by the thread all other threads which call at this moment the hb_threadOnce(),
+        are suspended, even if they use a different <i>onceControl</i>. If a thread tries to
+        call hb_threadOnce() with the same <i>onceControl</i> recursively from <i>bAction</i>, the
+        function immediately terminates without executing <i>bAction</i> and returns .F.. The function returns
+        a boolean value that indicates wether it was the first call of hb_threadOnce() for this
+        <i>onceControl</i>.
+      </td></tr><tr><td><nobr><code>lInit := hb_threadOnceInit( @item, value )</code></nobr></td><td> This function is
+        similar to the hb_threadOnce(), it writes <i>value</i> in <i>nItem</i>if <i>nItem</i> is equal to Nil.
+    </td></tr></tbody></table>
+
+   <p>Now about the access to the databases in multi-threaded applications. As already noted above, working area (workareas) in the Harbour
+    are local to the thread, i.e. each thread has its own independent
+   workspaces and aliases, and, in the general case, if you need a database in the thread "B" which is already opened in
+   the thread "A", you need to open it in the "B" agein, which is easy to do in <i>shared mode</i>.</p>
+   <p>But there is another possibility - you can transfer the workspace from one thread to another,
+   using the known by users <i>xBase++</i> <i>zero space</i>. Two following  options are designed for this:
+   </p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>lOk := hb_dbDetach( [nWorkArea|cAlias] [, xCargo] )</code></nobr></td><td> Disconnects
+        the working area, specified by number <i>nWorkArea</i> or by the name of the alias <i>cAlias</i>
+        from the current thread, moving it to <i>zero space</i>. It is possible to transmit information through <i>xCargo</i> to the threads,
+        which will use it.
+      </td></tr><tr><td><code>lOk := hb_dbRequest( [cAlias] [, lNewArea] [,@xCargo] [,lWait])</code></td><td> Requests
+        working area of <i>zero space</i> by the name of the alias <i>cAlias</i>; <i>lNewArea</i> specifies
+        whether to use a new workspace ( as in dbUseArea() )or not, <i>lWait</i> - wether it should be
+        waited until the requested working area is available. The function returns .T. if
+        all was successfully.
+    </td></tr></tbody></table>
+
+   <p>This mechanism allows to use workspaces by different threads together . To illustrate
+   it we shall take 2 commands:</p>
+   <pre class="code">      #xcommand UNLOCK WORKAREA [<calias>] =&gt; hb_dbDetach( <calias> )
+      #xcommand LOCK WORKAREA <calias>   =&gt; hb_dbRequest( <calias>, .T.,, .T. )
+   </calias></calias></calias></calias></pre>
+
+   <p>After the opening table by the command <i>Use</i> the thread executes <code>UNLOCK WORKAREA</code> and,
+   i.e., moves it in <i>zero space</i>. Now each thread, which needs this table,
+   can get access to it, for example:</p>
+   <pre class="code">      LOCK WORKAREA "DOCUMENTS"
+         COUNT TO nInvoices FOR year( DOCUMENTS-&gt;DATE ) == year( date() )
+      UNLOCK WORKAREA
+   </pre>
+
+   <p>Other examples of multi-threaded programs you can find in the harbour/tests/mt.</p>
+
+   <p><strong class="subhead"><a name="Doc12" href="hrbfaq.html#_Doc12"> 3.12 File IO API</a></strong><br>
+   </p><p>Harbour inherited from the Clipper a set of functions <code>FOpen(), FSeek(), FRead(), ...</code>, that are designed to work with the files.</p>
+
+   <p>This collection supplemented with new functions, a complete list is provided in subsection <a href="#Doc14_2">3.14.2 File functions</a>.</p>
+
+   <p>New File IO API is a set of functions with <i>hb_vf</i> prefix, similar to the common file functions, with the same set of parameters and the same functionality.
+   An implementation of these functions allows to use replaceable drivers like RDDs.
+   Now, if you put a prefix of any of the existing
+    drivers with a colon at the end in front of the file name ( "mem:", "net:", ... ), a
+    communication with this file will go through appropriate driver. The following function call,
+    for example:</p>
+
+   <pre class="code">      hb_vfCopyFile( "test.txt", "mem:test.txt" )</pre>
+   will create a copy of a "test.txt" in a memory (<i>hbmemio</i> driver).
+
+   <p>IO drivers are the <a href="hrbfaq_4.html#Dop">contributed Harbour libraries</a>,
+   such as <i>hbnetio</i>, <a href="hrbfaq_4.html#Dop1_29"><i>hbmemio</i></a>, <a href="hrbfaq_4.html#Dop1_24"><i>hbgzio</i></a>, <a href="hrbfaq_4.html#Dop1_8"><i>hbbz2io</i></a>, <i>hbcomio</i> and others.</p>
+
+   <p>Functions list:</p>
+    <table border="1">
+      <tbody><tr><td><code>lOk := hb_vfExists( cFileName, [ @cDestFileName ] )</code></td><td> Checks, if a file <i>cFileName</i> exists, matches the <code>File()</code> function.
+      </td></tr><tr><td><code>nResult := hb_vfErase( cFileName ) </code></td><td>Deletes a file <i>cFileName</i>, matches the <code>FErase()</code> function.
+      </td></tr><tr><td><code>nResult := hb_vfRename( cFileSrc, cFileDst ) </code></td><td> Renames a file <i>cFileSrc</i> into <i>cFileDst</i>, matches the <code>FRename()</code> function.
+      </td></tr><tr><td><code>nResult := hb_vfCopyFile( cFileSrc, cFileDst ) </code></td><td> Copies a file <i>cFileSrc</i> into <i>cFileDst</i>, matches the <code>FCopy()</code> function.
+      </td></tr><tr><td><code>lExists := hb_vfDirExists( cDirName )</code></td><td>Checks, if a directory <i>cDirName</i> exists, matches the <code>DirExists()</code>.
+      </td></tr><tr><td><code>nSuccess := hb_vfDirMake( cDirName )</code></td><td> Creates a new directory <i>cDirName</i>, matches the <code>MakeDir()</code>.
+      </td></tr><tr><td><code>nSuccess := hb_vfDirRemove( cDirName )</code></td><td> Deletes a directory <i>cDirName</i>, matches the <code>DirRemove()</code>.
+      </td></tr><tr><td><code>aDirectory := hb_vfDirectory( [ cDirSpec ], [ cAttr ] ) </code></td><td> Returns an array with info about a directory, matches the <code>Directory()</code> function.
+      </td></tr><tr><td><code>nFreeSpace := hb_vfDirSpace( cDirName, [ nInfoType ] ) </code></td><td>&nbsp;
+      </td></tr><tr><td><code>lOk := hb_vfAttrGet( cFileName, @nAttr ) </code></td><td> Stores in a <i>nAttr</i> variable, passed by a reference, an attributes of a <i>cFileName</i> file; matches the <code>hb_fGetAttr()</code> function.
+      </td></tr><tr><td><code>lOk := hb_vfAttrSet( cFileName, nAttr ) </code></td><td> Sets attributes <i>nAttr</i> to a <i>cFileName</i> file; matches the <code>hb_fSetAttr()</code> function.
+      </td></tr><tr><td><code>lOk := hb_vfTimeGet( cFileName, @tsDateTime ) </code></td><td> Stores in <i>tsDateTime</i> date and time of a <i>cFileName</i> modification; matches partially the <code>hb_fGetDateTime()</code> function.
+      </td></tr><tr><td><code>lOk := hb_vfTimeSet( cFileName, tsDateTime ) </code></td><td> Sets a date and time (<i>tsDateTime</i>) of a <i>cFileName</i> modification; matches partially the <code>hb_fSetDateTime()</code> function.
+      </td></tr><tr><td><code>nSuccess := hb_vfLink( cExistingFileName, cNewFileName ) </code></td><td> Creates a hard link <i>cNewFileName</i> to a file <i>cExistingFileName</i>, matches the <code>hb_fLink()</code> function.
+      </td></tr><tr><td><code>nSuccess := hb_vfLinkSym( cTargetFileName, cNewFileName ) </code></td><td> Creates a symbolic link <i>cNewFileName</i> to a file <i>cTargetFileName</i>, matches the <code>hb_fLinkSym()</code> function.
+      </td></tr><tr><td><code>cDestFileName := hb_vfLinkRead( cFileName )</code></td><td> Returns a value (a full path) of a symbolic link, matches the <code>hb_fLinkRead()</code> function.
+      </td></tr><tr><td><code>pHandle := hb_vfOpen( [@]cFileName, [ nModeAttr ] ) </code></td><td> Opens <i>cFileName</i> file, matches the <code>FOpen()</code> function.
+      </td></tr><tr><td><code>lOk := hb_vfClose( pHandle )</code></td><td> Closes an opened file, matches the <code>FClose()</code> function.
+      </td></tr><tr><td><code>lOk := hb_vfLock( pHandle, nStart, nLen, [ nType ] ) </code></td><td> Locks a file fragment from <i>nOffsetFrom</i> to <i>nOffsetTo</i>, matches the <code>hb_FLock()</code> function.
+      </td></tr><tr><td><code>lOk := hb_vfUnlock( pHandle, nStart, nLen )</code></td><td> Unlocks a file fragment from <i>nOffsetFrom</i> to <i>nOffsetTo</i>, matches the <code>hb_FUnLock()</code> function.
+      </td></tr><tr><td><code>nPID := hb_vfLockTest( pHandle, nStart, nLen, [ nType ] )</code></td><td>&nbsp;
+      </td></tr><tr><td><code>nRead := hb_vfRead( pHandle, @cBuff, [ nToRead ], [ nTimeOut ] ) </code></td><td> Reads a block with a <i>nToRead</i> length, beginning from a current offset, matches the <code>FRead()</code> function.
+      </td></tr><tr><td><code>cBuffer := hb_vfReadLen( pHandle, nToRead, [ nTimeOut ] ) </code></td><td> Reads <i>nToRead</i> bytes from an opened file, returns a read buffer, matches the <code>hb_FReadLen()</code> function.
+      </td></tr><tr><td><code>nWritten := hb_vfWrite( pHandle, cBuff, [ nToWrite ], [ nTimeOut ] ) </code></td><td> Writes to an opened file from a current offset, matches the <code>FWrite()</code> function.
+      </td></tr><tr><td><code>nRead := hb_vfReadAt( pHandle, @cBuff, [ nToRead ], [ nAtOffset ] ) </code></td><td> Reads a block with a <i>nToRead</i> length, beginning from an offset <i>nAtOffset</i>.
+      </td></tr><tr><td><code>nWritten := hb_vfWriteAt( pHandle, cBuff, [ nToWrite ], [ nAtOffset ] ) </code></td><td> Writes to an opened file, from a given offset <i>nAtOffset</i>.
+      </td></tr><tr><td><code>nOffset := hb_vfSeek( pHandle, nOffset, [ nWhence ] ) </code></td><td> Sets a pointer to a given position in an opened file, matches the <code>FSeek()</code> function.
+      </td></tr><tr><td><code>lOk := hb_vfTrunc( pHandle, [ nAtOffset ] ) </code></td><td>&nbsp;
+      </td></tr><tr><td><code>nSize := hb_vfSize( pHandle | cFileName [, lUseDirEntry ] ) </code></td><td> Returns a size of a <i>cFileName</i> file, matches the <code>hb_FSize()</code> function.
+      </td></tr><tr><td><code>lEof := hb_vfEof( pHandle ) </code></td><td>&nbsp;
+      </td></tr><tr><td><code>hb_vfFlush( , [ lDirtyOnly ] ) </code></td><td>&nbsp;
+      </td></tr><tr><td><code>hb_vfCommit( pHandle ) </code></td><td>&nbsp;
+      </td></tr><tr><td><code>nResult := hb_vfConfig( pHandle, nSet, [ nParam ] ) </code></td><td>&nbsp;
+      </td></tr><tr><td><code>nOsHandle := hb_vfHandle( pHandle ) </code></td><td>&nbsp;
+      </td></tr><tr><td><code>pHandle := hb_vfTempFile( @cFileName, [ cDir ], [ cPrefix ], [ cExt ], [ nAttr ] ) </code></td><td> Creates temporary file, matches the <code>hb_fTempCreateEx()</code> function.
+      </td></tr><tr><td><code>cFileBody := hb_vfLoad( cFileName, [ nMaxSize ] )</code></td><td> Reads the whole file (but no more, than <i>nMaxSize</i>, if it is set), matches the <code>hb_Memoread()</code> function.
+    </td></tr></tbody></table>
+
+   <p><strong class="subhead"><a name="Doc13" href="hrbfaq.html#_Doc13"> 3.13 Internationalization (hbi18n)</a></strong><br>
+   </p><p>The application internationalization technology is based on the well-known GNU gettext and provides
+   a relatively simple way to translate applications into different languages.</p>
+   <p>I will try to describe this process step by step. So, </p>
+
+   <p><b>1.</b> We will mark in a special way all string literals that we want to translate. To do this, we insert
+   in each source file that contains such literals, a line of the type </p>
+   <br>
+   <pre class="code">   #xtranslate _I( &lt;x,...&gt; ) =&gt; hb_i18n_gettext( &lt;x&gt; )
+   </pre>
+   <br>&nbsp;&nbsp;&nbsp;to shorten the call of the function we need <code>hb_i18n_gettext()</code>,
+    and enclose all the necessary string literals in <code>_I()</code>, for example:
+   <br><br>
+   <pre class="code">   Alert( _I("Dangerous error!") )
+   </pre>
+   <br>&nbsp;&nbsp;&nbsp;This is a safe procedure, since the behavior of the program will not change, our
+   <code>Alert()</code> will still be issue a "Dangerous error!" message.
+
+   <p><b>2.</b> Create so-called .pot files. To do this, we need to compile our source code with the -j key
+   (well, with other keys that we use when compiling), for example:</p>
+   <pre class="code">   harbour myfile1.prg myfile2.prg -j -n -ic:\harbour\include
+   </pre>
+   <br>&nbsp;&nbsp;&nbsp;As a result of this action, we will have the files myfile1.pot, myfile2.pot,
+   in which there will be such lines:
+   <br><br>
+   <pre class="code">   #: /myfile1.prg:230
+   #, c-format
+   msgid "Dangerous error!"
+   msgstr ""
+   </pre>
+
+   <p><b>3.</b> Combine all .pot files of our project. To do this, a special program is used, which is included in
+   Harbor kit, <code>hbi18n</code>. We run it with the key -m (merge):</p>
+   <pre class="code">   hbi18n -m -omyproject.pot myfile1.pot myfile2.pot
+   </pre>
+   <br>&nbsp;&nbsp;&nbsp;As a result, a new file will be created, myproject.pot, which will include lines
+   from the other two. All,
+   we don't need myfile1.pot and myfile2.pot anymore, they can be deleted. I note that if
+   we have <code>Alert( _I("Dangerous error!"))</code> in the source code in different places, there will be
+   only one occurrence of it in myproject.pot.
+
+   <p><b>4.</b> We proceed, in fact, to the translation. For each msgid with text, we insert its translation into msgstr. Now
+   we will have lines of the type in myproject.pot:</p>
+   <pre class="code">   #: /myfile1.prg:230
+   #, c-format
+   msgid "Dangerous error!"
+   msgstr "Жуткая ошибка!"
+   </pre>
+
+   <p><b>5.</b> The next step is to compile myproject.pot, for this we again use <code>hbi18n</code>, now with the -g key:</p>
+   <pre class="code">   hbi18n -g myproject.pot
+   </pre>
+   <br>&nbsp;&nbsp;&nbsp;After compilation, a new file should appear, myproject..hbl. This is the final product
+   of our labors, we deliver it with the application and we can load it from the program.
+
+   <p><b>6.</b> To do this, insert the following lines into the program:</p>
+   <pre class="brush: prg;">   cBuff := hb_MemoRead( "myproject.hbl" )
+   IF hb_i18n_Check( cBuff )
+      hb_i18n_Set( hb_i18n_RestoreTable(cBuff) )
+   ENDIF
+   </pre>
+   <br>&nbsp;&nbsp;&nbsp;Now in your program string literals will be shown as you translated them. You can create as many as you want
+   instances of myproject.pot: myproject_ru.pot, myproject_fr.pot, etc., with translations into different languages, compile
+   them into the corresponding .hbl files and load the desired one in the program, depending on the language settings.
+
+   <br>
+   <p>Well, we created the hbl files, upload them, everything works. But we are changing the program, adding new literals.
+   We create pot files in a new way, but they are without translation. What, write a translation again? No, of course not! We will be served by the same
+   <code>hbi18n</code>, but with the key -a (add). It adds translations of words from the saved old pot file:</p>
+   <pre class="code">   hbi18n -a -omyproject.pot myproject.pot myproject_old.pot
+   </pre>
+   <br>&nbsp;&nbsp;&nbsp;All the old translations will be preserved, we just need to translate the new literals.
+   <br>
+   <p>In conclusion, I will attach here as an example my working bat file that creates and modifies pot. This
+   the bat file is taken from hbedit:</p>
+   <pre class="code">   @set SRC_DIR=\papps\gitapps\hbedit\source
+
+   c:\harbour\bin\harbour %SRC_DIR%\fdiff.prg %SRC_DIR%\fedit.prg %SRC_DIR%\fmenu.prg %SRC_DIR%\fview.prg %SRC_DIR%\hbcommander.prg -j -n -q -ic:\harbour\include
+
+   c:\harbour\bin\hbi18n.exe -m -ohbedit_ru_1.pot fdiff.pot fedit.pot fmenu.pot fview.pot hbcommander.pot
+   c:\harbour\bin\hbi18n.exe -a -ohbedit_ru_1.pot hbedit_ru_1.pot hbedit_ru866.pot
+   mv hbedit_ru_1.pot hbedit_ru866.pot
+
+   @del *.c
+   @del fdiff.pot
+   @del fedit.pot
+   @del fmenu.pot
+   @del fview.pot
+   @del hbcommander.pot
+   </pre>
+   <p> As you can see, first a temporary hbedit_ru_1.pot is created, then translations from the main
+   one hbedit_ru866.pot are added to it,
+   and after that the temporary hbedit_ru_1.pot is renamed to the main hbedit_ru866.pot</p>
+
+   <p><strong class="subhead"><a name="Doc14" href="hrbfaq.html#_Doc14"> 3.14 Miscellaneous functions</a></strong><br>
+   </p><p>In this section we will cover a variety of new features that were not included in previous thematic sections.</p>
+
+   <a name="Doc14_1"></a><p>3.14.1  Built-in compiler</p>
+   Three functions using the built-in compiler (hbcplr.lib), based on the same code,
+   that harbour.exe itself
+    <table border="1">
+      <tbody><tr><td><nobr><code>nRetCode := hb_compile( "harbour", cFileName, [...] ) </code></nobr></td><td>
+         Compiles the file <i>cFileName</i>
+         with the parameters of compilation passed to it. The result of its work is the <i>.c</i> file.
+      </td></tr><tr><td><nobr><code>cHrb := hb_compileBuf( "harbour", cFileName, [...] ) </code></nobr></td><td>
+         Unlike hb_compile(), it does not create <i>.c</i> file, and returns the created as a result of
+         compiling <i>p-code</i> in the form of a text string, which can be saved as a <i>hrb</i> file or
+         comply with the help of hb_hrbRun()
+      </td></tr><tr><td><nobr><code>cHrb := hb_compileFromBuf( cPrg, "harbour", [...] ) </code></nobr></td><td>
+         Compiles the code from the clipboard <i>cPrg</i>, returns <i>p-code</i>as hb_compileBuf()
+    </td></tr></tbody></table>
+
+   Below is an example of the use of run-time compilation:
+   <pre class="brush: prg;">      FUNCTION Main( cFileName )
+      Local handle, buf, cBuf := "", i
+
+         buf := hb_compilebuf( "harbour", cFileName, "/n","/w" )  // Compile
+         hb_hrbRun( buf )                                         // Execute
+
+         handle := FCreate( Iif((i:=Rat('.',cFileName))=0,cFileName,Substr(cFileName,1,i-1)) + ".hrb" )
+         FWrite( handle, buf )
+         FClose( handle )
+
+      Return Nil
+   </pre>
+
+    <br>
+    <a name="Doc14_2"></a><p>3.14.2  File functions.</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>lSuccess := hb_fGetAttr( cFileName, @nAttr ) </code></nobr></td><td> Writes to a passed by the reference variable <i>nAttr</i> the attribute of a file with the name <i>cFileName</i>.
+      </td></tr><tr><td><nobr><code>lSuccess := hb_fSetAttr( cFileName, nAttr ) </code></nobr></td><td> Sets the file attributes for the <i>cFileName</i> specified in <i>nAttr</i>.
+      </td></tr><tr><td><nobr><code>lSuccess := hb_fGetDateTime( cFileName, @dDate [, @cTime] ) </code></nobr></td><td> Records in dDate and cTime, respectively, the date and time of a <i>cFileName</i> modification.
+      </td></tr><tr><td><nobr><code>lSuccess := hb_fSetDateTime( cFileName, dDate [, cTime] ) </code></nobr></td><td> Sets the date and time of a <i>cFileName</i> modification.
+
+      </td></tr><tr><td><nobr><code> hb_fcommit( nHandle )</code></nobr></td><td> &nbsp;
+      </td></tr><tr><td><nobr><code> hb_fisdevice( nHandle )</code></nobr></td><td> &nbsp;
+      </td></tr><tr><td><nobr><code> hb_flink()</code></nobr></td><td> Creates a hard link <i>cNewFileName</i> to a file <i>cExistingFileName</i>.
+      </td></tr><tr><td><nobr><code> hb_flinkread()</code></nobr></td><td> Returns a value (a full path) of a symbolic link.
+      </td></tr><tr><td><nobr><code> hb_flinksym()</code></nobr></td><td> Creates a symbolic link <i>cNewFileName</i> to a file <i>cTargetFileName</i>.
+      </td></tr><tr><td><nobr><code> hb_flock( nHandle, nOffsetFrom, nOffsetTo )</code></nobr></td><td> Locks a file fragment from <i>nOffsetFrom</i> to <i>nOffsetTo</i>.
+      </td></tr><tr><td><nobr><code> hb_funlock( nHandle, nOffsetFrom, nOffsetTo )</code></nobr></td><td> Unlocks a file fragment from <i>nOffsetFrom</i> to <i>nOffsetTo</i>.
+      </td></tr><tr><td><nobr><code> cReadBuf := hb_freadlen( nHandle, nToRead )</code></nobr></td><td> Reads <i>nToRead</i> bytes from an opened file, returns a read buffer.
+      </td></tr><tr><td><nobr><code> hb_fsetdevmode( nHandle, nMode )</code></nobr></td><td> &nbsp;
+      </td></tr><tr><td><nobr><code> hb_fsize( cFileName[, lUseDirEntry] )</code></nobr></td><td> Returns a size of a <i>cFileName</i> file.
+
+      </td></tr><tr><td><code>nHandle := hb_fTempCreate( [cPath], [cPrefix], [nAttr], [@cFileName] ) </code></td><td> Creates a temporary file,
+        with the attributes <i>nAttr</i>, with a prefix <i>cPrefix</i>, the path to which is specified in <i>cPath</i>.
+        The function returns <i>handle</i> of the opened file , and writes its  name to the <i>cFileName</i>, passed
+        by the reference. The attributes of the file ( such as symbolic names defined in the
+        <i>fileio.ch</i> ) can have the following values:
+        <pre class="code">           FC_NORMAL          0
+           FC_READONLY        1
+           FC_HIDDEN          2
+           FC_SYSTEM          4
+        </pre>
+
+      </td></tr><tr><td><code>nHandle := hb_fTempCreateEx( [@cFileName], [cPath], [cPrefix], [cExt], [nAttr] ) </code></td><td> Makes
+   the same as the previous function, hb_fTempCreate(), differs from it in that it allows
+   to set the extension of the created file <i>cExt</i> and the order of the arguments is other.
+
+      </td></tr><tr><td><nobr><code>lResult := hb_FileDelete( cFileMask [, cAttr ] )</code></nobr></td><td> This function removes files which match given <i>cFileMask</i>
+      (it may contain path) and returns .T. if at least one file was deleted. Optional <i>cAttr</i> parameter can be used to include
+      system ("S") and hidden ("H") files. If <i>cAttr</i> contains "R" letter then before deleting READONLY attribute is removed from
+      files (it's necessary to remove files with READONLY attribute in systems like DOS, MS-Windows or OS2). This function uses
+      Harbour File IO API (hb_vf*() functions).
+
+    </td></tr></tbody></table>
+    <br>
+
+    <a name="Doc14_3"></a><p>3.14.3 Set of functions, manipulating with file path, name, extension.</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>cRes := hb_FNameDir( cFullPath ) </code></nobr></td><td> Returns a path of a file.
+      </td></tr><tr><td><nobr><code>cRes := hb_FNameName( cFullPath ) </code></nobr></td><td> Returns a name of a file without an extension.
+      </td></tr><tr><td><nobr><code>cRes := hb_FNameExt( cFullPath ) </code></nobr></td><td> Returns an extension of a file.
+      </td></tr><tr><td><nobr><code>cRes := hb_FNameNameExt( cFullPath ) </code></nobr></td><td> Returns a name of a file with extension.
+      </td></tr><tr><td><nobr><code>cRes := hb_FNameExtSet( cFullPath, cExt ) </code></nobr></td><td> Sets a new extension of a file, returns new full path.
+      </td></tr><tr><td><nobr><code>cRes := hb_FNameExtSetDef( cFullPath, cExt ) </code></nobr></td><td> Sets a new extension of a file in case if it is absent, returns new full path.
+    </td></tr></tbody></table>
+    <br>
+
+    <a name="Doc14_4"></a><p>3.14.4 String functions</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>cString := hb_strFormat( cFormat, ... ) </code></nobr></td><td> Returns a string formatted in the C-style, as in printf().
+      </td></tr><tr><td><nobr><code>lResult := hb_strIsUtf8( cString ) </code></nobr></td><td> Checks is a <i>cString</i> passed is utf8 string.
+      </td></tr><tr><td><code>cResult := hb_strReplace( cString, cSource | acSource | hReplace [, cDest | acDest ] ) ) </code></td><td>
+        This function allows to easy replace different substrings in given string.<br>
+        If 2nd is string then each character in <i>cString</i> which exists
+        in <i>cSource</i> at <i>n</i> position is replaced by corresponding character
+        at <i>n</i> position in <i>cDest</i> or string from <i>acDest</i>[<i>n</i>].<br>
+        If 2nd parameter is array then each <i>cString</i> substring which exists
+        in <i>acSource</i> at <i>n</i> position is replaced by corresponding character
+        at <i>n</i> position in <i>cDest</i> or string from <i>acDest</i>[<i>n</i>].<br>
+        If 2nd parameter is a hash array, 3rd parameter must be omitted. Please remember
+        that single hash layer is much lighter data type than array of subarrays because
+        it needs only one GC item when each subarray is new GC item.<br>
+        If <i>n</i> is longer then LEN() of <i>cDest</i> or <i>acDest</i> then given
+        character/substring is removed from result.<br>
+        This function should help in code which uses repeated StrTran() calls.<br>
+        Examples:<br>
+        <code>
+           // encode XML value<br>
+           cXmlText := hb_StrReplace( cText, "&lt;&gt;&amp;", { "&amp;lt;", "&amp;gt;", "&amp;amp;" } )<br>
+           // now decode it to raw text<br>
+           cText := hb_StrReplace( cXmlText, { "&amp;lt;", "&amp;gt;", "&amp;amp;" }, "&lt;&gt;&amp;" )<br>
+           // strip all digits from string<br>
+           cNoDigit := hb_StrReplace( cText, "0123456789" )<br>
+           // extract all digits from string<br>
+           cDigits := hb_StrReplace( cText, cNoDigit )<br>
+           // convert chosen letters to upper case<br>
+           ? hb_StrReplace( "hello world", "hlwd", "HLWD" )<br>
+           // using of a hash array<br>
+           ? hb_StrReplace( "hello world", { "l" =&gt; "L" } )
+        </code>
+      </td></tr><tr><td><nobr><code>cResult := hb_strShrink( cString[, nShrinkBy] ) </code></nobr></td><td>
+        Shrinks the <i>cString</i> from the end by <i>nShrinkBy</i> bytes.<br>
+        <i>nShrinkBy</i> has a default value of 1. Function returns empty string
+        on error, returns full string if <i>nShrinkBy</i> is zero or negative.<br>
+        This function call is meant to be use instead of code like this:<br>
+        <code>
+          cString := Left( cString, Len( cString ) - 1 ) -&gt;<br>
+          cString := hb_strShrink( cString, 1 )
+        </code>
+      </td></tr><tr><td><nobr><code>nResult := hb_HexToNum( cHex ) </code></nobr></td><td> Similar function to the Val(), but the string <i>cHex</i> contains 16 decimal number.
+      </td></tr><tr><td><nobr><code>cHex := hb_NumToHex( num[, nLen] ) </code></nobr></td><td> Converts the number <i>num</i> in a string of <i>nLen</i> in the 16 system.
+      </td></tr><tr><td><code>nTokens := hb_TokenCount( cString, [cDelim], [lSkipStrings], [lDoubleQuoteOnly])</code></td><td>This and the following 3 functions
+        divide a string <i>cString</i> to the elements, the separator is a <i>cDelim</i> ( the default is a blank " " ).
+        A space as a separator has the peculiarity that multiple spaces in a row are considered as one.
+        Parameter <i>lSkipStrings</i>, if it is set to .T., indicates that at the decomposition of the elements
+        strings should be skiped, i.e., if delimiter is located between the quotes, double or single, it
+        is not considered as separator. <i>lDoubleQuoteOnly</i> specifies that the string is
+        only a group of characters enclosed in double quotation marks.<br>hb_TokenCount() returns the number of
+        elements in the row according to the above rules.
+      </td></tr><tr><td><code>cToken := hb_TokenGet( cString, nToken, [cDelim], [lSkipStrings], [lDoubleQuoteOnly])</code></td><td>Splits the string
+        and returns the item at the number <i>nToken</i> in accordance with the rules set out in the description of
+        hb_TokenCount().
+      </td></tr><tr><td><code>cToken := hb_TokenPtr( cString, @nSkip, [cDelim], [lSkipStrings], [lDoubleQuoteOnly])</code></td><td>Operates as
+        hb_TokenGet(), but allows you to go rummaging through the elements, without splitting each time anew. The second parameter <i>nSkip</i>transmitted
+        by the link that specifies what number of characters in a line should be omitted, the function writes in it
+        the new value, which can be used by its next call.
+      </td></tr><tr><td><code>aTokens := hb_ATokens( cString, [cDelim], [lSkipStrings], [lDoubleQuoteOnly])</code></td><td>Splits the string
+        and returns an array with all the elements in accordance with the rules set out in the description of
+        hb_TokenCount().
+    </td></tr></tbody></table>
+    <br>
+
+    <a name="Doc14_5"></a><p>3.14.5 Array functions</p>
+    <table border="1">
+      <tbody><tr><td><code>aArray := hb_ADel( aArray, nPos [,lChangeSize] )</code></td><td> Extension of a standard function ADel(). Deletes specified array item,
+        and, if <i>lChangeSize</i> is set to .T., decreases its size - i.e., may be used instead of a couple ADel(), ASize().
+      </td></tr><tr><td><code>aArray := hb_AIns( aArray, nPos [,xItem] [,lChangeSize] )</code></td><td> Extension of a standard function AIns(). Inserts <i>xItem</i> to a specified array position,
+        and, if <i>lChangeSize</i> is set to .T., increases its size - i.e., may be used instead of a couple AIns(), ASize().
+      </td></tr><tr><td><code>nResult := hb_Ascan( aArray, [block], [nStart], [nCount], [lExact] )</code></td><td> Extension of a standard function Ascan() - it does the same,
+        and, if <i>lExact</i> is set to .T., evaluates exact comparison.
+      </td></tr><tr><td><code>nResult := hb_RAscan( aArray, [block], [nStart], [nCount], [lExact] )</code></td><td> Works like the hb_Ascan(), but starts a search from the end of an array.
+    </td></tr></tbody></table>
+    <br>
+
+    <a name="Doc14_6"></a><p>3.14.6 Processes</p>
+    <table border="1">
+      <tbody><tr><td><code>nResult := hb_ProcessRun( cCommand, [cStdIn], [@cStdOut], [@cStdErr], [lDetach] )</code></td><td> &nbsp;
+      </td></tr><tr><td><code>handle := hb_ProcessOpen( cCommand, [cStdIn], [@cStdOut], [@cStdErr], [lDetach] )</code></td><td> &nbsp;
+      </td></tr><tr><td><code>nResult := hb_ProcessValue( handle, [lWait] )</code></td><td> &nbsp;
+      </td></tr><tr><td><code>lResult := hb_ProcessClose( handle, lGentle )</code></td><td> &nbsp;
+    </td></tr></tbody></table>
+    <br>
+
+    <a name="Doc14_7"></a><p>3.14.7 Bit operations</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>z := hb_BitAnd( x, y ) </code></nobr></td><td> Returns the result of the bitwise operations <i>And</i> x &amp; y
+      </td></tr><tr><td><nobr><code>z := hb_BitOr( x, y ) </code></nobr></td><td> Returns the result of the bitwise operations <i>OR</i> x | y
+      </td></tr><tr><td><nobr><code>z := hb_BitXor( x, y ) </code></nobr></td><td> Returns the result of the bitwise operations <i>Exclusive OR</i> x ^^ y
+      </td></tr><tr><td><nobr><code>y := hb_BitNot( x ) </code></nobr></td><td> Returns the result of the bitwise operations <i>NOT</i> x
+      </td></tr><tr><td><nobr><code>y := hb_BitTest( x, n ) </code></nobr></td><td> Checks wether the 1 n-th ( starting with 0 ) are installed in bit number x
+      </td></tr><tr><td><nobr><code>y := hb_BitSet( x, n ) </code></nobr></td><td> Returns the number of the 1 n-m ( starting with 0 ) bit number x
+      </td></tr><tr><td><nobr><code>y := hb_BitReset( x, n ) </code></nobr></td><td> Returns the number thrown in 0 n-m ( starting with 0 ) bit number x
+      </td></tr><tr><td><nobr><code>z := hb_BitShift( x, y ) </code></nobr></td><td> Bit shift x &lt;&lt; y, if you have x &gt;&gt; y, then y must be negative
+      </td></tr><tr><td><nobr><code>y := hb_BitSwapI( x ) </code></nobr></td><td> Returns the byte swap in 16-bit number x
+      </td></tr><tr><td><nobr><code>y := hb_BitSwapW( x ) </code></nobr></td><td> Returns the byte swap in 16-bit <i>unsigned</i> including x
+      </td></tr><tr><td><nobr><code>y := hb_BitSwapL( x ) </code></nobr></td><td> Returns the result of the rearrangement of bytes in a 32-bit number x
+      </td></tr><tr><td><nobr><code>y := hb_BitSwapU( x ) </code></nobr></td><td> Returns the result of the rearrangement of bytes in 32-bit <i>unsigned</i> including x
+    </td></tr></tbody></table>
+    <br>
+
+    <a name="Doc14_8"></a><p>3.14.8 Functions for a manipulation with variables</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code> __mvPublic( cVarName ) </code></nobr></td><td> Creates a Public variable named <i>cVarName</i>
+      </td></tr><tr><td><nobr><code> __mvPrivate( cVarName ) </code></nobr></td><td> Creates a Private variable named <i>cVarName</i>
+      </td></tr><tr><td><nobr><code> nScope := __mvScope( cVarName ) </code></nobr></td><td> Returns the scope
+        (range, class) variable (constants are defined in hbmemvar.ch):
+      <pre class="code">         HB_MV_NOT_FOUND      = переменная не найдена
+         HB_MV_UNKNOWN        = переменная не существует, но есть в symbol table
+         HB_MV_ERROR          = информация недоступна ( ошибка памяти или аргумента )
+         HB_MV_PUBLIC         = Public переменная
+         HB_MV_PRIVATE_GLOBAL = Private переменная, определена за пределами текущей функции/процедуры
+         HB_MV_PRIVATE_LOCAL  = Private переменная, определена в текущей функции/процедуре
+      </pre>
+
+      </td></tr><tr><td><nobr><code> __mvClear() </code></nobr></td><td> Frees all Public and Private variables, implements the CLEAR MEMORY
+      </td></tr><tr><td><code> __mvDbgInfo( nScope [,nPosition [,@cVarName]] )</code></td><td> Returns information about
+        the variables corresponding to the range of <i>nScope</i> ( HB_MV_PUBLIC,... -
+        look description __mvScope() ) for debugger; <i>nPosition</i> - the position of the requested
+        variable in the range <i>nScope</i>, <i>cVarName</i> is passed by reference, the name of the variable is written it it
+        , if <i>nPosition</i>is set. The value returned by the function depends on the transmitted
+        parameters. If only the first parameter is passed, it returns the number of variables
+        set by <i>nScope</i>if the second too ( <i>nPosition</i> ), then the value of the corresponding variable.
+        If the requested variable does not exist (<i>nPosition</i>) more than the number of variables, then NIL
+        returns, and in the <i>cVarName</i> "?" is written.
+      </td></tr><tr><td><nobr><code> lVarExist := __mvExist( cVarName ) </code></nobr></td><td> Returns .T. if the variable <i>cVarName</i> ( Private or Public ) exists
+      </td></tr><tr><td><nobr><code> xVal := __mvGet( cVarName ) </code></nobr></td><td> Returns the value of a variable <i>cVarName</i> ( Private or Public )
+      </td></tr><tr><td><nobr><code> xVal := __mvPut( cVarName, xVal ) </code></nobr></td><td> Sets the value of the <i>xVal</i> variable <i>cVarName</i> ( Private or Public )
+      </td></tr><tr><td><nobr><code> lIsByRef := hb_IsByRef( @cVarName ) </code></nobr></td><td> Checks whether <i>cVarName</i> was transferred on the link, it must be passed by reference in the function hb_IsByRef().
+      </td></tr><tr><td><nobr><code> __mvSetBase() </code></nobr></td><td> This is the so called  <i>hacking function</i>it
+         should be used very carefully and with full understanding of what you are doing, 
+        because it breaks the standard, the correct behavior of the 
+        program - changes the basic drift of the list of Private variables. The call of this
+         function  causes the fact that the Private variables created in the
+         current function, are not released on a way out of it, but are inherited by the function, from which 
+        the current one was called.
+    </td></tr></tbody></table>
+    <br>
+
+    <a name="Doc14_9"></a><p>3.14.9 hb_WildMatch...()</p>
+    <table border="1">
+      <tbody><tr><td><code>lResult := hb_wildMatch( cPattern, cString, [lExact] )</code></td><td> Function
+        compares the string <i>cString</i> with a sample of <i>cPattern</i> and returns the result - true or false.
+        The pattern can contain the characters "?" and "*" ( as it is known, on
+        the place of "?" in <i>cString</i> can be used one of any character, on-site "*" -
+        a few characters of any kind ). If <i>lExact</i> - .T., the entire string must
+        conform to the model, if - .F. (the default), then at least its start.
+     </td></tr><tr><td><nobr><code>lResult := hb_wildMatchI( cPattern, cString )</code></nobr></td><td> The same
+        as <i>hb_wildMatch()</i>but it is insensitive to the case and hasn't a third
+        parameter - requires a precise comparison.
+     </td></tr><tr><td><nobr><code> hb_filematch( cFile, cPattern )</code></nobr></td><td> &nbsp;
+    </td></tr></tbody></table>
+    <br>
+
+    <a name="Doc14_10"></a><p>3.14.10 Strings packing/unpacking, based on <i>zlib</i></p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>cVersion := hb_zlibVersion() </code></nobr></td><td> Returns a string
+        with the number of the version of zlib, used in the Harbour.
+      </td></tr><tr><td><nobr><code>nbytes := hb_zCompressBound( cData | nDataLen ) </code></nobr></td><td> Returns
+        the maximum length of a compressed string, the string <i>cData</i>, 
+        which must be repackaged, or its length itself is passed to the function.
+      </td></tr><tr><td><nobr><code>nbytes := hb_zunCompressLen( cPackedData, [@nResult] ) </code></nobr></td><td> Returns
+        the length of the unpacked string, the function is passed with the Packed string <i>cPackedData</i>.
+        If you pass by the link <i>nResult</i>there will be written the result of the operation ( 0 - all OK ).
+        If an error occurs, then the 1 returns instead of the length of the unpacked line.
+      </td></tr><tr><td><code>cPackedData := hb_zCompress( cData [@cBuffer | nBufLen], [@nResult], [nLevel] ) </code></td><td> Returns
+        the packed string,  the string <i>cData</i>, that should be packed, is passed to the function;
+        the buffer for packaging  can also be passed by the reference (its size
+        can be calculated beforehand with the help of <i>hb_zCompressBound()</i>, the level of
+        compression <i>nLevel</i>, which must be between 0 and 9 ( 0 - simple copy
+        without compression, 1 - high speed, 9 - the best compression.
+        If you pass by reference <i>nResult</i>, there will be written the result of the operation ( 0 - all OK ).
+        In case of an error, the function returns Nil.
+      </td></tr><tr><td><code>cUnPackedData := hb_zunCompress( cPackedData, [@cBuffer | nBufLen], [@nResult] ) </code></td><td> Returns
+        the unpacked string, the string <i>cPackedData</i>, which you should unpack, is passed to the function;
+        the buffer to unpack can also be passed by the reference (its size
+        can be calculated beforehand with the help of <i>hb_zunCompressLen()</i>).
+        If you pass by reference <i>nResult</i>there is written as the result of the operation ( 0 - all OK ).
+        In case of an error, the function returns Nil.
+      </td></tr><tr><td><nobr><code>cError := hb_zError( nError ) </code></nobr></td><td> Returns a string
+        with a description of the error that occurred when packing or unpacking, <i>nError</i> code
+        which was recorded in <i>nResult</i> with the performing hb_zCompress()b hb_zunCompress() or
+        hb_zunCompressLen().
+    </td></tr></tbody></table>
+    <br>
+
+   <a name="Doc14_11"></a> <p>3.14.11 Idle state</p>
+    <p><i>Idle state</i> this is a state of expectation, when the Harbour program is waiting for the input
+   from the user with the keyboard or the mouse. It arises as the result of Inkey() function call
+    ( the READ command uses Inkey(), so that while waiting for input GET-objects
+   <i>idle state</i> occurs ). In this state, there is an automatic collect of the
+   garbage and any background tasks can be carried out. To add/remove
+   these background tasks the following functions are designed (example of usage see
+   in the harbour/tests/testidle.prg):
+   </p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>nHandle := hb_IdleAdd( bAction )</code></nobr></td><td> Codeblock <i>bAction</i>
+        is added to the list of background tasks for execition during <i>idle state</i>.
+        The function returns <i>nHandle</i>, which can be used to remove
+        tasks in the list.
+      </td></tr><tr><td><nobr><code>bAction := hb_IdleDel( nHandle )</code></nobr></td><td> The task 
+   <i>nHandle</i> is removed from the list of background tasks, <i>nHandle</i> - value
+   returned by the function hb_IdleAdd() when adding tasks. The function returns codeblock
+   the corresponding th the task , or Nil if such a task is not in the list.
+      </td></tr><tr><td><nobr><code>hb_IdleState()</code></nobr></td><td> As a result of performing this function
+   the program is included in the <i>idle state</i>, performs garbage collection and performs one
+   of background tasks list. As a result of successive calls of the function the
+   background tasks are performed in the queue. This function has sense, if
+   you have a long process without waiting States, and you have to interrupt it
+   to perform background tasks.
+      </td></tr><tr><td><nobr><code>hb_IdleSleep( nSeconds )</code></nobr></td><td> As a result of performing of this function
+   the program is included in the <i>idle state</i> for <i>nSeconds</i> seconds. In contrast to the
+   Inkey(nSeconds) the standby condition is not interrupted when you enter by the keyboard.
+    </td></tr></tbody></table>
+    <br>
+
+    <a name="Doc14_12"></a><p>3.14.12 <i>JSON</i> - there and back</p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>cJSON := hb_jsonEncode( xValue [, lHuman] )</code></nobr></td><td>
+        Returns the <i>JSON</i> string, obtained by converting <i>xValue</i>, <i>lHuman</i> ( .F. by default ),
+        makes the output string more "readable", if set to .T..<br>
+        Codeblocks stored as "null", objects - as arrays ( methods are not recorded ).
+      </td></tr><tr><td><nobr><code>nLengthDecoded := hb_jsonDecode( cJSON, @xValue )</code></nobr></td><td>
+        Demaps the <i>JSON</i> string <i>cJSON</i> into the <i>xValue</i> variable,
+        passed by reference.  Returns the number of processed symbols.
+    </td></tr></tbody></table>
+
+    <a name="Doc14_13"></a><p>3.14.13 Encryption</p>
+    <table border="1">
+      <tbody><tr><td>Blowfish - implementation of the BlowFish algorithm, designed by Bruce Schneier.</td><td>In this algorithm
+         startup initialization of encryption tables is intentionally designed to be expensive to strongly reduce the efficiency of
+         brute force attacks so call hb_blowfishKey() once for each
+         new password and then reuse initialized encryption key in hb_blowfishEncrypt() and hb_blowfishDecrypt().<br>
+         Warning: the size of encrypted data is padded to 64bit (8 bytes) so it's bigger then original one.
+      </td></tr><tr><td><nobr><code>cBfKey := hb_blowfishKey( cPasswd )</code></nobr></td><td>Generates a key <i>cBfKey</i> from the passed password <i>cPasswd</i> for use in the encryption/decryption functions.
+      </td></tr><tr><td><nobr><code>cCipher := hb_blowfishEncrypt( cBfKey, cText [, lRaw ] )</code></nobr></td><td>Encrypts <i>cText</i>, using the key <i>cBfKey</i>, prepared with hb_blowfishKey().
+         The optional <i>lRaw</i> parameter, if set to TRUE (it is FALSE by default), disables ANSI X.923 padding but encode passed string in 8bytes blocks. If last block in string is
+         smaller then it's padded to 8 bytes using chr(0) and information about original string size is not attached to encrypted data. During decoding only strings which are well padded (N*8 bytes) are
+         accepted and <code>lRaw := .T.</code> disables restoring original string size encoded in encrypted string using ANSI X.923 standard so the size of decrypted string is the same as original one.
+      </td></tr><tr><td><nobr><code>cText := hb_blowfishDecrypt( cBfKey, cCipher [, lRaw ] )</code></nobr></td><td>Decrypts <i>cCipher</i>, using the key <i>cBfKey</i>, prepared with hb_blowfishKey().
+      </td></tr><tr><td><code>cCipher := hb_blowfishEncrypt_CFB( cBfKey, cText [, cInitSeed ] )</code></td><td>Encrypts <i>cText</i>, using the key <i>cBfKey</i>, prepared with hb_blowfishKey(), using CFB (cipher feedback) mode instead of ECB (electronic codebook).
+      </td></tr><tr><td><code>cText := hb_blowfishDecrypt_CFB( cBfKey, cCipher [, cInitSeed ] )</code></td><td>Decrypts <i>cCipher</i>, using the key <i>cBfKey</i>, prepared with hb_blowfishKey(), using CFB (cipher feedback) mode instead of ECB (electronic codebook).
+      </td></tr><tr><td>MD5 - ecryption and hashing</td><td>
+      </td></tr><tr><td><nobr><code>cCipher := hb_MD5Encrypt( cText, cPasswd )</code></nobr></td><td>
+      </td></tr><tr><td><nobr><code>cText := hb_MD5Decrypt( cCipher, cPasswd )</code></nobr></td><td>
+      </td></tr><tr><td><nobr><code>cDigest := hb_MD5( cText )</code></nobr></td><td>
+      </td></tr><tr><td><nobr><code>cDigest := hb_MD5File( cFilename )</code></nobr></td><td>
+      </td></tr><tr><td>SHA1, SHA2 - hashing</td><td>
+      </td></tr><tr><td><nobr><code>cDigest := hb_SHA1( cText [, lRaw ] )</code></nobr></td><td>
+      </td></tr><tr><td><nobr><code>cDigest := hb_HMAC_SHA1( cText, cKey [, lRaw ] )</code></nobr></td><td>
+      </td></tr><tr><td><nobr><code>cDigest := hb_HMAC_SHA224( cText, cKey [, lRaw ] )</code></nobr></td><td>
+      </td></tr><tr><td><nobr><code>cDigest := hb_HMAC_SHA256( cText, cKey [, lRaw ] )</code></nobr></td><td>
+      </td></tr><tr><td><nobr><code>cDigest := hb_HMAC_SHA384( cText, cKey [, lRaw ] )</code></nobr></td><td>
+      </td></tr><tr><td><nobr><code>cDigest := hb_HMAC_SHA512( cText, cKey [, lRaw ] )</code></nobr></td><td>
+    </td></tr></tbody></table>
+
+    <a name="Doc14_14"></a><p>3.14.14 HiPer-SEEK (Fast Text Search)</p>
+    <p>Harbour's HiPer-SEEK library is compatible with Six Drivers's HiPer-SEEK system, which,
+    in turn, uses Index Applications' Fast Text Search technology.</p>
+    <p>The HiPer-SEEK system is a set of functions, which create and maintain index files,
+     enabling the rapid search of textual data. The HiPer-SEEK functions can be
+     used to index and search any character based information the application can access.</p>
+    <p>HiPer-SEEK indexes contain fixed length keys (index records) which track
+     the contents of text records. A text record may consist of any arbitrary
+     block of text. In the case of a .dbf format file, a text record would usually
+     consist of the concatenation of selected fields from a data record.
+     A text record might also be a line or paragraph from a text file or even an entire file.
+     In all cases, there will be one index record for each and every text record.
+     This one to one relationship is critical to the proper operation of a HiPer-SEEK system.</p>
+     <p>An index file is created by hs_Create(). hs_Create() builds the index file header
+     and establishes the index's attributes. It does not add records to the file.
+     This is done by hs_Add().</p>
+     <p>An .hsx index is not an inversion or compression of the original textual data.
+     Its keys track the occurrence of text signatures. It identifies matches as those
+     index records containing all the signatures or attributes of the search string(s).
+     It is possible that differing strings will resolve to the same signature.
+     We refer to these as aliases. That's why you need to verify the result, returned
+     by hs_Next(). It is important to note that while an .hsx index search may
+     mistakenly identify a record as containing a match, it will never
+     fail to find a record that does match.</p>
+     <p>As mentioned above, the HiPer-SEEK system has been built to provide fast text searches
+     in a wide variety of applications. There are limits however. It will be less useful
+     in two extreme situations. The first is where text records are very small.
+     The smallest .hsx index key is 16 bytes. When individual text records are also that
+     small the index file overhead can be 100% or more. The other extreme is where
+     individual text records are very large. The largest choice for an .HSX index key
+     is 64 bytes. It is easy to imagine that indexing 64 kilobytes of text with a
+     single 64 byte key is not practical.</p>
+
+    <table border="1">
+
+      <tbody><tr><td><nobr><code>n := hs_Add( handle, Expr, [lDel] )</code></nobr></td><td>
+      <p>Adds a text string entry to a HiPer-SEEK index file.</p>
+      <i>handle</i> - an integer handle of a HiPer-SEEK index file.<br>
+      <i>Expr</i> - a code block that will be evaluated for the current record
+       to extract the key data to be added to the index,
+       or a ready string value.<br>
+      <i>lDel</i> - allow to set DELETE flag to a new record.
+      <p>Returns an integer representing the appropriate record number.
+      Errors are indicated by integers less than zero.
+      Return values start with one and increase. This integer is an internally
+      incremented counter and indicated the record position within the index file.
+      The first time hs_Add() is called it will return a 1, the second time, a 2,
+      and so on. These return values represent the position within the index file
+      held by the key for the string passed.
+      These numbers will always increase by one for each add, even if records
+      are deleted in the interim.</p>
+      <p>Example:</p>
+    <pre class="code">    USE test EXCL
+    h := hs_Open( "SALES.HSX", 10, 1 )
+    bExpr := { || Trim( test-&gt;FIRST ) + " " + Trim( test-&gt;LAST ) }
+    DO WHILE !eof()
+      nRec := hs_Add( h, bExpr )
+      IF nRec &lt; 1 .OR. nRec != RecNo()
+        ? "Error adding record " + LTrim( Str( RecNo() )) + "!"
+      ENDIF
+      SKIP
+    ENDDO
+    </pre>
+
+      </td></tr><tr><td><nobr><code>hs_Close( handle )</code></nobr></td><td>
+      <p>Closes a previously opened HiPer-SEEK index file.</p>
+      <i>handle</i> - an integer handle of a HiPer-SEEK index file.<br>
+      <p>All open HiPer-SEEK index files must be closed by hs_Close() prior to program termination.</p>
+
+      </td></tr><tr><td><code>hs_Create( cFileName, nBufSize, nKeySize, lCase, nFiltSet, xExpr )</code></td><td>
+      <p>Creates a new, empty HiPer-SEEK index file. If another file of the same name exists,
+      it will be overwritten.</p>
+      <i>cFileName</i> - a string representing a file path name.
+      It may contain drive and subdirectory information.<br>
+      <i>nBufSize</i> - an integer that will be multiplied by 1024 to determine how much
+      buffer space is to be used by the HiPer-SEEK routines for this index.
+      For example, a value of 10 will allocate 10k or 10240 bytes of buffer space
+      plus a small amount of overhead.<br>
+      <i>nKeySize</i> - an integer from 1 to 3. This value has two effects:<br>
+      1) The larger the value, the greater the number of bytes
+       written for each record in the index.<br>
+      2) The larger the value the lower the number of aliases
+       (or false positives) returned by a search.<br>
+      For most cases, a value of 2 is the best choice, offering a low alias rate
+      and small index size. For a value of two, each new index record increases
+      the size of the index by 32 bytes. For values of 1 and 3 it increases by 16
+      and 64 bytes respectively.<br>
+      <i>lCase</i> - can be set to either .T. or .F., depending if case is to
+      be significant during matches. If .T., then case is not significant and
+      lower case will match both lower and upper case. If the value is .F.,
+      then upper case characters will not match lower case.<br>
+      <i>nFiltSet</i> - a number which indicates the filter set to be used
+      for indexing and searching. A filter set is a translation of characters
+      from the source to the index. HiPer-SEEK indexes have two sets:<br>
+      1) Filter set 1, the recommended choice, will mask off the highorder
+       bit and treat all non-printing characters as spaces.<br>
+      2) Filter set 2 does not eliminate any characters. For most text purposes,
+       filter set 1 is recommended since it eliminates carriage returns, line-feeds,
+       etc., from becoming part of the index. Filter set 2 is useful for those
+       character sets which use the high order bit.<br>
+      <i>xExpr</i> - a key expression, or a codeblock, which is remembered and later
+      can be used by HS_ADD, HS_REPLACE, HS_FILTER and HS_VERIFY when this functions
+      are called without key expression. When the key expression is set as string then
+      it is also stored in HSX header and later is automatically retrieve by HS_OPEN.<br>
+      <br>
+      <p>Returns:  if successful, a non-negative integer, representing the HiPer-SEEK
+      index file handle.  Otherwise, returns a negative integer indicating an error.</p>
+
+      <p><i>lCase</i> is set during the index creation process and cannot be
+      changed later. Appreciable time savings in execution speed are realized
+      when case is not significant (i.e. <i>lCase</i> is .T.).</p>
+
+      <p>Unlike <i>lCase</i>, <i>nBufSize</i> can be different each time the file is
+      opened. <i>nBufSize</i> only specifies the amount of memory buffer used, and
+      is not otherwise an indexing factor. This is why <i>nBufSize</i> is an argument
+      for both hs_Create() and hs_Open() while <i>lCase</i> is not.</p>
+
+      <p>Generally, the larger this buffer is the faster an index file will be
+    created. The buffer size is less important to performance in systems
+    using fast fixed disks and disk caching. The index file can be opened
+    later with a smaller buffer. The memory used for these buffers is
+    released when the index file is closed.</p>
+
+      <p>The value of <i>nKeySize</i> relates to the speed of index creation
+    and retrieval. For a value of 2, each record occupies 32 bytes in
+    memory. If the total number of records indexed * 32 is less than the
+    value of <i><i>nBufSize</i></i> * 1024, then the entire index can be buffered
+    in memory, greatly increasing the speed of adds and finds. Otherwise
+    disk accesses will be needed for each find and add.</p>
+
+      <p>hs_Create() creates an index file with no records in it. You must
+    add records using hs_Add(). hs_Create() leaves this index file open so
+    don't try to open it again without closing it first.</p>
+
+      <p>Example:</p>
+    <pre class="code">    h := hs_Create( "myindex.hsx", 8, 3, .T., 2 )
+    IF h &lt; 0
+      ? "Error creating HiPer-SEEK index!"
+    ENDIF
+    </pre>
+
+      </td></tr><tr><td><nobr><code>hs_Delete( handle, nVal )</code></nobr></td><td>
+      <p>Deletes specifed index record from HiPer-SEEK index file.</p>
+      <i>handle</i> - an integer handle of a HiPer-SEEK index file.<br>
+      <i>nVal</i> - an integer representing the record number to be deleted.
+      <p>Returns 1 if successful or a negative integer indicating an error.</p>
+      <p>hs_Delete() is used to set a delete flag for an individual index
+    record. The actual index record is not physically deleted from the
+    index, rather it is only marked as deleted. Marking an index record as
+    deleted prevents it from being returned by hs_Next().</p>
+      <p>Example:</p>
+    <pre class="code">    USE sales EXCL
+    h := hs_Open( "sales.hsx", 10, 1 )
+    DO WHILE !eof()
+      IF deleted()
+        nVal := hs_Delete( h, RecNo() )
+        IF nVal &lt; 1
+          ? "HiPer-SEEK delete error: " + LTrim( Str( RecNo() ))
+        ENDIF
+      ENDIF
+      SKIP
+    ENDDO
+    </pre>
+
+      </td></tr><tr><td><code>hs_Filter( cIndex, cVal, [cExpr], [nBufSize], [nOpenMode] )</code></td><td>
+      <p>Sets a filter using a HiPer-SEEK index.
+      It can be used only in conjunction with a .dbf file.
+      This function needs RDD with record map (RM) functionality</p>
+      <i>cIndex</i> - the Hiper-SEEK index file name to use for the filter or
+      a handle to already open HSX index.
+      If index extension is not specified, defaults to .hsx<br>
+      <i>cVal</i> - a space-delimited string of one or more tokens to look for.<br>
+      <i>cExpr</i> - an optional expression to validate "hits" with.  If no
+      parameter (or an empty string) is passed, "fuzzy" matches are accepted.<br>
+      <i>nBufSize</i> - an optional buffer size in kbytes.  Default is 8.<br>
+      <i>nOpenMode</i> - an optional Open Mode.  Default is 2.  Valid values are:<br>
+      <br>
+      &nbsp;&nbsp;0 = READ-WRITE + SHARED<br>
+      &nbsp;&nbsp;1 = READ-WRITE + EXCLUSIVE<br>
+      &nbsp;&nbsp;2 = READ-ONLY + SHARED<br>
+      &nbsp;&nbsp;3 = READ-ONLY + EXCLUSIVE
+      <br>
+      <p>Returns the number of records matching the filter condition.</p>
+      <p>Example:</p>
+    <pre class="code">    #include "inkey.ch"
+
+    LOCAL cExpr := "test-&gt;FIRST + test-&gt;LAST + test-&gt;STREET + test-&gt;CITY"
+    LOCAL nCount := 0, lStrict := .F.
+    LOCAL cSearch := "Steve John Robert"
+    LOCAL GetList := {}
+
+    CLS
+    USE test EXCL
+
+    IF !file("TEST.HSX")
+      @ 0,0 "Building HiPer-SEEK Index..."
+      hs_Index( "TEST.HSX", cExpr, 2 )
+      ?? "Done!"
+      Inkey(1)
+      CLS
+    ENDIF
+
+    WHILE .T.
+      cSearch := PadR( cSearch, 59 )
+      @ 0,0 SAY "Search Values.....:" GET cSearch
+      @ 1,0 SAY "Strict Match (Y/N):" GET lStrict PICTURE "Y"
+      READ
+      IF LastKey() == K_ESC
+        CLS
+        EXIT
+      ENDIF
+      cSearch := AllTrim( cSearch )
+
+      @ 3,0 SAY "Setting HiPer-SEEK Filter ..."
+
+      nCount := hs_Filter( "TEST.HSX", cSearch, iif( lStrict, cExpr, "" ))
+
+      ?? "Done!"
+      @ 4,0 SAY LTrim( Str( nCount )) + " records meeting filter condition."
+
+      @ 6,0 SAY "Press any key to browse the matching records..."
+      Inkey(0)
+
+      GO TOP
+      Browse()
+      CLS
+    ENDDO
+    </pre>
+
+      </td></tr><tr><td><nobr><code>hs_IfDel( handle, nVal )</code></nobr></td><td>
+      <p>Determines if a HiPer-SEEK record has been marked as deleted.</p>
+      <i>handle</i> - an integer handle of a HiPer-SEEK index file.<br>
+      <i>nVal</i> - an integer representing the record number to be tested.
+      <p>Returns 1 ( TRUE ) if the specified record is marked as deleted.
+      If not, returns 0 ( FALSE ). A negative return value indicates an error.</p>
+
+      </td></tr><tr><td><code>hs_Index( cFileName, cExpr, [nKeySize], [nOpenMode], [nBufSize], [lCase], [nFiltSet] )</code></td><td>
+      <p>Creates and populates a new HiPer-SEEK index.
+      It can be used only in conjunction with a .dbf file.</p>
+      <i>cFileName</i> - a string representing a file path name.
+      It may contain drive and subdirectory information.<br>
+      <i>nKeySize</i> - an integer from 1 to 3. This value has two effects:<br>
+      1) The larger the value, the greater the number of bytes
+       written for each record in the index.<br>
+      2) The larger the value the lower the number of aliases
+       (or false positives) returned by a search.<br>
+      For most cases, a value of 2 is the best choice, offering a low alias rate
+      and small index size. For a value of two, each new index record increases
+      the size of the index by 32 bytes. For values of 1 and 3 it increases by 16
+      and 64 bytes respectively.<br>
+      <i>nOpenMode</i> - the optional mode in which the HiPer-SEEK index
+      file is opened. Note that this pertains to the mode the index will be
+      left in after creation. During creation, the index is always built in
+      READ-WRITE + EXCLUSIVE mode.  The default value is 1. Valid values are:<br>
+      <br>
+      &nbsp;&nbsp;0 = READ-WRITE + SHARED<br>
+      &nbsp;&nbsp;1 = READ-WRITE + EXCLUSIVE<br>
+      &nbsp;&nbsp;2 = READ-ONLY + SHARED<br>
+      &nbsp;&nbsp;3 = READ-ONLY + EXCLUSIVE
+      <br>
+      <i>nBufSize</i> - an integer that will be multiplied by 1024 to determine how much
+      buffer space is to be used by the HiPer-SEEK routines for this index.
+      For example, a value of 10 will allocate 10k or 10240 bytes of buffer space
+      plus a small amount of overhead.<br>
+      <i>lCase</i> - an optional logical parameter, can be set to either .T. or .F.,
+      depending if case is to be significant during matches. If .T., then case is not
+      significant and lower case will match both lower and upper case. If the value is .F.,
+      then upper case characters will not match lower case. The default value is .T.
+      (not case sensitive).<br>
+      <i>nFiltSet</i> - a number which indicates the filter set to be used
+      for indexing and searching. A filter set is a translation of characters
+      from the source to the index. HiPer-SEEK indexes have two sets:<br>
+      1) Filter set 1, the recommended choice, will mask off the highorder
+       bit and treat all non-printing characters as spaces.<br>
+      2) Filter set 2 does not eliminate any characters. For most text purposes,
+       filter set 1 is recommended since it eliminates carriage returns, line-feeds,
+       etc., from becoming part of the index. Filter set 2 is useful for those
+       character sets which use the high order bit.<br>
+       <p>Returns 1 if successful or a negative integer indicating an error.</p>
+      <p>Example:</p>
+    <pre class="code">    LOCAL cExpr := "test-&gt;FIRST + test-&gt;LAST + test-&gt;STREET + test-&gt;CITY"
+    LOCAL h := 0
+
+    USE test EXCL
+
+    // Build HiPer-SEEK index using 64 byte index record, READ-WRITE + SHARED
+    // mode, using a 16k buffer.
+
+    h := hs_Index( "TEST.HSX", cExpr, 3, 0, 16 )
+
+    hs_Close( h )
+    </pre>
+
+      </td></tr><tr><td><nobr><code>hs_KeyCount( handle )</code></nobr></td><td>
+      <p>Returns the number of entries in a HiPer-SEEK index.</p>
+      <i>handle</i> - an integer handle of a HiPer-SEEK index file.<br>
+      <p>Returns an integer greater or equal to zero, representing the number of
+      records currently in the index. Deleted records are included in this total.
+      A negative integer represents an error.</p>
+
+      </td></tr><tr><td><nobr><code>hs_Next( handle )</code></nobr></td><td>
+      <p>Assuming that a hs_Set() call has occurred immediately preceding
+      the first call to hs_Next() for a given search, this function performs
+      the actual 'find' operation using the index. The first call returns the
+      record number of the first hit, the second of the second hit, etc.
+      When all possible hits have been returned, the function returns zero.</p>
+      <p>Example:</p>
+    <pre class="code">    // Lists all record numbers that contain the word "John" anywhere in
+    // either the FIRST, LAST, STREET, or CITY fields.  Uses hs_Verify()
+    // to prevent "fuzzy" matches.
+
+    LOCAL cExpr := "test-&gt;FIRST + test-&gt;LAST + test-&gt;STREET + test-&gt;CITY"
+    LOCAL bExpr := &amp;( "{||" + cExpr + "}" )
+    LOCAL cVal := "John", h := 0, nRec := 0
+
+    CLS
+    USE test EXCL
+
+    IF !File("TEST.HSX")
+      ? "Building HiPer-SEEK Index..."
+      h := hs_Index( "TEST.HSX", cExpr, 2 )
+    ELSE
+      h := hs_Open( "TEST.HSX", 8, 1 )
+    ENDIF
+
+    hs_Set( h, cVal )
+    nRec := hs_Next( h )
+
+    DO WHILE nRec &gt; 0
+      dbGoto( nRec )
+      IF hs_Verify( bExpr, cVal )
+        ? nRec
+      ENDIF
+      nRec := hs_Next( h )
+    ENDDO
+
+    hs_Close( h )
+    </pre>
+
+      </td></tr><tr><td><nobr><code>hs_Open( cFileName, nBufSize, nOpenMode )</code></nobr></td><td>
+      <p>This function is used to open an existing HiPer-SEEK index file.</p>
+      <i>cFileName</i> - a string representing a file path name.<br>
+      <i>nBufSize</i> - an integer that will be multiplied by 1024 to determine how much
+      buffer space is to be used by the HiPer-SEEK routines for this index.
+      For example, a value of 10 will allocate 10k or 10240 bytes of buffer space
+      plus a small amount of overhead.<br>
+      Performance will improve greatly if the entire index file will fit into this buffer.
+      If not, some experimentation will be helpful in determining the best size.<br>
+      <i>nOpenMode</i> - an optional Open Mode. A HiPer-SEEK index can be opened
+      read-write or read-only and EXCLUSIVE or SHARED. The EXCLUSIVE and SHARED
+      modes follow Clipper's use of the terms. When an index is opened read-write,
+      the application can read existing index records and write new ones to the file.
+      When the file is opened read-only, the application can only read records from
+      the index. The values to use are:<br>
+      <br>
+      &nbsp;&nbsp;0 READ-WRITE + SHARED<br>
+      &nbsp;&nbsp;1 READ-WRITE + EXCLUSIVE<br>
+      &nbsp;&nbsp;2 READ-ONLY + SHARED<br>
+      &nbsp;&nbsp;3 READ-ONLY + EXCLUSIVE<br>
+      <p>Returns an integer HiPer-SEEK index hendle (0 through 63) if successful,
+      else returns a negative integer indicating an error.</p>
+      <p>Example:</p>
+    <pre class="code">    USE test EXCL
+
+    h := hs_Open( "LOOKUP.HSX", 16, 1 )
+    IF h &lt; 0
+      ? "Error opening HiPer-SEEK index!"
+    ENDIF
+    </pre>
+
+      </td></tr><tr><td><nobr><code>hs_Replace( handle, Expr, nVal, lDel )</code></nobr></td><td>
+      <p>Replaces the current index entry for <i>nVal</i> with the new value
+      of <i>Expr</i>. There must be at least <i>nVal</i> records already indexed.</p>
+      <i>handle</i> - an integer handle of a HiPer-SEEK index file.<br>
+      <i>Expr</i> - a code block that will be evaluated for the current record
+       to extract the key data to be added to the index,
+       or a ready string value.<br>
+      <i>nVal</i> - an integer representing the record number to be replaced.
+      <i>lDel</i> - allow to set DELETE flag to a record.
+      <p>Returns 1 if successful or a negative integer indicating an error.</p>
+      <p>Example:</p>
+    <pre class="code">    USE test EXCL
+    h := hs_Open( "NAMES.HSX", 8, 1 )
+    GOTO 10
+    cStr := Trim( test-&gt;FIRST ) + " " + Trim( test-&gt;LAST )
+    IF hs_Replace( h, cStr, RecNo() ) &lt; 1
+      ? "HiPer-SEEK replace error on record #" + LTrim( Str( RecNo() ))
+    ENDIF
+    </pre>
+
+      </td></tr><tr><td><nobr><code>hs_Set( handle, cExpr )</code></nobr></td><td>
+      <p>Sets up parameters for a subsequent hs_Next() call.</p>
+      <i>handle</i> - an integer handle of a HiPer-SEEK index file.<br>
+      <i>cExpr</i> - a string containing the search criteria. Each substring to be
+      searched for should be separated by blanks (it is not necessary to pad the
+      front and back of the string with blanks).
+      For example, the string "ed cat" would match all records in the index
+      containing both "ed" and "cat" within them. Since it is a sub-string match,
+      both "ed has a cat" and "The catalog was spray painted" would be valid matches.
+      The order of the substrings in the search criteria is not important.
+      For a successful match, all substrings in the search criteria must
+      be present in the original indexed string.<br>
+      <p>Returns  1 if successful or a negative integer indicating an error.</p>
+      <p>Example:</p>
+    <pre class="code">    h := hs_Open( "LOOKUP.HSX", 4, 1 )
+    hs_Set( h, "Thompson" )
+    nRec := hs_Next( h )
+
+    ? "The first record conaining 'Thompson' is #" + LTrim( Str( nRec ))
+
+    hs_Close( h )
+    </pre>
+
+      </td></tr><tr><td><nobr><code>hs_UnDelete( handle, nVal )</code></nobr></td><td>
+      <p>Unmarks the specified HiPer-SEEK record as being deleted.</p>
+      <i>handle</i> - an integer handle of a HiPer-SEEK index file.<br>
+      <i>nVal</i> - an integer representing the record number to be undeleted.
+      <p>Returns 1 if successful or a negative integer indicating an error.</p>
+
+      </td></tr><tr><td><nobr><code>hs_Verify( bSource, cValue )</code></nobr></td><td>
+      <p>Verify a target string against the .DBF source string, passed as a code block.
+      It can be used only in conjunction with a .dbf file.</p>
+      <i>bSource</i> - a code block containing the expression to evaluate.<br>
+      <i>cValue</i> - the value to compare against the evaluated <i>bSource</i>.
+      <p>Returns logical .T. if cValue is contained anywhere within Eval(bSource), else .F.</p>
+      <p>Example:</p>
+    <pre class="code">    // Lists all record numbers that contain the word "John" anywhere in
+    // either the FIRST, LAST, STREET, or CITY fields.  Uses hs_Verify()
+    // to prevent "fuzzy" matches.
+
+    LOCAL cExpr := "test-&gt;FIRST + test-&gt;LAST + test-&gt;STREET + test-&gt;CITY"
+    LOCAL bExpr := &amp;( "{||" + cExpr + "}" )
+    LOCAL cVal := "John", h := 0, nRec := 0
+
+    CLS
+    USE test EXCL
+
+    IF !file("TEST.HSX")
+      ? "Building HiPer-SEEK Index..."
+      h := hs_Index( "TEST.HSX", cExpr, 2 )
+    ELSE
+      h := hs_Open( "TEST.HSX", 8, 1 )
+    ENDIF
+
+    hs_Set( h, cVal )
+    nRec := hs_Next( h )
+
+    DO WHILE nRec &gt; 0
+      dbGoto( nRec )
+      IF hs_Verify( bExpr, cVal )
+        ? nRec
+      ENDIF
+      nRec := hs_Next( h )
+    ENDDO
+
+    hs_Close( h )
+    </pre>
+
+      </td></tr><tr><td><nobr><code>hs_Version()</code></nobr></td><td>
+      <p>Returns a version string.</p>
+    </td></tr></tbody></table>
+
+    <a name="Doc14_15"></a><p>3.14.15 Miscellaneous </p>
+    <table border="1">
+      <tbody><tr><td><nobr><code>xResult := hb_ExecFromArray()</code></nobr></td><td>There are several different versions of this function.
+      
+      <br><code>xResult := hb_ExecFromArray( cFuncName [,aParams] )</code><br>
+        Returns the result of the execution of the function specified by the name of <i>cFuncName</i> with
+        parameters passed in the array <i>aParams</i>, for example:
+        <pre class="code">           ? hb_execFromArray( "Str", {11,6,3} )
+        </pre>
+
+      <br><code>xResult := hb_ExecFromArray( @funcName [,aParams] )</code><br>
+        Returns the result of the execution of the function specified by the index <i>@funcName</i> with
+        parameters passed in the array <i>aParams</i>, for example:
+        <pre class="code">           hfunc := @Str()
+           ? hb_execFromArray( hfunc, {11,6,3} )
+        </pre>
+
+      <br><code>xResult := hb_ExecFromArray( bCodeBlock [,aParams] )</code><br>
+        Returns the result of execution of the codeblock <i>bCodeBlock</i> with
+        parameters passed in the array <i>aParams</i>:
+        <pre class="code">           ? hb_execFromArray( {|n1,n2,n3|Str(n1,n2,n3)}, { 11,6,3 } )
+        </pre>
+
+      <br><code>xResult := hb_ExecFromArray( oObject, cMethodName [,aParams] )</code><br>
+        Returns the result of the execution of the method <i>cMethodName</i> object <i>oObject</i> with
+        parameters passed in the array <i>aParams</i>, a method is specified by name.<br>
+
+      <br><code>xResult := hb_ExecFromArray( oObject, @msgName [,aParams] )</code><br>
+        Returns the result of the execute method of the object <i>oObject</i> with
+        parameters passed by in the array <i>aParams</i>, the method specified with the help of the pointer <i>@msgName</i><br>
+
+      <br><code>xResult := hb_ExecFromArray( aExecArray )</code><br>
+        In this version the parameters are passed as an array:
+        <pre class="code">           ? hb_execFromArray( { "Str", 11,6,3 } )
+           ? hb_execFromArray( { hfunc, 11,6,3 } )
+           ? hb_execFromArray( { {|n1,n2,n3|Str(n1,n2,n3)},11,6,3 } )
+        </pre>
+
+      </td></tr><tr><td><nobr><code>hb_ForNext( nStart, nEnd | bEnd, bCode [, nStep ] ) </code></nobr></td><td>Implementation of <code>FOR ... NEXT</code> cycle.
+      The <i>bCode</i> codeblock, which receives a counter as a parameter (<code>{|nIndex|...code...}</code>), is evaluated many times
+      while the counter increments from <i>nStart</i> till <i>nEnd</i> (or till the <i>bEnd</i> codeblock returns .T.) with a <i>nStep</i> step.
+
+      </td></tr><tr><td><nobr><code>cSep := hb_ps() </code></nobr></td><td> Returns the character that separates directories in the path, passed in the OS ( "/", "\")
+      </td></tr><tr><td><nobr><code>cSep := hb_osDriveSeparator() </code></nobr></td><td> &nbsp;
+
+      </td></tr><tr><td><nobr><code>cExePath := hb_Progname() </code></nobr></td><td> Returns the path and name of the executable file.
+      </td></tr><tr><td><nobr><code>aDir := hb_Directory() </code></nobr></td><td> The same as Directory(),
+      but returns DateTime value instead of Date in a third subarray item.
+      </td></tr><tr><td><nobr><code>cDirBase := hb_DirBase() </code></nobr></td><td> Returns the base directory, the one with the executable file.
+      </td></tr><tr><td><nobr><code>cDirName := hb_DirTemp() </code></nobr></td><td> Returns a path to the system temporary directory.
+      </td></tr><tr><td><nobr><code>lResult := hb_DirExists( cDir )</code></nobr></td><td> Returns a logical value,
+      .T. - if a given directory exisis, .F. - if no.
+      </td></tr><tr><td><nobr><code>nResult := hb_DirCreate( cDir )</code></nobr></td><td> Creates a given directory <i>cDir</i>.
+      If succeeds, returns 0.
+      </td></tr><tr><td><nobr><code>lResult := hb_DirBuild( cDir )</code></nobr></td><td> Creates a given directory <i>cDir</i>
+      and all parent directories, if they does not exist.
+      If succeeds, returns .T., if no - .F..
+      </td></tr><tr><td><nobr><code>nResult := hb_DirDelete( cDir )</code></nobr></td><td> Removes a given directory <i>cDir</i>.
+      If succeeds, returns 0.
+      </td></tr><tr><td><nobr><code>lResult := hb_DirRemoveAll( cDir )</code></nobr></td><td> This function removes recursively whole directories
+      with it's body so hb_DirRemoveAll( hb_ps() ) can remove all files and directories from your disk.
+
+      </td></tr><tr><td><code>n := hb_Rand32()</code></td><td> Returns random integer value in 
+         a range from 0 to 0xFFFFFFFF.
+      </td></tr><tr><td><code>n := hb_RandomInt( [n1,] [n2] )</code></td><td> Returns random integer value.
+         Optional parameters n1, n2 - the range, and if n2 is not specified, then the return value is in the range between 0 and n1;
+          if both parameters are not specified, then - in the range of 0,1.
+      </td></tr><tr><td><code>n := hb_Random( [n1,] [n2] )</code></td><td> Returns random real value.
+         Optional parameters n1, n2 - the range, and if n2 is not specified, then the return value is in the range between 0 and n1;
+          if both parameters are not specified, then - in the range between 0 and 1.
+      </td></tr><tr><td><code>hb_RandomSeed( n )</code></td><td> If the parameter n is 0, then
+          first call to HB_RANDOM() or HB_RANDOMINT() activates initialization which generates 
+          new seed using current time in milliseconds and HVM stack address (for MT modes).
+          If someone needs repeatable results from HB_RANDOM() and  HB_RANDOMINT() then he should initialize the seed for each
+          thread with some fixed value i.e. HB_RANDOMSEED( 123456789 )
+    </td></tr></tbody></table>
+    <br>
+   <hr>
+
+    <script type="text/javascript" src="../js/shCore.js"></script>
+    <script type="text/javascript" src="../js/shBrushClipper.js"></script>
+    <script type="text/javascript">SyntaxHighlighter.all();</script>
+  </div>
+</div>
+
+<div id="footer">
+  <div>
+    <p><a href="../sitemap.html">Site map</a></p>
+    <p> © Copyright 2016. All Rights Reserved.</p>
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+    (function (d, w, c) {
+        (w[c] = w[c] || []).push(function() {
+            try {
+                w.yaCounter37824975 = new Ya.Metrika({
+                    id:37824975,
+                    clickmap:true,
+                    trackLinks:true,
+                    accurateTrackBounce:true
+                });
+            } catch(e) { }
+        });
+
+        var n = d.getElementsByTagName("script")[0],
+            s = d.createElement("script"),
+            f = function () { n.parentNode.insertBefore(s, n); };
+        s.type = "text/javascript";
+        s.async = true;
+        s.src = "https://mc.yandex.ru/metrika/watch.js";
+
+        if (w.opera == "[object Opera]") {
+            d.addEventListener("DOMContentLoaded", f, false);
+        } else { f(); }
+    })(document, window, "yandex_metrika_callbacks");
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/37824975" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+
+  </div>
+</div>
+
+
+
+</body></html>
