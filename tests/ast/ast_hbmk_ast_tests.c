@@ -170,6 +170,8 @@ static const HB_AST_FIXTURE s_cases[] =
    { "tests/ast/fixture_blocks.prg", "tests/ast/fixtures/fixture_blocks.ast.json" },
    { "tests/ast/fixture_ppdirectives.prg", "tests/ast/fixtures/fixture_ppdirectives.ast.json" },
    { "tests/ast/fixture_statements.prg", "tests/ast/fixtures/fixture_statements.ast.json" },
+   { "tests/ast/fixture_expressions.prg", "tests/ast/fixtures/fixture_expressions.ast.json" },
+   { "tests/ast/fixture_includes.prg", "tests/ast/fixtures/fixture_includes.ast.json" },
    { "tests/ast/fixture_compat_clipper.prg", "tests/ast/fixtures/fixture_compat_clipper.ast.json" },
    { "tests/ast/fixture_compat_harbour.prg", "tests/ast/fixtures/fixture_compat_harbour.ast.json" }
 };

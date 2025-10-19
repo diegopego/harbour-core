@@ -63,6 +63,19 @@
 - **Testing**: Added a cmocka stress test (`tests/ast/ast_trace_tests.c`) that exercises retain/release accounting; build runner not executed in this session (pending consolidated instrumentation harness).
 - **Open items**: Provide real event sinks in `hb_compAstTracePpSink`, surface a user-facing toggle (CLI/env) for enabling tracing, and integrate the cmocka target into the verification matrix runs.
 
+## 2025-10-25 – Core Fixture Freeze Prep
+
+- **Objectives**: Extended the core trace pack with expression-heavy (`fixture_expressions.prg`) and include-driven (`fixture_includes.prg`) samples so the minimal fixture matrix now spans declarations, control flow, expressions, macros, and include stacks.
+- **Code updates**: Added `tests/ast/fixture_expressions.prg`, `tests/ast/fixture_includes.prg`, supporting include chain header `tests/ast/fixture_include_chain.ch`, regenerated corresponding JSON snapshots, and registered both fixtures with `tests/ast/ast_hbmk_ast_tests.c`.
+- **Commands**:
+  - `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_expressions.ast.json tests/ast/fixture_expressions.prg`
+  - `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_includes.ast.json tests/ast/fixture_includes.prg`
+  - `tests/ast/hbmk-ast-tests`
+  - `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_expressions.prg`
+  - `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_includes.prg`
+- **Results**: Fresh CLI dumps landed the new golden snapshots; hbmk AST harness passes for default and `-m` modes with the expanded matrix; both fixtures compile warning-free under `hbmk2 -w3`.
+- **Next steps**: Capture the regeneration workflow in `doc/agents/ast/instrumentation-plan.md` / `doc/agents/ast/hb_compilebuf_evaluation.md`, package the trace pack, and rerun the full verification sweep once documentation lands.
+
 ## 2025-10-19 – Lexer Emission Pass
 
 - **Code updates**: Instrumented `hb_comp_yylex` via `hb_compAstTracePublishToken/Boundary`, replaced raw returns with a guardable helper, and expanded `hbtraceast.c` to keep token/boundary queues with stable IDs and retained trace handles.

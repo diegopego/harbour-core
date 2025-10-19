@@ -100,12 +100,12 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 | Parser hook pilot | ✅ | Functions/classes/control-flow instrumented; backlog tracks remaining reductions. |
 | Stabilisation & toggles | ✅ | PP sink + CLI/env toggles documented. |
 | Verification sweep | ✅ | `hbmk2-fixtures`, `compilebuf-tests`, `ast_trace_tests`, `scripts/test-ast.sh` integrated. |
-| Golden traces & diagnostics | 🔄 | Single-module coverage landed (`hb_compParserRun` instrumentation + `compilebuf-tests` `-m` harness); fixture matrix now includes `fixture_blocks`, `fixture_ppdirectives`, and `fixture_statements` JSON dumps; diagnostics counters/toggles shipped; pending broader golden snapshot workflow. |
+| Golden traces & diagnostics | 🔄 | Single-module coverage landed (`hb_compParserRun` instrumentation + `compilebuf-tests` `-m` harness); fixture matrix now spans `fixture_blocks`, `fixture_ppdirectives`, `fixture_statements`, `fixture_expressions`, and `fixture_includes` JSON dumps alongside dialect variants; diagnostics counters/toggles shipped; documentation + trace-pack packaging still pending to close the milestone. |
 
 ### Active Objectives (next sessions)
 1. ✅ **Single-module coverage** – `hb_compParserRun` now routes through `hb_comp_yylex`; both compile-buffer and CLI harnesses iterate over `fixture_demo` and `fixture_blocks` under default/`-m` modes. Next: document the behaviour and backfill additional fixtures before snapshot promotion.  
 2. ✅ **Diagnostics toggles** – CLI/env flag (`--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS`) now exposes token/boundary/node/traceinfo totals for troubleshooting.  
-3. **Fixture snapshot freeze** – lock the minimal fixture matrix (existing ones plus expression-heavy and include-driven samples), capture the exact regeneration commands (`hbmk2`, `hb_compMainExtModule`), and document the workflow prior to tooling hand-off.  
+3. 🔄 **Fixture snapshot freeze** – expression-heavy (`fixture_expressions`) and include-driven (`fixture_includes`) fixtures now ship with golden dumps + hbmk harness coverage; next step is to capture the regeneration commands (`hbmk2`, CLI dump) in the docs and stage the trace pack hand-off notes.  
 4. **Trace pack publication** – bundle the frozen fixtures/JSON as an initial “trace pack” and record distribution/testing instructions so tooling can consume it directly.  
 5. **Docs & cleanup** – update `instrumentation-plan.md`, `hb_compilebuf_evaluation.md`, CLI/env docs with the new toggles and fixture workflow.  
 6. **Verification sweep** – rerun the full matrix once the trace pack is frozen, logging commands and results.
@@ -152,17 +152,20 @@ Include in final session note (and summarise in commit message):
 - Remaining risks or TODOs.
 
 ### Session Transition Notes
+- **2025-10-25 (fixture freeze prep)**: Added expression-heavy `fixture_expressions.prg` and include-driven `fixture_includes.prg`, plus the supporting `fixture_include_chain.ch`; regenerated CLI snapshots and registered both fixtures with `tests/ast/ast_hbmk_ast_tests.c`.  
+  - **Commands**: `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_expressions.ast.json tests/ast/fixture_expressions.prg`, `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_includes.ast.json tests/ast/fixture_includes.prg`, `tests/ast/hbmk-ast-tests`, `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_expressions.prg`, `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_includes.prg`.  
+  - **Outstanding**: Fold the regeneration workflow into `doc/agents/ast/instrumentation-plan.md` and `doc/agents/ast/hb_compilebuf_evaluation.md`, package the trace pack, rerun the verification matrix, and keep the working tree focused on the new fixtures/header plus updated snapshots until documentation lands.
 - **2025-10-24 (dialect fixtures)**: Added two dedicated fixtures, `fixture_compat_clipper.prg` and `fixture_compat_harbour.prg`, backed by `fixture_compat_common.ch`. Both now exercise multiple `BEGIN SEQUENCE`/`RECOVER` flows and emit their own golden snapshots. Updated `ast_hbmk_ast_tests.c` to include the pair and extended `ast_compilebuf_tests.c` with both Clipper and Harbour in-memory variants.  
   - **Working tree**: pending files in `.gitignore`, `tests/ast/ast_compilebuf_tests.c`, `tests/ast/ast_hbmk_ast_tests.c`, `tests/ast/fixture_compat_clipper.prg`, `tests/ast/fixture_compat_harbour.prg`, `tests/ast/fixture_compat_common.ch`, and the refreshed snapshots under `tests/ast/fixtures/`.
 - **Focus** (next sessions):  
-  1. Add the expression-heavy and include-driven fixtures, regenerate JSON, and document the commands.  
+  1. ✅ Add the expression-heavy and include-driven fixtures, regenerate JSON, and document the commands (fixtures + snapshots landed 2025-10-25; documentation follow-up pending).  
   2. Freeze the “trace pack” (zip or tagged directory) containing all fixtures + snapshots; log its regeneration workflow.  
   3. Update docs (`instrumentation-plan.md`, `hb_compilebuf_evaluation.md`) with the final toggles/commands.  
   4. Run the verification matrix once more and record results.
 - **Prompt for next delegate**: “Record completed subtasks, outstanding items, test outcomes, and uncommitted file status in both `doc/agents/ast/progress.md` and `doc/agents/ast/draft.md` before ending the session. If work was inherited mid-task, describe exactly what remains.”
 
 ### Open Follow-ups
-- Finish the fixture matrix (expression-heavy and include-driven samples) before freezing the trace pack.  
+- DONE 2025-10-25: Added expression-heavy (`fixture_expressions`) and include-driven (`fixture_includes`) samples with golden snapshots; trace pack freeze now depends on documenting regeneration workflow.  
 - [x] Add instrumentation debug counters/toggles (exposed via `--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS`).  
 - Package the compile-buffer/CLI traces as the initial “trace pack”; document the regeneration workflow.  
 - Update `hbmk-ast-tests`/`ast_compilebuf_tests` documentation with the exact commands/flags used to refresh snapshots.  
@@ -171,7 +174,7 @@ Include in final session note (and summarise in commit message):
 - **Open items**:
 - [x] Fix CLI handling so `--ast-trace-dump=-` routes to stdout without triggering error `F0035` (2025-10-23: `cmdcheck.c` sentinel parsing tightened).
 - [x] Audit the dump path for formatting issues or leaks while capturing stdout (`hb_compAstTraceDumpJson` review + cmocka coverage).
-- [ ] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise — Clipper/Harbour fixtures now cover nested recovery paths before locking snapshots.
+- [x] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise — expression-heavy and include-driven fixtures landed 2025-10-25; doc refresh + trace-pack packaging still outstanding.
 - [ ] Surface nightly build guidance for `HB_AST_TRACE_DUMP` / CLI usage.
 - [x] Document the new `-iinclude` requirement introduced for `hbmk-ast-tests` and compile-buffer harnesses.
 - **Next session prep**: Compiler rebuilt and `tests/ast` suites (including `hbmk-ast-tests`) ran clean on 2025-10-23; fixture demo snapshot refreshed after restoring the trailing newline, so keep clearing temporary artefacts (`fixture_demo.c`, stdout dumps) after runs, then pivot to new fixtures + documentation refresh for the trace-dump workflow.

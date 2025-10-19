@@ -62,3 +62,5 @@ fixture_compat_clipper
 fixture_compat_harbour
 test_always
 test_always_endseq
+fixture_expressions
+fixture_includes
