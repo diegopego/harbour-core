@@ -72,7 +72,13 @@ typedef enum
    HB_COMP_AST_NODE_STATEMENT_SWITCH = 15,
    HB_COMP_AST_NODE_STATEMENT_WITH = 16,
    HB_COMP_AST_NODE_STATEMENT_SEQUENCE = 17,
-   HB_COMP_AST_NODE_CODEBLOCK = 18
+   HB_COMP_AST_NODE_CODEBLOCK = 18,
+   HB_COMP_AST_NODE_EXPR_ASSIGN = 30,
+   HB_COMP_AST_NODE_EXPR_INPLACE = 31,
+   HB_COMP_AST_NODE_EXPR_MATH = 32,
+   HB_COMP_AST_NODE_EXPR_BOOL = 33,
+   HB_COMP_AST_NODE_EXPR_RELATION = 34,
+   HB_COMP_AST_NODE_EXPR_UNARY = 35
 } HB_COMP_AST_NODE_KIND;
 
 typedef enum
@@ -109,6 +115,8 @@ const HB_COMP_AST_TRACE_BOUNDARY * hb_compAstTraceBoundary( const HB_COMP * pCom
 HB_SIZE hb_compAstTracePpEventCount( const HB_COMP * pComp );
 const HB_COMP_AST_TRACE_PP_EVENT * hb_compAstTracePpEvent( const HB_COMP * pComp, HB_SIZE index );
 HB_SIZE hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, HB_SIZE tokenId );
+HB_SIZE hb_compAstTraceNodeEnterWithName( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, const char * name, HB_SIZE tokenId );
+HB_SIZE hb_compAstTraceNodeEnterName( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const char * name, HB_SIZE tokenId );
 void    hb_compAstTraceNodeLeave( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle );
 void    hb_compAstTraceNodeLeaveById( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, HB_SIZE nodeId );
 void    hb_compAstTraceNodeEnterStack( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, HB_SIZE tokenId );

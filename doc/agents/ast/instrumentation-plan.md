@@ -45,16 +45,24 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 
 ## Hook Point Map
 
-| File | Function / Rule | Insertion site | Captured data | Emitted event / action |
-| --- | --- | --- | --- | --- |
-| `src/compiler/complex.c` | `hb_comp_yylex` | Immediately after `pToken = hb_pp_tokenGet( pLex->pPP );` and null-check | `HB_PP_TOKEN` fields (`value`, `type`, `szModule`, `iLine`, `iColumn`, `nOffset`, `pTraceInfo`) | Call `hb_compAstTracePublishToken( pComp, pToken )` → emits `HB_AST_EVENT_TOKEN` |
-| `src/compiler/complex.c` | `hb_comp_yylex` (pre-return) | Right before returning `0`, `ENDERR`, or any token code | Token ID returned to parser, `pLex->iState`, end-of-command markers | Call `hb_compAstTracePublishBoundary( pComp, code, pLex->iState )` to delimit statements/lines |
-| `src/compiler/harbour.y` | `Function` rule actions (`Function` productions at lines ~329-334) | After existing `hb_compFunctionAdd()` calls | New function symbol (`HB_COMP_PARAM->functions.pLast`), start token IDs | Invoke `hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION, pFunc, hb_compAstTraceLastTokenId( HB_COMP_PARAM ) )` |
-| `src/compiler/hbmain.c` | `hb_compFinalizeFunction` | After function cleanup and before return | Currently active `HB_HFUNC` pointer | Invoke `hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION, pFunc )` |
-| `src/compiler/harbour.y` | Representative expression reductions (e.g., `Expression : Expression '+' Expression`) | Inside each action that returns a `PHB_EXPR` | Newly constructed `PHB_EXPR`, source token IDs | Wrap existing builder call with `HB_AST_TRACE_REDUCTION( <node_kind>, pExpr )` macro that publishes `HB_AST_EVENT_NODE_REDUCE` |
-| `src/compiler/hbcomp.c` | `hb_comp_new` | After `pComp->pLex->pPP = pPP;` | `PHB_PP_STATE`, compiler context pointer | Register trace callback: `hb_pp_setTraceCallback( pPP, hb_astTraceSink, pComp )` |
-| `src/compiler/hbcomp.c` | `hb_comp_free` | Before `hb_pp_free( pComp->pLex->pPP );` | Compiler context | Call `hb_pp_setTraceCallback( pComp->pLex->pPP, NULL, NULL )` to detach sink |
-| `src/compiler/hbcomp.c` | `hb_compParserRun` | After `PHB_PP_TOKEN pToken = hb_pp_tokenGet(...)` inside single-module branch | Token stream consumed when `fSingleModule` set | Publish buffered tokens (`hb_astPublishTokenFlush`) to keep single-module mode aligned |
+| File | Function / Rule | Insertion site | Captured data | Emitted event / action | Status (2025-10-21) |
+| --- | --- | --- | --- | --- | --- |
+| `src/compiler/hbcomp.c` | `hb_comp_new` / `hb_comp_free` | After the lexer owns `pPP` / before teardown frees it | `PHB_PP_STATE` callback slots, AST trace heap | `hb_compAstTraceInit()` installs the PP callback; `hb_compAstTraceShutdown()` clears it and releases retained buffers | Done |
+| `src/compiler/complex.c` | `hb_comp_yylex` (post fetch) | Immediately after `pToken = hb_pp_tokenGet( pLex->pPP );` | Full `HB_PP_TOKEN`, including `pTraceInfo` | `hb_compAstTracePublishToken( pComp, pToken )` copies payload and retains trace info | Done |
+| `src/compiler/complex.c` | `hb_comp_yylex` (pre-return) | Right before returning `0`, `ENDERR`, or any token code | Parser return code, `pLex->iState`, latest token ID | `hb_compAstTracePublishBoundary( pComp, code, pLex->iState )` sequences boundaries | Done |
+| `src/compiler/harbour.y` | `Function` rule actions | After each `hb_compFunctionAdd()` call | Newly created `HB_HFUNC` handle, start token ID | `hb_compAstTraceNodeEnter()` records node enter events with stable IDs | Done |
+| `src/compiler/hbmain.c` | `hb_compFinalizeFunction` | After jump fixups and before returning | Active `HB_HFUNC`, last token ID | `hb_compAstTraceNodeLeave()` emits the matching leave event | Done |
+| `src/compiler/harbour.y` | Statement / expression reductions | Within actions that allocate expressions or manage stacks | Newly created `PHB_EXPR`, node stacks, codeblock tokens | `HB_AST_TRACE_EXPR` plus `hb_compAstTraceNodeEnterStack/LeaveStack` cover expressions, control flow, and codeblocks | Done (core set; backlog tracks remaining reductions) |
+| `src/compiler/complex.c` / `tests` | Trace toggle plumbing | CLI/env switch handling prior to compilation | Feature flag state, outstanding retain counts | `hb_compAstTraceSetEnabled()` clears buffers on toggle changes; cmocka asserts zero outstanding traceinfo | Done |
+| `src/compiler/hbcomp.c` | `hb_compParserRun` (single-module path) | After the `hb_pp_tokenGet()` guard when `fSingleModule` is true | Eager tokens consumed when bypassing the parser | Defer instrumentation; evaluate once single-module fixtures depend on trace buffering | Pending |
+
+### Implementation status – 2025-10-21 oversight update
+
+- Lifecycle wiring in `hb_comp_new()`/`hb_comp_free()` now mirrors the PP callback lifecycle and retains/release counters.
+- `hb_comp_yylex` publishes token and boundary events with stable sequencing and retained `HB_PP_TRACEINFO`.
+- Parser instrumentation spans functions, classes, control-flow statements, codeblocks, and expression reductions via `HB_AST_TRACE_EXPR`.
+- `hbtraceast.c` guards toggles, clears buffers on state flips, and tracks retain/release balance with cmocka coverage.
+- `scripts/test-ast.sh` passes with instrumentation enabled and disabled; `hbmk2 -w3` sweep remains outstanding before merge.
 
 ## Instrumentation Pipeline
 
@@ -128,6 +136,7 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 - **Trace retention leaks**: Mismanaged retain/release could leak memory. Add cmocka tests that compile macro-heavy fixtures while checking for outstanding `HB_PP_TRACEINFO` references.
 - **Cross-version compatibility**: Downstream tools must cope with absent trace callbacks (older compilers). Provide capability negotiation and ensure `hb_pp_setTraceCallback` is optional.
 - **Testing coverage gaps**: Expand fixtures to cover nested macros, inline functions, and dialect switches. Require `hbmk2 -w3`, the `tests/ast` cmocka harness, and `scripts/test-ast.sh` before merging instrumentation patches.
+- **Run log** (2025-10-21): `scripts/test-ast.sh` succeeds with instrumentation toggled on/off; `hbmk2 -w3` still pending for this brief.
 
 ## Open Questions & Verification Plan
 - **Stable token IDs**: Confirm the formula (`file_id`, original range, token kind, macro depth) fits within existing Harbour data types. Prototype helper in `src/compiler/complex.c` and write cmocka tests.

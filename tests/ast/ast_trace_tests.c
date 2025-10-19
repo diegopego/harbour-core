@@ -95,6 +95,7 @@ static void token_and_boundary_events_capture_metadata( void ** state )
 
    hb_compAstTraceSetEnabled( pComp, HB_TRUE );
    hb_compAstTraceClear( pComp );
+   assert_true( hb_compAstTraceIsEnabled( pComp ) );
 
    hb_compAstTracePublishToken( pComp, &token );
    hb_compAstTracePublishBoundary( pComp, ';', 1 );
@@ -236,6 +237,45 @@ static void node_events_pair_enter_and_leave( void ** state )
    assert_int_equal( pLeave->phase, HB_COMP_AST_NODE_EVENT_LEAVE );
    assert_int_equal( pLeave->id, pEnter->id );
    assert_string_equal( pLeave->name, "Demo" );
+
+   hb_comp_free( pComp );
+}
+
+static void expression_nodes_capture_reductions( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compAstTraceSetEnabled( pComp, HB_TRUE );
+   hb_compAstTraceClear( pComp );
+
+#define ASSERT_EXPR_EVENT(nodeKind, label) \
+   do { \
+      hb_compAstTraceClear( pComp ); \
+      HB_SIZE _traceId = hb_compAstTraceNodeEnterName( pComp, ( nodeKind ), ( label ), hb_compAstTraceLastTokenId( pComp ) ); \
+      hb_compAstTraceNodeLeaveById( pComp, ( nodeKind ), _traceId ); \
+      assert_int_equal( hb_compAstTraceNodeCount( pComp ), 2 ); \
+      const HB_COMP_AST_TRACE_NODE_EVENT * _enter = hb_compAstTraceNode( pComp, 0 ); \
+      const HB_COMP_AST_TRACE_NODE_EVENT * _leave = hb_compAstTraceNode( pComp, 1 ); \
+      assert_non_null( _enter ); \
+      assert_non_null( _leave ); \
+      assert_true( _enter->kind == ( nodeKind ) ); \
+      assert_string_equal( _enter->name, ( label ) ); \
+      assert_true( _leave->phase == HB_COMP_AST_NODE_EVENT_LEAVE ); \
+      assert_true( _leave->id == _enter->id ); \
+   } while( 0 )
+
+   ASSERT_EXPR_EVENT( HB_COMP_AST_NODE_EXPR_MATH, "+" );
+   ASSERT_EXPR_EVENT( HB_COMP_AST_NODE_EXPR_BOOL, "AND" );
+   ASSERT_EXPR_EVENT( HB_COMP_AST_NODE_EXPR_RELATION, ">=" );
+   ASSERT_EXPR_EVENT( HB_COMP_AST_NODE_EXPR_ASSIGN, ":=" );
+   ASSERT_EXPR_EVENT( HB_COMP_AST_NODE_EXPR_INPLACE, "+=" );
+   ASSERT_EXPR_EVENT( HB_COMP_AST_NODE_EXPR_UNARY, "PRE++" );
+
+#undef ASSERT_EXPR_EVENT
 
    hb_comp_free( pComp );
 }
@@ -435,6 +475,7 @@ int main( void )
       cmocka_unit_test( token_and_boundary_events_capture_metadata ),
       cmocka_unit_test( pp_events_capture_macro_traces ),
       cmocka_unit_test( cli_toggle_controls_trace ),
+      cmocka_unit_test( expression_nodes_capture_reductions ),
       cmocka_unit_test( class_and_member_events_capture_names ),
       cmocka_unit_test( statement_stack_records_nested_nodes ),
       cmocka_unit_test( node_events_pair_enter_and_leave ),

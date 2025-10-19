@@ -1,5 +1,12 @@
 # AST Tooling Progress Log
 
+## 2025-10-21 – Compiler Instrumentation Hardening
+
+- **Code updates**: Finalised lifecycle wiring so `hb_comp_new()`/`hb_comp_free()` install and tear down the PP trace callback, ensured `hb_comp_yylex` routes all returns through `hb_compAstTraceReturn()`, and exercised the expression/statement macros (`HB_AST_TRACE_EXPR`, stack helpers) with refreshed cmocka coverage (`expression_nodes_capture_reductions` fix).
+- **Docs**: Updated the instrumentation plan with a status table and carried the oversight notes into the draft scratchpad; flagged the remaining single-module parser hook as pending.
+- **Testing**: `scripts/test-ast.sh` passes with tracing toggled both on and off; outstanding suites limited to the planned `hbmk2 -w3` sweep.
+- **Open items**: Schedule `hbmk2 -w3` over affected fixtures, decide whether single-module parsing needs additional buffering before widening tests, and continue the expression-reduction backlog for remaining grammar cases.
+
 ## 2025-10-20 – PP Trace Sink & Toggle
 
 - **Code updates**: Implemented `hb_compAstTracePublishPreprocessorEvent()` and storage for preprocessor trace payloads (`include/hbasttrace.h`, `src/compiler/hbtraceast.c`), exposing accessor helpers and clearing logic so traceinfo retain/release stays balanced. Added `--ast-trace` / `--no-ast-trace` CLI switches plus `HB_AST_TRACE` environment override in `src/compiler/cmdcheck.c`, propagating toggles through `hb_compChkParseSwitch()` and wiring new cmocka coverage (`cli_toggle_controls_trace`, `pp_events_capture_macro_traces`) in `tests/ast/ast_trace_tests.c`.

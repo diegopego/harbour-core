@@ -652,7 +652,7 @@ void hb_compAstTracePublishPreprocessorEvent( PHB_COMP pComp, const HB_PP_TRACE_
    ++pTrace->nPpEventCount;
 }
 
-HB_SIZE hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, HB_SIZE tokenId )
+static HB_SIZE hb_compAstTraceNodeEnterInternal( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, const char * name, HB_SIZE tokenId )
 {
    HB_COMP_AST_TRACE * pTrace;
    HB_COMP_AST_TRACE_NODE_EVENT * pEvent;
@@ -676,7 +676,9 @@ HB_SIZE hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, co
    pEvent->tokenId = tokenId;
    pEvent->handle = handle;
 
-   if( handle && kind == HB_COMP_AST_NODE_FUNCTION )
+   if( name )
+      pEvent->name = hb_strdup( name );
+   else if( handle && kind == HB_COMP_AST_NODE_FUNCTION )
    {
       const HB_HFUNC * pFunc = ( const HB_HFUNC * ) handle;
 
@@ -703,6 +705,21 @@ HB_SIZE hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, co
       hb_compAstTraceAddNodeLink( pTrace, handle, pEvent->id );
 
    return nodeId;
+}
+
+HB_SIZE hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, HB_SIZE tokenId )
+{
+   return hb_compAstTraceNodeEnterInternal( pComp, kind, handle, NULL, tokenId );
+}
+
+HB_SIZE hb_compAstTraceNodeEnterWithName( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, const char * name, HB_SIZE tokenId )
+{
+   return hb_compAstTraceNodeEnterInternal( pComp, kind, handle, name, tokenId );
+}
+
+HB_SIZE hb_compAstTraceNodeEnterName( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const char * name, HB_SIZE tokenId )
+{
+   return hb_compAstTraceNodeEnterInternal( pComp, kind, NULL, name, tokenId );
 }
 
 void hb_compAstTraceNodeLeave( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle )

@@ -35,6 +35,13 @@
 #include "hbcomp.h"
 #include "hbasttrace.h"
 
+#define HB_AST_TRACE_EXPR(kind, name, stmt) \
+   do { \
+      HB_SIZE _hbTraceId = hb_compAstTraceNodeEnterName( HB_COMP_PARAM, ( kind ), ( name ), hb_compAstTraceLastTokenId( HB_COMP_PARAM ) ); \
+      stmt; \
+      hb_compAstTraceNodeLeaveById( HB_COMP_PARAM, ( kind ), _hbTraceId ); \
+   } while( 0 )
+
 /* Compile using: bison -d -v harbour.y */
 
 /* to pacify some meaningless warnings */
@@ -931,44 +938,58 @@ LeftExpression : NumValue
 /* NOTE: PostOp can be used in one context only - it uses $0 rule
  *    (the rule that stands before PostOp)
  */
-PostOp      : INC    { $$ = hb_compExprNewPostInc( $<asExpr>0, HB_COMP_PARAM ); }
-            | DEC    { $$ = hb_compExprNewPostDec( $<asExpr>0, HB_COMP_PARAM ); }
+PostOp      : INC    { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_UNARY, "POST++",
+                        $$ = hb_compExprNewPostInc( $<asExpr>0, HB_COMP_PARAM ); ); }
+            | DEC    { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_UNARY, "POST--",
+                        $$ = hb_compExprNewPostDec( $<asExpr>0, HB_COMP_PARAM ); ); }
             ;
 
 ExprPostOp  : LeftExpression  PostOp %prec POST  { $$ = $2; }
             ;
 
-ExprPreOp   : INC Expression  %prec PRE      { $$ = hb_compExprNewPreInc( $2, HB_COMP_PARAM ); }
-            | DEC Expression  %prec PRE      { $$ = hb_compExprNewPreDec( $2, HB_COMP_PARAM ); }
+ExprPreOp   : INC Expression  %prec PRE      { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_UNARY, "PRE++",
+                                                $$ = hb_compExprNewPreInc( $2, HB_COMP_PARAM ); ); }
+            | DEC Expression  %prec PRE      { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_UNARY, "PRE--",
+                                                $$ = hb_compExprNewPreDec( $2, HB_COMP_PARAM ); ); }
             ;
 
-ExprUnary   : NOT Expression                 { $$ = hb_compExprNewNot( $2, HB_COMP_PARAM ); }
-            | '-' Expression  %prec UNARY    { $$ = hb_compExprNewNegate( $2, HB_COMP_PARAM ); }
+ExprUnary   : NOT Expression                 { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_UNARY, "NOT",
+                                                $$ = hb_compExprNewNot( $2, HB_COMP_PARAM ); ); }
+            | '-' Expression  %prec UNARY    { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_UNARY, "NEGATE",
+                                                $$ = hb_compExprNewNegate( $2, HB_COMP_PARAM ); ); }
             | '+' Expression  %prec UNARY    { $$ = $2; }
             ;
 
-ExprEqual   : LeftExpression '=' Expression %prec INASSIGN { $$ = hb_compExprAssign( $1, $3, HB_COMP_PARAM ); }
+ExprEqual   : LeftExpression '=' Expression %prec INASSIGN { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_ASSIGN, "=",
+                                                $$ = hb_compExprAssign( $1, $3, HB_COMP_PARAM ); ); }
             ;
 
-ExprAssign  : LeftExpression INASSIGN Expression { $$ = hb_compExprAssign( $1, $3, HB_COMP_PARAM ); }
+ExprAssign  : LeftExpression INASSIGN Expression { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_ASSIGN, ":=",
+                                                $$ = hb_compExprAssign( $1, $3, HB_COMP_PARAM ); ); }
             ;
 
-ExprPlusEq  : LeftExpression PLUSEQ   Expression { $$ = hb_compExprSetOperand( hb_compExprNewPlusEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+ExprPlusEq  : LeftExpression PLUSEQ   Expression { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_INPLACE, "+=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewPlusEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
             ;
 
-ExprMinusEq : LeftExpression MINUSEQ  Expression { $$ = hb_compExprSetOperand( hb_compExprNewMinusEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+ExprMinusEq : LeftExpression MINUSEQ  Expression { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_INPLACE, "-=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewMinusEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
             ;
 
-ExprMultEq  : LeftExpression MULTEQ   Expression { $$ = hb_compExprSetOperand( hb_compExprNewMultEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+ExprMultEq  : LeftExpression MULTEQ   Expression { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_INPLACE, "*=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewMultEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
             ;
 
-ExprDivEq   : LeftExpression DIVEQ    Expression { $$ = hb_compExprSetOperand( hb_compExprNewDivEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+ExprDivEq   : LeftExpression DIVEQ    Expression { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_INPLACE, "/=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewDivEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
             ;
 
-ExprModEq   : LeftExpression MODEQ    Expression { $$ = hb_compExprSetOperand( hb_compExprNewModEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+ExprModEq   : LeftExpression MODEQ    Expression { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_INPLACE, "%=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewModEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
             ;
 
-ExprExpEq   : LeftExpression EXPEQ    Expression { $$ = hb_compExprSetOperand( hb_compExprNewExpEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+ExprExpEq   : LeftExpression EXPEQ    Expression { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_INPLACE, "**=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewExpEq( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
             ;
 
 ExprOperEq  : ExprPlusEq
@@ -979,27 +1000,44 @@ ExprOperEq  : ExprPlusEq
             | ExprExpEq
             ;
 
-ExprMath    : Expression '+' Expression   { $$ = hb_compExprSetOperand( hb_compExprNewPlus( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression '-' Expression   { $$ = hb_compExprSetOperand( hb_compExprNewMinus( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression '*' Expression   { $$ = hb_compExprSetOperand( hb_compExprNewMult( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression '/' Expression   { $$ = hb_compExprSetOperand( hb_compExprNewDiv( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression '%' Expression   { $$ = hb_compExprSetOperand( hb_compExprNewMod( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression POWER Expression { $$ = hb_compExprSetOperand( hb_compExprNewPower( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+ExprMath    : Expression '+' Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_MATH, "+",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewPlus( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression '-' Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_MATH, "-",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewMinus( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression '*' Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_MATH, "*",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewMult( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression '/' Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_MATH, "/",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewDiv( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression '%' Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_MATH, "%",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewMod( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression POWER Expression { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_MATH, "**",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewPower( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
             ;
 
-ExprBool    : Expression AND Expression   { $$ = hb_compExprSetOperand( hb_compExprNewAnd( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression OR  Expression   { $$ = hb_compExprSetOperand( hb_compExprNewOr( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+ExprBool    : Expression AND Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_BOOL, "AND",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewAnd( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression OR  Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_BOOL, "OR",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewOr( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
             ;
 
-ExprRelation: Expression EQ  Expression   { $$ = hb_compExprSetOperand( hb_compExprNewEQ( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression '<' Expression   { $$ = hb_compExprSetOperand( hb_compExprNewLT( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression '>' Expression   { $$ = hb_compExprSetOperand( hb_compExprNewGT( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression LE  Expression   { $$ = hb_compExprSetOperand( hb_compExprNewLE( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression GE  Expression   { $$ = hb_compExprSetOperand( hb_compExprNewGE( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression NE1 Expression   { $$ = hb_compExprSetOperand( hb_compExprNewNE( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression NE2 Expression   { $$ = hb_compExprSetOperand( hb_compExprNewNE( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression '$' Expression   { $$ = hb_compExprSetOperand( hb_compExprNewIN( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
-            | Expression '=' Expression   { $$ = hb_compExprSetOperand( hb_compExprNewEqual( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+ExprRelation: Expression EQ  Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_RELATION, "==",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewEQ( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression '<' Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_RELATION, "<",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewLT( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression '>' Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_RELATION, ">",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewGT( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression LE  Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_RELATION, "<=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewLE( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression GE  Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_RELATION, ">=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewGE( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression NE1 Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_RELATION, "!=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewNE( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression NE2 Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_RELATION, "<>",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewNE( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression '$' Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_RELATION, "$",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewIN( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
+            | Expression '=' Expression   { HB_AST_TRACE_EXPR( HB_COMP_AST_NODE_EXPR_RELATION, "=",
+                                                $$ = hb_compExprSetOperand( hb_compExprNewEqual( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); ); }
             ;
 
 ArrayIndex : IndexList ']'

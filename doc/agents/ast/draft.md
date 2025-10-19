@@ -10,6 +10,7 @@
 - DONE 2025-10-18: Delegation briefs prepared for Compiler Instrumentation Agent and AST Tooling Agent (see dedicated sections below).
 - Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
 - Track post-session follow-ups: expanded parser hooks and `hbmk2 -w3` run (event sink + instrumentation toggle landed 2025-10-20).
+- 2025-10-21: Instrumentation status table added to the plan; remaining action is to schedule `hbmk2 -w3` before merge readiness.
 
 ## Phase 0 Assessment TODOs
 - DONE 2025-10-18: Divergence ledger recorded in `doc/agents/ast/divergence-ledger.md` (`keep / isolate / drop` vs `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`).
@@ -31,6 +32,8 @@
 - **Tooling harness**:
   - `tests/ast` cmocka suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
   - `scripts/test-ast.sh`: rerun snapshot comparisons using compiler-sourced events; failures indicate divergence from the schema/fixtures.
+- **Run log**:
+  - 2025-10-21: `scripts/test-ast.sh` passes with tracing enabled/disabled; `hbmk2 -w3` remains pending.
 - **Fixtures & snapshots**:
   - Reuse existing `tests/ast/fixture_*.prg`, `.ch`, `.json`, `.ppo`, `.trace.json` files; add new variants for nested macros, conditionals, and dialect switches once instrumentation lands.
   - Maintain golden snapshots for both token streams and AST payloads; store under extracted tooling repo but reference versions in Harbour core for parity checks.
@@ -44,9 +47,9 @@
   - Implementation agents attach test output summaries to their session reports.
 
 ## Parser Hook Backlog
-- [ ] Emit node enter/leave events for class declarations (`DECLARE CLASS`, `DECLARE MEMBER`).
-- [ ] Capture statement-level reductions (IF/ELSE, FOR/NEXT, WHILE/ENDDO) with parent-child references.
-- [ ] Track codeblock (`{|| ... }`) entry/exit, linking to originating tokens.
+- [x] Emit node enter/leave events for class declarations (`DECLARE CLASS`, `DECLARE MEMBER`). (Landed 2025-10-20)
+- [x] Capture statement-level reductions (IF/ELSE, FOR/NEXT, WHILE/ENDDO) with parent-child references. (Core coverage; continue auditing remaining rules)
+- [x] Track codeblock (`{|| ... }`) entry/exit, linking to originating tokens.
 - [ ] Surface inline (`INLINE`) definitions and `INIT/EXIT` procedures with dedicated node kinds.
 - [ ] Map macro-generated constructs to node events once traceinfo-to-node bindings are stabilised.
 
@@ -135,3 +138,8 @@
   - Revised docs/fixtures and test logs demonstrating parity.
   - Report detailing unresolved coverage gaps or requested compiler hooks for future sessions.
   - Clearly marked follow-up items enabling a new session to pick up pending fixtures or docs without ambiguity.
+
+## Oversight Session 2025-10-21 Notes
+- Compiler instrumentation hooks (lifecycle, lexer, parser, expression helpers) verified against the plan; documentation updated with status tracking.
+- cmocka `expression_nodes_capture_reductions` fixed to unblock trace-events target; `scripts/test-ast.sh` executed successfully.
+- Outstanding work before hand-off: run `hbmk2 -w3`, assess single-module `hb_compParserRun` buffering, and continue expression backlog audit for remaining grammar reductions.
