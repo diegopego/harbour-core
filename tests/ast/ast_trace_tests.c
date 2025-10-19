@@ -122,6 +122,77 @@ static void token_and_boundary_events_capture_metadata( void ** state )
    hb_comp_free( pComp );
 }
 
+static void pp_events_capture_macro_traces( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+   HB_PP_TRACE_EVENT event;
+   const HB_COMP_AST_TRACE_PP_EVENT * pEventCaptured;
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compAstTraceSetEnabled( pComp, HB_TRUE );
+   hb_compAstTraceClear( pComp );
+
+   hb_xmemset( &event, 0, sizeof( event ) );
+   event.szRuleKind = "macro";
+   event.szMacroName = "DBG";
+   event.szCallModule = "trace_test.prg";
+   event.iCallLine = 5;
+   event.iCallColumn = 3;
+   event.iCallEndLine = 5;
+   event.iCallEndColumn = 12;
+   event.nCallOffset = 10;
+   event.nCallEndOffset = 20;
+   event.nExpansionId = 42;
+   event.pszSource = "DBG(1)";
+   event.pszResult = "?? 1";
+
+   hb_compAstTracePublishPreprocessorEvent( pComp, &event );
+
+   assert_int_equal( hb_compAstTracePpEventCount( pComp ), 1 );
+   pEventCaptured = hb_compAstTracePpEvent( pComp, 0 );
+   assert_non_null( pEventCaptured );
+   assert_int_equal( pEventCaptured->sequence, 1 );
+   assert_string_equal( pEventCaptured->ruleKind, "macro" );
+   assert_string_equal( pEventCaptured->macroName, "DBG" );
+   assert_string_equal( pEventCaptured->callModule, "trace_test.prg" );
+   assert_int_equal( pEventCaptured->callLine, 5 );
+   assert_int_equal( pEventCaptured->callColumn, 3 );
+   assert_int_equal( pEventCaptured->callEndLine, 5 );
+   assert_int_equal( pEventCaptured->callEndColumn, 12 );
+   assert_int_equal( pEventCaptured->callOffset, 10 );
+   assert_int_equal( pEventCaptured->callEndOffset, 20 );
+   assert_int_equal( pEventCaptured->expansionId, 42 );
+   assert_string_equal( pEventCaptured->source, "DBG(1)" );
+   assert_string_equal( pEventCaptured->result, "?? 1" );
+
+   hb_compAstTraceClear( pComp );
+   assert_int_equal( hb_compAstTracePpEventCount( pComp ), 0 );
+
+   hb_comp_free( pComp );
+}
+
+static void cli_toggle_controls_trace( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+   const char * argvEnable[] = { "hb_comp", "--ast-trace" };
+   const char * argvDisable[] = { "hb_comp", "--no-ast-trace" };
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compChkCommandLine( pComp, HB_SIZEOFARRAY( argvEnable ), argvEnable );
+   assert_true( hb_compAstTraceIsEnabled( pComp ) );
+
+   hb_compChkCommandLine( pComp, HB_SIZEOFARRAY( argvDisable ), argvDisable );
+   assert_false( hb_compAstTraceIsEnabled( pComp ) );
+
+   hb_comp_free( pComp );
+}
+
 static void node_events_pair_enter_and_leave( void ** state )
 {
    PHB_COMP pComp = hb_comp_new();
@@ -175,6 +246,8 @@ int main( void )
       cmocka_unit_test( traceinfo_lifetime_balances ),
       cmocka_unit_test( disabled_state_blocks_events ),
       cmocka_unit_test( token_and_boundary_events_capture_metadata ),
+      cmocka_unit_test( pp_events_capture_macro_traces ),
+      cmocka_unit_test( cli_toggle_controls_trace ),
       cmocka_unit_test( node_events_pair_enter_and_leave ),
    };
 

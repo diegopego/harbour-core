@@ -34,6 +34,9 @@ typedef struct _HB_COMP_AST_TRACE
    HB_SIZE                      nNodeLinkCount;
    HB_SIZE                      nNodeLinkCapacity;
    HB_COMP_AST_TRACE_NODE_LINK * pNodeLinks;
+   HB_SIZE                      nPpEventCount;
+   HB_SIZE                      nPpEventCapacity;
+   HB_COMP_AST_TRACE_PP_EVENT * pPpEvents;
 } HB_COMP_AST_TRACE;
 
 static HB_COMP_AST_TRACE * hb_compAstTraceState( PHB_COMP pComp )
@@ -43,8 +46,7 @@ static HB_COMP_AST_TRACE * hb_compAstTraceState( PHB_COMP pComp )
 
 static void hb_compAstTracePpSink( void * cargo, const HB_PP_TRACE_EVENT * pEvent )
 {
-   HB_SYMBOL_UNUSED( cargo );
-   HB_SYMBOL_UNUSED( pEvent );
+   hb_compAstTracePublishPreprocessorEvent( ( PHB_COMP ) cargo, pEvent );
 }
 
 static void hb_compAstTraceEnsureTokenCapacity( HB_COMP_AST_TRACE * pTrace, HB_SIZE nExtra )
@@ -93,6 +95,29 @@ static void hb_compAstTraceEnsureBoundaryCapacity( HB_COMP_AST_TRACE * pTrace, H
    }
 }
 
+static void hb_compAstTraceEnsurePpEventCapacity( HB_COMP_AST_TRACE * pTrace, HB_SIZE nExtra )
+{
+   HB_SIZE nRequired;
+
+   if( ! pTrace )
+      return;
+
+   nRequired = pTrace->nPpEventCount + nExtra;
+   if( nRequired > pTrace->nPpEventCapacity )
+   {
+      HB_SIZE nNewCap = pTrace->nPpEventCapacity ? pTrace->nPpEventCapacity : HB_AST_TRACE_INITIAL_CAPACITY;
+
+      while( nNewCap < nRequired )
+         nNewCap <<= 1;
+
+      pTrace->pPpEvents = ( HB_COMP_AST_TRACE_PP_EVENT * ) hb_xrealloc( pTrace->pPpEvents,
+                                                                        nNewCap * sizeof( HB_COMP_AST_TRACE_PP_EVENT ) );
+      hb_xmemset( pTrace->pPpEvents + pTrace->nPpEventCapacity, 0,
+                  ( nNewCap - pTrace->nPpEventCapacity ) * sizeof( HB_COMP_AST_TRACE_PP_EVENT ) );
+      pTrace->nPpEventCapacity = nNewCap;
+   }
+}
+
 static void hb_compAstTraceClearTokens( PHB_COMP pComp, HB_COMP_AST_TRACE * pTrace )
 {
    HB_SIZE i;
@@ -129,6 +154,52 @@ static void hb_compAstTraceClearBoundaries( HB_COMP_AST_TRACE * pTrace )
 {
    if( pTrace )
       pTrace->nBoundaryCount = 0;
+}
+
+static void hb_compAstTraceClearPpEvents( PHB_COMP pComp, HB_COMP_AST_TRACE * pTrace )
+{
+   HB_SIZE i;
+
+   if( ! pTrace )
+      return;
+
+   for( i = 0; i < pTrace->nPpEventCount; ++i )
+   {
+      HB_COMP_AST_TRACE_PP_EVENT * pEvent = &pTrace->pPpEvents[ i ];
+
+      if( pEvent->ruleKind )
+      {
+         hb_xfree( ( void * ) pEvent->ruleKind );
+         pEvent->ruleKind = NULL;
+      }
+      if( pEvent->macroName )
+      {
+         hb_xfree( ( void * ) pEvent->macroName );
+         pEvent->macroName = NULL;
+      }
+      if( pEvent->callModule )
+      {
+         hb_xfree( ( void * ) pEvent->callModule );
+         pEvent->callModule = NULL;
+      }
+      if( pEvent->source )
+      {
+         hb_xfree( ( void * ) pEvent->source );
+         pEvent->source = NULL;
+      }
+      if( pEvent->result )
+      {
+         hb_xfree( ( void * ) pEvent->result );
+         pEvent->result = NULL;
+      }
+      if( pEvent->traceInfo )
+      {
+         hb_compAstTraceReleaseInfo( pComp, ( PHB_PP_TRACEINFO ) pEvent->traceInfo );
+         pEvent->traceInfo = NULL;
+      }
+   }
+
+   pTrace->nPpEventCount = 0;
 }
 
 static void hb_compAstTraceClearNodes( HB_COMP_AST_TRACE * pTrace )
@@ -282,6 +353,7 @@ void hb_compAstTraceShutdown( PHB_COMP pComp )
       hb_compAstTraceClearTokens( pComp, pTrace );
       hb_compAstTraceClearBoundaries( pTrace );
       hb_compAstTraceClearNodes( pTrace );
+      hb_compAstTraceClearPpEvents( pComp, pTrace );
       if( pTrace->pTokens )
       {
          hb_xfree( pTrace->pTokens );
@@ -302,10 +374,16 @@ void hb_compAstTraceShutdown( PHB_COMP pComp )
          hb_xfree( pTrace->pNodeLinks );
          pTrace->pNodeLinks = NULL;
       }
+      if( pTrace->pPpEvents )
+      {
+         hb_xfree( pTrace->pPpEvents );
+         pTrace->pPpEvents = NULL;
+      }
       pTrace->nTokenCapacity = 0;
       pTrace->nBoundaryCapacity = 0;
       pTrace->nNodeCapacity = 0;
       pTrace->nNodeLinkCapacity = 0;
+      pTrace->nPpEventCapacity = 0;
       pTrace->nNextTokenId = 0;
       pTrace->nNextSequence = 0;
       pComp->pAstTrace = NULL;
@@ -452,6 +530,52 @@ void hb_compAstTracePublishBoundary( PHB_COMP pComp, int code, int lexState )
    ++pTrace->nBoundaryCount;
 }
 
+void hb_compAstTracePublishPreprocessorEvent( PHB_COMP pComp, const HB_PP_TRACE_EVENT * pEvent )
+{
+   HB_COMP_AST_TRACE * pTrace;
+   HB_COMP_AST_TRACE_PP_EVENT * pTarget;
+
+   if( ! pComp || ! pEvent )
+      return;
+
+   pTrace = hb_compAstTraceState( pComp );
+   if( ! pTrace || ! pTrace->fEnabled )
+      return;
+
+   hb_compAstTraceEnsurePpEventCapacity( pTrace, 1 );
+   pTarget = &pTrace->pPpEvents[ pTrace->nPpEventCount ];
+   hb_xmemset( pTarget, 0, sizeof( HB_COMP_AST_TRACE_PP_EVENT ) );
+
+   pTarget->sequence = ++pTrace->nNextSequence;
+
+   if( pEvent->szRuleKind && pEvent->szRuleKind[ 0 ] != '\0' )
+      pTarget->ruleKind = hb_strdup( pEvent->szRuleKind );
+   if( pEvent->szMacroName && pEvent->szMacroName[ 0 ] != '\0' )
+      pTarget->macroName = hb_strdup( pEvent->szMacroName );
+   if( pEvent->szCallModule && pEvent->szCallModule[ 0 ] != '\0' )
+      pTarget->callModule = hb_strdup( pEvent->szCallModule );
+   if( pEvent->pszSource && pEvent->pszSource[ 0 ] != '\0' )
+      pTarget->source = hb_strdup( pEvent->pszSource );
+   if( pEvent->pszResult && pEvent->pszResult[ 0 ] != '\0' )
+      pTarget->result = hb_strdup( pEvent->pszResult );
+
+   pTarget->callLine = pEvent->iCallLine;
+   pTarget->callColumn = pEvent->iCallColumn;
+   pTarget->callEndLine = pEvent->iCallEndLine;
+   pTarget->callEndColumn = pEvent->iCallEndColumn;
+   pTarget->callOffset = pEvent->nCallOffset;
+   pTarget->callEndOffset = pEvent->nCallEndOffset;
+   pTarget->expansionId = pEvent->nExpansionId;
+
+   if( pEvent->pTraceInfo )
+   {
+      hb_compAstTraceRetainInfo( pComp, ( PHB_PP_TRACEINFO ) pEvent->pTraceInfo );
+      pTarget->traceInfo = pEvent->pTraceInfo;
+   }
+
+   ++pTrace->nPpEventCount;
+}
+
 void hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, HB_SIZE tokenId )
 {
    HB_COMP_AST_TRACE * pTrace;
@@ -561,6 +685,23 @@ const HB_COMP_AST_TRACE_BOUNDARY * hb_compAstTraceBoundary( const HB_COMP * pCom
    return &pTrace->pBoundaries[ index ];
 }
 
+HB_SIZE hb_compAstTracePpEventCount( const HB_COMP * pComp )
+{
+   const HB_COMP_AST_TRACE * pTrace = pComp ? ( const HB_COMP_AST_TRACE * ) pComp->pAstTrace : NULL;
+
+   return pTrace ? pTrace->nPpEventCount : 0;
+}
+
+const HB_COMP_AST_TRACE_PP_EVENT * hb_compAstTracePpEvent( const HB_COMP * pComp, HB_SIZE index )
+{
+   const HB_COMP_AST_TRACE * pTrace = pComp ? ( const HB_COMP_AST_TRACE * ) pComp->pAstTrace : NULL;
+
+   if( ! pTrace || index >= pTrace->nPpEventCount )
+      return NULL;
+
+   return &pTrace->pPpEvents[ index ];
+}
+
 HB_SIZE hb_compAstTraceNodeCount( const HB_COMP * pComp )
 {
    const HB_COMP_AST_TRACE * pTrace = pComp ? ( const HB_COMP_AST_TRACE * ) pComp->pAstTrace : NULL;
@@ -594,7 +735,8 @@ void hb_compAstTraceClear( PHB_COMP pComp )
 
    hb_compAstTraceClearTokens( pComp, pTrace );
    hb_compAstTraceClearBoundaries( pTrace );
-    hb_compAstTraceClearNodes( pTrace );
+   hb_compAstTraceClearNodes( pTrace );
+   hb_compAstTraceClearPpEvents( pComp, pTrace );
    pTrace->nNextTokenId = 0;
    pTrace->nNextSequence = 0;
    pTrace->nLastTokenId = 0;

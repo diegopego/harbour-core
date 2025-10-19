@@ -9,7 +9,7 @@
 - DONE 2025-10-18: `doc/agents/ast/instrumentation-plan.md` documents hooks in `complex.c`, `harbour.y`, `hbcomp.c`, plus data contracts to tooling.
 - DONE 2025-10-18: Delegation briefs prepared for Compiler Instrumentation Agent and AST Tooling Agent (see dedicated sections below).
 - Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
-- Track post-session follow-ups: event sink implementation, expanded parser hooks, instrumentation toggle surfacing, `hbmk2 -w3` run.
+- Track post-session follow-ups: expanded parser hooks and `hbmk2 -w3` run (event sink + instrumentation toggle landed 2025-10-20).
 
 ## Phase 0 Assessment TODOs
 - DONE 2025-10-18: Divergence ledger recorded in `doc/agents/ast/divergence-ledger.md` (`keep / isolate / drop` vs `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`).

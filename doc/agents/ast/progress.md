@@ -1,5 +1,12 @@
 # AST Tooling Progress Log
 
+## 2025-10-20 – PP Trace Sink & Toggle
+
+- **Code updates**: Implemented `hb_compAstTracePublishPreprocessorEvent()` and storage for preprocessor trace payloads (`include/hbasttrace.h`, `src/compiler/hbtraceast.c`), exposing accessor helpers and clearing logic so traceinfo retain/release stays balanced. Added `--ast-trace` / `--no-ast-trace` CLI switches plus `HB_AST_TRACE` environment override in `src/compiler/cmdcheck.c`, propagating toggles through `hb_compChkParseSwitch()` and wiring new cmocka coverage (`cli_toggle_controls_trace`, `pp_events_capture_macro_traces`) in `tests/ast/ast_trace_tests.c`.
+- **Instrumentation behaviour**: Preprocessor callbacks now duplicate rule/macro/source/result strings, retain `HB_PP_TRACEINFO`, and sequence events alongside tokens/boundaries for deterministic replay via `hb_compAstTracePpEvent{Count,}`. CLI/environment toggles call `hb_compAstTraceSetEnabled()` so instrumentation state is settled before compilation begins.
+- **Testing**: `scripts/test-ast.sh` rebuilt the tree and ran the cmocka suites (`tests/ast/trace-events`, `pp-trace`, `builder-test`, etc.); all tests passed with instrumentation enabled and disabled toggles verified.
+- **Open items**: Extend parser event coverage beyond function declarations, expose consumer bridge for buffered PP/AST streams, and schedule the pending `hbmk2 -w3` verification pass over fixtures.
+
 ## 2025-10-19 – Trace Callback Foundation
 
 - **Code updates**: Instrumentation scaffold added (`include/hbasttrace.h`, `src/compiler/hbtraceast.c`, `include/hbcompdf.h`, `src/compiler/hbcomp.c`, `src/compiler/Makefile`) and preprocessor helpers exported (`include/hbpp.h`, `src/pp/ppcore.c`, `src/harbour.def`) to make `hb_pp_traceinfoRetain/Release` available to the compiler.

@@ -45,6 +45,7 @@
  */
 
 #include "hbcomp.h"
+#include "hbasttrace.h"
 #include "hbset.h"
 
 static char s_szUndefineMarker[ 1 ] = "";
@@ -180,6 +181,37 @@ static const char * hb_compChkOptionAddPath( HB_COMP_DECL, const char * szSwitch
    return szSwitch + nLen;
 }
 
+static HB_BOOL hb_compChkParseBoolFlag( const char * szValue, HB_BOOL fDefault )
+{
+   const char * szPtr = szValue;
+
+   if( szPtr )
+   {
+      while( *szPtr && HB_ISSPACE( ( unsigned char ) *szPtr ) )
+         ++szPtr;
+   }
+
+   if( ! szPtr || *szPtr == '\0' )
+      return fDefault;
+
+   if( *szPtr == '1' || *szPtr == '+' )
+      return HB_TRUE;
+   if( *szPtr == '0' || *szPtr == '-' )
+      return HB_FALSE;
+
+   if( hb_strnicmp( szPtr, "on", 2 ) == 0 ||
+       hb_strnicmp( szPtr, "true", 4 ) == 0 ||
+       hb_strnicmp( szPtr, "yes", 3 ) == 0 )
+      return HB_TRUE;
+
+   if( hb_strnicmp( szPtr, "off", 3 ) == 0 ||
+       hb_strnicmp( szPtr, "false", 5 ) == 0 ||
+       hb_strnicmp( szPtr, "no", 2 ) == 0 )
+      return HB_FALSE;
+
+   return fDefault;
+}
+
 static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
                                            HB_BOOL fEnv )
 {
@@ -199,6 +231,51 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
          HB_COMP_PARAM->fLogo = HB_TRUE;
          HB_COMP_PARAM->fQuiet = HB_FALSE;
          HB_COMP_PARAM->fExit = HB_FALSE;
+      }
+      else if( hb_strnicmp( szSwPtr + 2, "no-ast-trace", 12 ) == 0 )
+      {
+         const char * szOptPtr = szSwPtr + 14;
+
+         if( *szOptPtr == '=' || *szOptPtr == ':' )
+         {
+            ++szOptPtr;
+            while( *szOptPtr && *szOptPtr != ' ' && ! HB_ISOPTSEP( *szOptPtr ) )
+               ++szOptPtr;
+         }
+
+         HB_COMP_PARAM->fAstTraceEnabled = HB_FALSE;
+         hb_compAstTraceSetEnabled( HB_COMP_PARAM, HB_FALSE );
+         szSwPtr = szOptPtr;
+      }
+      else if( hb_strnicmp( szSwPtr + 2, "ast-trace", 9 ) == 0 )
+      {
+         const char * szOptPtr = szSwPtr + 11;
+         HB_BOOL fEnable = HB_TRUE;
+
+         if( *szOptPtr == '=' || *szOptPtr == ':' )
+         {
+            const char * szValue = ++szOptPtr;
+
+            while( *szOptPtr && *szOptPtr != ' ' && ! HB_ISOPTSEP( *szOptPtr ) )
+               ++szOptPtr;
+
+            if( szOptPtr > szValue )
+            {
+               char * szDup = hb_strndup( szValue, szOptPtr - szValue );
+
+               fEnable = hb_compChkParseBoolFlag( szDup, HB_TRUE );
+               hb_xfree( szDup );
+            }
+         }
+         else if( *szOptPtr == '-' )
+         {
+            ++szOptPtr;
+            fEnable = HB_FALSE;
+         }
+
+         HB_COMP_PARAM->fAstTraceEnabled = fEnable;
+         hb_compAstTraceSetEnabled( HB_COMP_PARAM, fEnable );
+         szSwPtr = szOptPtr;
       }
    }
    else if( HB_ISOPTSEP( *szSwPtr ) )
@@ -863,6 +940,19 @@ void hb_compChkCommandLine( HB_COMP_DECL, int argc, const char * const argv[] )
 void hb_compChkEnvironment( HB_COMP_DECL )
 {
    /* NOTE: if HARBOURCMD envvar exists then it's used instead of CLIPPERCMD */
+   {
+      char * szAstTrace = hb_getenv( "HB_AST_TRACE" );
+
+      if( szAstTrace )
+      {
+         HB_BOOL fEnable = hb_compChkParseBoolFlag( szAstTrace, HB_TRUE );
+
+         HB_COMP_PARAM->fAstTraceEnabled = fEnable;
+         hb_compAstTraceSetEnabled( HB_COMP_PARAM, fEnable );
+         hb_xfree( szAstTrace );
+      }
+   }
+
    char * szEnvCMD = hb_getenv( "HARBOURCMD" );
 
    if( ! szEnvCMD || szEnvCMD[ 0 ] == '\0' )
@@ -885,6 +975,7 @@ void hb_compChkEnvironment( HB_COMP_DECL )
       }
       hb_xfree( szEnvCMD );
    }
+
 }
 
 void hb_compChkAddIncPaths( HB_COMP_DECL )

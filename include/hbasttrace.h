@@ -10,7 +10,8 @@ HB_EXTERN_BEGIN
 typedef enum
 {
    HB_COMP_AST_TRACE_EVENT_TOKEN = 1,
-   HB_COMP_AST_TRACE_EVENT_BOUNDARY = 2
+   HB_COMP_AST_TRACE_EVENT_BOUNDARY = 2,
+   HB_COMP_AST_TRACE_EVENT_PREPROCESSOR = 3
 } HB_COMP_AST_TRACE_EVENT_TYPE;
 
 typedef struct _HB_COMP_AST_TRACE_TOKEN
@@ -38,6 +39,24 @@ typedef struct _HB_COMP_AST_TRACE_BOUNDARY
    int      code;
    int      lexState;
 } HB_COMP_AST_TRACE_BOUNDARY;
+
+typedef struct _HB_COMP_AST_TRACE_PP_EVENT
+{
+   HB_SIZE                 sequence;
+   const char *            ruleKind;
+   const char *            macroName;
+   const char *            callModule;
+   int                     callLine;
+   int                     callColumn;
+   int                     callEndLine;
+   int                     callEndColumn;
+   HB_SIZE                 callOffset;
+   HB_SIZE                 callEndOffset;
+   HB_SIZE                 expansionId;
+   const char *            source;
+   const char *            result;
+   const HB_PP_TRACEINFO * traceInfo;
+} HB_COMP_AST_TRACE_PP_EVENT;
 
 typedef enum
 {
@@ -70,10 +89,13 @@ void    hb_compAstTraceReleaseInfo( PHB_COMP pComp, PHB_PP_TRACEINFO pTraceInfo 
 HB_SIZE hb_compAstTraceOutstandingTraceinfo( const HB_COMP * pComp );
 void    hb_compAstTracePublishToken( PHB_COMP pComp, const PHB_PP_TOKEN pToken );
 void    hb_compAstTracePublishBoundary( PHB_COMP pComp, int code, int lexState );
+void    hb_compAstTracePublishPreprocessorEvent( PHB_COMP pComp, const HB_PP_TRACE_EVENT * pEvent );
 HB_SIZE hb_compAstTraceTokenCount( const HB_COMP * pComp );
 const HB_COMP_AST_TRACE_TOKEN * hb_compAstTraceToken( const HB_COMP * pComp, HB_SIZE index );
 HB_SIZE hb_compAstTraceBoundaryCount( const HB_COMP * pComp );
 const HB_COMP_AST_TRACE_BOUNDARY * hb_compAstTraceBoundary( const HB_COMP * pComp, HB_SIZE index );
+HB_SIZE hb_compAstTracePpEventCount( const HB_COMP * pComp );
+const HB_COMP_AST_TRACE_PP_EVENT * hb_compAstTracePpEvent( const HB_COMP * pComp, HB_SIZE index );
 void    hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, HB_SIZE tokenId );
 void    hb_compAstTraceNodeLeave( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle );
 HB_SIZE hb_compAstTraceNodeCount( const HB_COMP * pComp );
