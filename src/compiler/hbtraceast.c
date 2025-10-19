@@ -37,6 +37,10 @@ typedef struct _HB_COMP_AST_TRACE
    HB_SIZE                      nPpEventCount;
    HB_SIZE                      nPpEventCapacity;
    HB_COMP_AST_TRACE_PP_EVENT * pPpEvents;
+   HB_SIZE                      nNodeStackCount;
+   HB_SIZE                      nNodeStackCapacity;
+   HB_SIZE *                    pNodeStackIds;
+   HB_COMP_AST_NODE_KIND *      pNodeStackKinds;
 } HB_COMP_AST_TRACE;
 
 static HB_COMP_AST_TRACE * hb_compAstTraceState( PHB_COMP pComp )
@@ -271,6 +275,67 @@ static void hb_compAstTraceEnsureNodeLinkCapacity( HB_COMP_AST_TRACE * pTrace, H
    }
 }
 
+static void hb_compAstTraceEnsureNodeStackCapacity( HB_COMP_AST_TRACE * pTrace, HB_SIZE nExtra )
+{
+   HB_SIZE nRequired;
+
+   if( ! pTrace )
+      return;
+
+   nRequired = pTrace->nNodeStackCount + nExtra;
+   if( nRequired > pTrace->nNodeStackCapacity )
+   {
+      HB_SIZE nNewCap = pTrace->nNodeStackCapacity ? pTrace->nNodeStackCapacity : HB_AST_TRACE_INITIAL_CAPACITY;
+
+      while( nNewCap < nRequired )
+         nNewCap <<= 1;
+
+      pTrace->pNodeStackIds = ( HB_SIZE * ) hb_xrealloc( pTrace->pNodeStackIds,
+                                                         nNewCap * sizeof( HB_SIZE ) );
+      pTrace->pNodeStackKinds = ( HB_COMP_AST_NODE_KIND * ) hb_xrealloc( pTrace->pNodeStackKinds,
+                                                                         nNewCap * sizeof( HB_COMP_AST_NODE_KIND ) );
+      pTrace->nNodeStackCapacity = nNewCap;
+   }
+}
+
+static void hb_compAstTracePushNodeStack( HB_COMP_AST_TRACE * pTrace, HB_COMP_AST_NODE_KIND kind, HB_SIZE id )
+{
+   if( ! pTrace || id == 0 )
+      return;
+
+   hb_compAstTraceEnsureNodeStackCapacity( pTrace, 1 );
+   pTrace->pNodeStackIds[ pTrace->nNodeStackCount ] = id;
+   pTrace->pNodeStackKinds[ pTrace->nNodeStackCount ] = kind;
+   ++pTrace->nNodeStackCount;
+}
+
+static HB_SIZE hb_compAstTracePopNodeStack( HB_COMP_AST_TRACE * pTrace, HB_COMP_AST_NODE_KIND kind )
+{
+   HB_SIZE i;
+
+   if( ! pTrace || pTrace->nNodeStackCount == 0 )
+      return 0;
+
+   for( i = pTrace->nNodeStackCount; i > 0; --i )
+   {
+      if( pTrace->pNodeStackKinds[ i - 1 ] == kind )
+      {
+         HB_SIZE id = pTrace->pNodeStackIds[ i - 1 ];
+
+         --pTrace->nNodeStackCount;
+         if( i - 1 != pTrace->nNodeStackCount )
+         {
+            pTrace->pNodeStackIds[ i - 1 ] = pTrace->pNodeStackIds[ pTrace->nNodeStackCount ];
+            pTrace->pNodeStackKinds[ i - 1 ] = pTrace->pNodeStackKinds[ pTrace->nNodeStackCount ];
+         }
+
+         return id;
+      }
+   }
+
+   return 0;
+}
+
 static HB_SIZE hb_compAstTraceLookupNodeId( HB_COMP_AST_TRACE * pTrace, const void * handle )
 {
    HB_SIZE i;
@@ -374,6 +439,16 @@ void hb_compAstTraceShutdown( PHB_COMP pComp )
          hb_xfree( pTrace->pNodeLinks );
          pTrace->pNodeLinks = NULL;
       }
+      if( pTrace->pNodeStackIds )
+      {
+         hb_xfree( pTrace->pNodeStackIds );
+         pTrace->pNodeStackIds = NULL;
+      }
+      if( pTrace->pNodeStackKinds )
+      {
+         hb_xfree( pTrace->pNodeStackKinds );
+         pTrace->pNodeStackKinds = NULL;
+      }
       if( pTrace->pPpEvents )
       {
          hb_xfree( pTrace->pPpEvents );
@@ -384,6 +459,7 @@ void hb_compAstTraceShutdown( PHB_COMP pComp )
       pTrace->nNodeCapacity = 0;
       pTrace->nNodeLinkCapacity = 0;
       pTrace->nPpEventCapacity = 0;
+      pTrace->nNodeStackCapacity = 0;
       pTrace->nNextTokenId = 0;
       pTrace->nNextSequence = 0;
       pComp->pAstTrace = NULL;
@@ -576,23 +652,24 @@ void hb_compAstTracePublishPreprocessorEvent( PHB_COMP pComp, const HB_PP_TRACE_
    ++pTrace->nPpEventCount;
 }
 
-void hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, HB_SIZE tokenId )
+HB_SIZE hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle, HB_SIZE tokenId )
 {
    HB_COMP_AST_TRACE * pTrace;
    HB_COMP_AST_TRACE_NODE_EVENT * pEvent;
+   HB_SIZE nodeId = 0;
 
    if( ! pComp )
-      return;
+      return 0;
 
    pTrace = hb_compAstTraceState( pComp );
    if( ! pTrace || ! pTrace->fEnabled )
-      return;
+      return 0;
 
    hb_compAstTraceEnsureNodeCapacity( pTrace, 1 );
    pEvent = &pTrace->pNodes[ pTrace->nNodeCount ];
    hb_xmemset( pEvent, 0, sizeof( HB_COMP_AST_TRACE_NODE_EVENT ) );
 
-   pEvent->id = ++pTrace->nNextNodeId;
+   pEvent->id = nodeId = ++pTrace->nNextNodeId;
    pEvent->sequence = ++pTrace->nNextSequence;
    pEvent->kind = kind;
    pEvent->phase = HB_COMP_AST_NODE_EVENT_ENTER;
@@ -606,9 +683,26 @@ void hb_compAstTraceNodeEnter( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const
       if( pFunc->szName )
          pEvent->name = hb_strdup( pFunc->szName );
    }
+   else if( handle && kind == HB_COMP_AST_NODE_CLASS )
+   {
+      const HB_HCLASS * pClass = ( const HB_HCLASS * ) handle;
+
+      if( pClass->szName )
+         pEvent->name = hb_strdup( pClass->szName );
+   }
+   else if( handle && ( kind == HB_COMP_AST_NODE_CLASS_METHOD || kind == HB_COMP_AST_NODE_CLASS_DATA ) )
+   {
+      const HB_HDECLARED * pDeclared = ( const HB_HDECLARED * ) handle;
+
+      if( pDeclared->szName )
+         pEvent->name = hb_strdup( pDeclared->szName );
+   }
 
    ++pTrace->nNodeCount;
-   hb_compAstTraceAddNodeLink( pTrace, handle, pEvent->id );
+   if( handle )
+      hb_compAstTraceAddNodeLink( pTrace, handle, pEvent->id );
+
+   return nodeId;
 }
 
 void hb_compAstTraceNodeLeave( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const void * handle )
@@ -646,9 +740,83 @@ void hb_compAstTraceNodeLeave( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const
       if( pFunc->szName )
          pEvent->name = hb_strdup( pFunc->szName );
    }
+   else if( handle && kind == HB_COMP_AST_NODE_CLASS )
+   {
+      const HB_HCLASS * pClass = ( const HB_HCLASS * ) handle;
+
+      if( pClass->szName )
+         pEvent->name = hb_strdup( pClass->szName );
+   }
+   else if( handle && ( kind == HB_COMP_AST_NODE_CLASS_METHOD || kind == HB_COMP_AST_NODE_CLASS_DATA ) )
+   {
+      const HB_HDECLARED * pDeclared = ( const HB_HDECLARED * ) handle;
+
+      if( pDeclared->szName )
+         pEvent->name = hb_strdup( pDeclared->szName );
+   }
 
    ++pTrace->nNodeCount;
-   hb_compAstTraceRemoveNodeLink( pTrace, handle );
+   if( handle )
+      hb_compAstTraceRemoveNodeLink( pTrace, handle );
+}
+
+void hb_compAstTraceNodeLeaveById( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, HB_SIZE nodeId )
+{
+   HB_COMP_AST_TRACE * pTrace;
+   HB_COMP_AST_TRACE_NODE_EVENT * pEvent;
+
+   if( ! pComp || nodeId == 0 )
+      return;
+
+   pTrace = hb_compAstTraceState( pComp );
+   if( ! pTrace || ! pTrace->fEnabled )
+      return;
+
+   hb_compAstTraceEnsureNodeCapacity( pTrace, 1 );
+   pEvent = &pTrace->pNodes[ pTrace->nNodeCount ];
+   hb_xmemset( pEvent, 0, sizeof( HB_COMP_AST_TRACE_NODE_EVENT ) );
+
+   pEvent->id = nodeId;
+   pEvent->sequence = ++pTrace->nNextSequence;
+   pEvent->kind = kind;
+   pEvent->phase = HB_COMP_AST_NODE_EVENT_LEAVE;
+   pEvent->tokenId = pTrace->nLastTokenId;
+
+   ++pTrace->nNodeCount;
+}
+
+void hb_compAstTraceNodeEnterStack( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, HB_SIZE tokenId )
+{
+   HB_COMP_AST_TRACE * pTrace;
+   HB_SIZE nodeId;
+
+   if( ! pComp )
+      return;
+
+   pTrace = hb_compAstTraceState( pComp );
+   if( ! pTrace || ! pTrace->fEnabled )
+      return;
+
+   nodeId = hb_compAstTraceNodeEnter( pComp, kind, NULL, tokenId );
+   if( nodeId )
+      hb_compAstTracePushNodeStack( pTrace, kind, nodeId );
+}
+
+void hb_compAstTraceNodeLeaveStack( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind )
+{
+   HB_COMP_AST_TRACE * pTrace;
+   HB_SIZE nodeId;
+
+   if( ! pComp )
+      return;
+
+   pTrace = hb_compAstTraceState( pComp );
+   if( ! pTrace || ! pTrace->fEnabled )
+      return;
+
+   nodeId = hb_compAstTracePopNodeStack( pTrace, kind );
+   if( nodeId )
+      hb_compAstTraceNodeLeaveById( pComp, kind, nodeId );
 }
 
 HB_SIZE hb_compAstTraceTokenCount( const HB_COMP * pComp )
@@ -740,4 +908,5 @@ void hb_compAstTraceClear( PHB_COMP pComp )
    pTrace->nNextTokenId = 0;
    pTrace->nNextSequence = 0;
    pTrace->nLastTokenId = 0;
+   pTrace->nNodeStackCount = 0;
 }

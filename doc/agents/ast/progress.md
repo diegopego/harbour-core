@@ -7,6 +7,13 @@
 - **Testing**: `scripts/test-ast.sh` rebuilt the tree and ran the cmocka suites (`tests/ast/trace-events`, `pp-trace`, `builder-test`, etc.); all tests passed with instrumentation enabled and disabled toggles verified.
 - **Open items**: Extend parser event coverage beyond function declarations, expose consumer bridge for buffered PP/AST streams, and schedule the pending `hbmk2 -w3` verification pass over fixtures.
 
+## 2025-10-20 – Parser Hooks Extended
+
+- **Code updates**: Added new node kinds (`CLASS`, `CLASS_METHOD`, `CLASS_DATA`, `STATEMENT_*`, `CODEBLOCK`) and stack helpers to `hbtraceast.c`, letting grammar actions publish nested statement and block events without requiring handles. Instrumented `harbour.y` to emit enter/leave events for class declarations/members, control-flow statements (IF/CASE/WHILE/FOR/FOREACH/SWITCH/WITH/BEND SEQUENCE), and codeblock literals. Updated trace tests with coverage for the new node kinds (`class_and_member_events_capture_names`, `statement_stack_records_nested_nodes`).
+- **Behavioural notes**: Statement instrumentation uses the stack helpers so nested constructs unwind correctly; leave events reuse the latest token ID while class/member nodes duplicate symbol names for correlation. Codeblock enter/leave now bracket both inline and extended `{|| ... }` forms.
+- **Testing**: `scripts/test-ast.sh` (cmocka suites + shell harness) passes with the expanded test matrix; new tests sit under `tests/ast/trace-events` ensuring name propagation and stack ordering. Full `hbmk2 -w3` run still pending.
+- **Open items**: Remaining expression coverage (binary reductions, macro expressions) and error-path flushing still outstanding; need to surface node IDs through consumer API once downstream tooling is ready.
+
 ## 2025-10-19 – Trace Callback Foundation
 
 - **Code updates**: Instrumentation scaffold added (`include/hbasttrace.h`, `src/compiler/hbtraceast.c`, `include/hbcompdf.h`, `src/compiler/hbcomp.c`, `src/compiler/Makefile`) and preprocessor helpers exported (`include/hbpp.h`, `src/pp/ppcore.c`, `src/harbour.def`) to make `hb_pp_traceinfoRetain/Release` available to the compiler.

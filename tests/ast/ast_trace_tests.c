@@ -240,6 +240,193 @@ static void node_events_pair_enter_and_leave( void ** state )
    hb_comp_free( pComp );
 }
 
+static void class_and_member_events_capture_names( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+   HB_PP_TOKEN token;
+   HB_HCLASS klass;
+   HB_HDECLARED method;
+   HB_HDECLARED data;
+   const HB_COMP_AST_TRACE_NODE_EVENT * pEvent;
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compAstTraceSetEnabled( pComp, HB_TRUE );
+   hb_compAstTraceClear( pComp );
+
+   hb_xmemset( &token, 0, sizeof( token ) );
+   token.value = "CLASS";
+   token.len = 5;
+
+   hb_compAstTracePublishToken( pComp, &token );
+
+   hb_xmemset( &klass, 0, sizeof( klass ) );
+   klass.szName = "SampleClass";
+
+   hb_compAstTraceNodeEnter( pComp, HB_COMP_AST_NODE_CLASS, &klass,
+                             hb_compAstTraceLastTokenId( pComp ) );
+   hb_compAstTraceNodeLeave( pComp, HB_COMP_AST_NODE_CLASS, &klass );
+
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 2 );
+   pEvent = hb_compAstTraceNode( pComp, 0 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->kind, HB_COMP_AST_NODE_CLASS );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_ENTER );
+   assert_string_equal( pEvent->name, "SampleClass" );
+
+   pEvent = hb_compAstTraceNode( pComp, 1 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_LEAVE );
+   assert_string_equal( pEvent->name, "SampleClass" );
+
+   hb_compAstTraceClear( pComp );
+
+   token.value = "METHOD";
+   token.len = 6;
+   hb_compAstTracePublishToken( pComp, &token );
+
+   hb_xmemset( &method, 0, sizeof( method ) );
+   method.szName = "MethodName";
+
+   hb_compAstTraceNodeEnter( pComp, HB_COMP_AST_NODE_CLASS_METHOD, &method,
+                             hb_compAstTraceLastTokenId( pComp ) );
+   hb_compAstTraceNodeLeave( pComp, HB_COMP_AST_NODE_CLASS_METHOD, &method );
+
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 2 );
+   pEvent = hb_compAstTraceNode( pComp, 0 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->kind, HB_COMP_AST_NODE_CLASS_METHOD );
+   assert_string_equal( pEvent->name, "MethodName" );
+
+   pEvent = hb_compAstTraceNode( pComp, 1 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_LEAVE );
+   assert_string_equal( pEvent->name, "MethodName" );
+
+   hb_compAstTraceClear( pComp );
+
+   token.value = "DATA";
+   token.len = 4;
+   hb_compAstTracePublishToken( pComp, &token );
+
+   hb_xmemset( &data, 0, sizeof( data ) );
+   data.szName = "DataMember";
+
+   hb_compAstTraceNodeEnter( pComp, HB_COMP_AST_NODE_CLASS_DATA, &data,
+                             hb_compAstTraceLastTokenId( pComp ) );
+   hb_compAstTraceNodeLeave( pComp, HB_COMP_AST_NODE_CLASS_DATA, &data );
+
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 2 );
+   pEvent = hb_compAstTraceNode( pComp, 0 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->kind, HB_COMP_AST_NODE_CLASS_DATA );
+   assert_string_equal( pEvent->name, "DataMember" );
+
+   pEvent = hb_compAstTraceNode( pComp, 1 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_LEAVE );
+   assert_string_equal( pEvent->name, "DataMember" );
+
+   hb_comp_free( pComp );
+}
+
+static void statement_stack_records_nested_nodes( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+   HB_PP_TOKEN tokenIf;
+   HB_PP_TOKEN tokenWhile;
+    HB_PP_TOKEN tokenBlock;
+   const HB_COMP_AST_TRACE_NODE_EVENT * pEvent;
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compAstTraceSetEnabled( pComp, HB_TRUE );
+   hb_compAstTraceClear( pComp );
+
+   hb_xmemset( &tokenIf, 0, sizeof( tokenIf ) );
+   tokenIf.value = "IF";
+   tokenIf.len = 2;
+
+   hb_compAstTracePublishToken( pComp, &tokenIf );
+   hb_compAstTraceNodeEnterStack( pComp, HB_COMP_AST_NODE_STATEMENT_IF,
+                                  hb_compAstTraceLastTokenId( pComp ) );
+
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 1 );
+
+   hb_xmemset( &tokenWhile, 0, sizeof( tokenWhile ) );
+   tokenWhile.value = "WHILE";
+   tokenWhile.len = 5;
+
+   hb_compAstTracePublishToken( pComp, &tokenWhile );
+   hb_compAstTraceNodeEnterStack( pComp, HB_COMP_AST_NODE_STATEMENT_WHILE,
+                                  hb_compAstTraceLastTokenId( pComp ) );
+
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 2 );
+
+   hb_compAstTracePublishToken( pComp, &tokenWhile );
+   hb_compAstTraceNodeLeaveStack( pComp, HB_COMP_AST_NODE_STATEMENT_WHILE );
+
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 3 );
+
+   hb_compAstTracePublishToken( pComp, &tokenIf );
+   hb_compAstTraceNodeLeaveStack( pComp, HB_COMP_AST_NODE_STATEMENT_IF );
+
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 4 );
+
+   pEvent = hb_compAstTraceNode( pComp, 0 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->kind, HB_COMP_AST_NODE_STATEMENT_IF );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_ENTER );
+
+   pEvent = hb_compAstTraceNode( pComp, 1 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->kind, HB_COMP_AST_NODE_STATEMENT_WHILE );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_ENTER );
+
+   pEvent = hb_compAstTraceNode( pComp, 2 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->kind, HB_COMP_AST_NODE_STATEMENT_WHILE );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_LEAVE );
+   assert_null( pEvent->name );
+
+   pEvent = hb_compAstTraceNode( pComp, 3 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->kind, HB_COMP_AST_NODE_STATEMENT_IF );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_LEAVE );
+   assert_null( pEvent->name );
+
+   hb_compAstTraceClear( pComp );
+
+   hb_xmemset( &tokenBlock, 0, sizeof( tokenBlock ) );
+   tokenBlock.value = "{||";
+   tokenBlock.len = 3;
+
+   hb_compAstTracePublishToken( pComp, &tokenBlock );
+   hb_compAstTraceNodeEnterStack( pComp, HB_COMP_AST_NODE_CODEBLOCK,
+                                  hb_compAstTraceLastTokenId( pComp ) );
+   hb_compAstTracePublishToken( pComp, &tokenBlock );
+   hb_compAstTraceNodeLeaveStack( pComp, HB_COMP_AST_NODE_CODEBLOCK );
+
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 2 );
+
+   pEvent = hb_compAstTraceNode( pComp, 0 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->kind, HB_COMP_AST_NODE_CODEBLOCK );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_ENTER );
+
+   pEvent = hb_compAstTraceNode( pComp, 1 );
+   assert_non_null( pEvent );
+   assert_int_equal( pEvent->kind, HB_COMP_AST_NODE_CODEBLOCK );
+   assert_int_equal( pEvent->phase, HB_COMP_AST_NODE_EVENT_LEAVE );
+   assert_null( pEvent->name );
+
+   hb_comp_free( pComp );
+}
+
 int main( void )
 {
    const struct CMUnitTest tests[] = {
@@ -248,6 +435,8 @@ int main( void )
       cmocka_unit_test( token_and_boundary_events_capture_metadata ),
       cmocka_unit_test( pp_events_capture_macro_traces ),
       cmocka_unit_test( cli_toggle_controls_trace ),
+      cmocka_unit_test( class_and_member_events_capture_names ),
+      cmocka_unit_test( statement_stack_records_nested_nodes ),
       cmocka_unit_test( node_events_pair_enter_and_leave ),
    };
 

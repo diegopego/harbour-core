@@ -78,7 +78,7 @@
   1. **Trace callback foundation** — implement registration/teardown (`hb_comp_new`, `hb_comp_free`), add stress tests for retain/release accounting. *Status: COMPLETED 2025-10-18 (trace helper in `hbtraceast.c`, cmocka `traceinfo_lifetime_balances`).*
   2. **Lexer emission pass** — instrument `hb_comp_yylex` with event emission and stable token IDs; capture sample event logs for fixtures in the verification matrix. *Status: COMPLETED 2025-10-18 (token/boundary events via `hb_compAstTracePublishToken/Return`).*
   3. **Parser hook pilot** — add reduction hooks for function declarations; produce a follow-up checklist for additional grammar nodes (stored below). *Status: COMPLETED 2025-10-18 (function enter/leave instrumentation in `harbour.y`).*
-  4. **Stabilisation & notes** — update developer commentary/helpers as needed; highlight any helper APIs or toggles introduced. *In progress: event sink wiring and CLI toggle outstanding.*
+  4. **Stabilisation & notes** — update developer commentary/helpers as needed; highlight any helper APIs or toggles introduced. *Status: COMPLETED 2025-10-20 (PP sink + CLI/env toggles + parser hook extensions landed).* 
   5. **Verification sweep** — run matrix suites after each milestone (hbmk2, cmocka, scripts/test-ast.sh), attaching summaries and outstanding issues to the session report. *Partial: cmocka + `scripts/test-ast.sh` pass; `hbmk2 -w3` pending.*
 - **Incremental execution guidance**:
   - If the session approaches token limits, finish the current step, summarise partial results, and record next actions + test status in both `doc/agents/ast/progress.md` and a short note in `doc/agents/ast/draft.md`.
@@ -99,11 +99,13 @@
   - Updated log entries noting which parts of the task breakdown are complete and what remains for the next session.
 
 ### Parser hook backlog
-- Class declarations / method definitions (trace node enter/leave, token mapping).
-- Statement-level constructs (IF/ELSE, DO WHILE, SWITCH, SEQUENCE).
-- Expression reductions (binary operators, macro expressions, lambda/block literals).
-- Error recovery paths (ensure events flush correctly on syntax errors).
-- Exit/return handling (ensure final boundary events align with node closures).
+- [x] Class declarations / method definitions (trace node enter/leave, token mapping).
+- [x] Statement-level constructs (IF/ELSE, DO WHILE, SWITCH, SEQUENCE, WITH, FOREACH).
+- [x] Track codeblock literals (enter/leave around `{|| ... }`).
+- [ ] Expression reductions beyond block literals (binary operators, macro expressions).
+- [ ] Error recovery paths (ensure events flush correctly on syntax errors).
+- [ ] Exit/return handling (ensure final boundary events align with node closures).
+- [ ] Stand up integration fixtures that compile representative `.prg` snippets via `hb_compileBuf()` / `__pp_process()` and assert the emitted trace streams match golden snapshots (captures end-to-end spec coverage for tokens + AST).
 
 ## Delegation Brief – AST Tooling Agent
 - **Mandate**: Rework the tooling layer (post-extraction) to consume compiler-emitted events, keeping schemas and fixtures aligned with Harbour instrumentation.

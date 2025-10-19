@@ -1017,9 +1017,15 @@ ElemList   : ExtArgument               { $$ = hb_compExprNewList( $1, HB_COMP_PA
            | ElemList ',' ExtArgument  { $$ = hb_compExprAddListExpr( $1, $3 ); }
            ;
 
-BlockHead   : CBSTART         { $<asExpr>$ = hb_compExprNewCodeBlock( $1.string, $1.length, $1.flags, HB_COMP_PARAM ); $1.string = NULL; }
+BlockHead   : CBSTART
+              {
+                 hb_compAstTraceNodeEnterStack( HB_COMP_PARAM, HB_COMP_AST_NODE_CODEBLOCK,
+                                                hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+                 $<asExpr>$ = hb_compExprNewCodeBlock( $1.string, $1.length, $1.flags, HB_COMP_PARAM );
+                 $1.string = NULL;
+              }
               BlockVars '|'   { $$ = $<asExpr>2; }
-            ;
+           ;
 
 /* NOTE: This uses $0 then don't use BlockVars, BlockVarList and BlockExpList in other context
  */
@@ -1043,6 +1049,7 @@ CodeBlock   : BlockHead
               BlockExpList
               { HB_COMP_PARAM->functions.pLast->bBlock = $<bTrue>2; }
               '}'
+              { hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_CODEBLOCK ); }
             | BlockHead Crlf
             {  /* 3 */
                PHB_CBVAR pVar;
@@ -1082,6 +1089,7 @@ CodeBlock   : BlockHead
                   HB_COMP_PARAM->functions.pLast->nPCodePos = $<sNumber>3;
                   HB_COMP_PARAM->lastLine = $<sNumber>2;
                }
+               hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_CODEBLOCK );
             }
             ;
 
@@ -1257,9 +1265,48 @@ Declaration: DECLARE IdentName '(' { hb_compDeclaredAdd( HB_COMP_PARAM, $2 ); HB
                HB_COMP_PARAM->szDeclaredFun = NULL;
                HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE;
              }
-           | DECLARE IdentName { HB_COMP_PARAM->pLastClass = hb_compClassAdd( HB_COMP_PARAM, $2, NULL ); } ClassInfo Crlf { HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE; }
-           | DECLARE_CLASS IdentName Crlf { HB_COMP_PARAM->pLastClass = hb_compClassAdd( HB_COMP_PARAM, $2, NULL ); HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE; }
-           | DECLARE_CLASS IdentName IdentName Crlf { HB_COMP_PARAM->pLastClass = hb_compClassAdd( HB_COMP_PARAM, $2, $3 ); HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE; }
+           | DECLARE IdentName
+               {
+                  HB_COMP_PARAM->pLastClass = hb_compClassAdd( HB_COMP_PARAM, $2, NULL );
+                  if( HB_COMP_PARAM->pLastClass )
+                     hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS,
+                                               HB_COMP_PARAM->pLastClass,
+                                               hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+               }
+             ClassInfo Crlf
+               {
+                  if( HB_COMP_PARAM->pLastClass )
+                     hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS, HB_COMP_PARAM->pLastClass );
+                  HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE;
+               }
+           | DECLARE_CLASS IdentName
+               {
+                  HB_COMP_PARAM->pLastClass = hb_compClassAdd( HB_COMP_PARAM, $2, NULL );
+                  if( HB_COMP_PARAM->pLastClass )
+                     hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS,
+                                               HB_COMP_PARAM->pLastClass,
+                                               hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+               }
+             Crlf
+               {
+                  if( HB_COMP_PARAM->pLastClass )
+                     hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS, HB_COMP_PARAM->pLastClass );
+                  HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE;
+               }
+           | DECLARE_CLASS IdentName IdentName
+               {
+                  HB_COMP_PARAM->pLastClass = hb_compClassAdd( HB_COMP_PARAM, $2, $3 );
+                  if( HB_COMP_PARAM->pLastClass )
+                     hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS,
+                                               HB_COMP_PARAM->pLastClass,
+                                               hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+               }
+             Crlf
+               {
+                  if( HB_COMP_PARAM->pLastClass )
+                     hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS, HB_COMP_PARAM->pLastClass );
+                  HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE;
+               }
            | DECLARE_MEMBER DecMethod Crlf { HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE; }
            | DECLARE_MEMBER '{' AsType { HB_COMP_PARAM->cDataListType = $3->cVarType; } DecDataList '}' Crlf { HB_COMP_PARAM->cDataListType = 0; HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE; }
            ;
@@ -1274,7 +1321,15 @@ ClassInfo  : DecMethod
            | ClassInfo DecData
            ;
 
-DecMethod  : IdentName '(' { HB_COMP_PARAM->pLastMethod = hb_compMethodAdd( HB_COMP_PARAM, HB_COMP_PARAM->pLastClass, $1 ); } DecListExt ')' AsType
+DecMethod  : IdentName '('
+             {
+                HB_COMP_PARAM->pLastMethod = hb_compMethodAdd( HB_COMP_PARAM, HB_COMP_PARAM->pLastClass, $1 );
+                if( HB_COMP_PARAM->pLastMethod )
+                   hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS_METHOD,
+                                             HB_COMP_PARAM->pLastMethod,
+                                             hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+             }
+             DecListExt ')' AsType
              {
                if( HB_COMP_PARAM->pLastMethod )
                {
@@ -1289,11 +1344,22 @@ DecMethod  : IdentName '(' { HB_COMP_PARAM->pLastMethod = hb_compMethodAdd( HB_C
                    }
                  }
                }
+
+               if( HB_COMP_PARAM->pLastMethod )
+                  hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS_METHOD, HB_COMP_PARAM->pLastMethod );
                HB_COMP_PARAM->pLastMethod = NULL;
              }
            ;
 
-DecData    : IdentName { HB_COMP_PARAM->pLastMethod = hb_compMethodAdd( HB_COMP_PARAM, HB_COMP_PARAM->pLastClass, $1 ); } AsType
+DecData    : IdentName
+             {
+                HB_COMP_PARAM->pLastMethod = hb_compMethodAdd( HB_COMP_PARAM, HB_COMP_PARAM->pLastClass, $1 );
+                if( HB_COMP_PARAM->pLastMethod )
+                   hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS_DATA,
+                                             HB_COMP_PARAM->pLastMethod,
+                                             hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+             }
+             AsType
              {
                if( HB_COMP_PARAM->pLastMethod )
                {
@@ -1320,13 +1386,14 @@ DecData    : IdentName { HB_COMP_PARAM->pLastMethod = hb_compMethodAdd( HB_COMP_
                   else
                      pClass = NULL;
 
-                  iLen = ( int ) strlen( $1 );
-                  if( iLen >= HB_SYMBOL_NAME_LEN )
-                     iLen = HB_SYMBOL_NAME_LEN - 1;
-                  szSetData[ 0 ] = '_';
-                  memcpy( szSetData + 1, $1, iLen );
-                  szSetData[ iLen + 1 ] = '\0';
+                 iLen = ( int ) strlen( $1 );
+                 if( iLen >= HB_SYMBOL_NAME_LEN )
+                    iLen = HB_SYMBOL_NAME_LEN - 1;
+                 szSetData[ 0 ] = '_';
+                 memcpy( szSetData + 1, $1, iLen );
+                 szSetData[ iLen + 1 ] = '\0';
 
+                  hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_CLASS_DATA, HB_COMP_PARAM->pLastMethod );
                   HB_COMP_PARAM->pLastMethod = hb_compMethodAdd( HB_COMP_PARAM, HB_COMP_PARAM->pLastClass,
                      hb_compIdentifierNew( HB_COMP_PARAM, szSetData, HB_IDENT_COPY ) );
                   HB_COMP_PARAM->pLastMethod->cType = cVarType;
@@ -1424,7 +1491,12 @@ IfEndif    : IfBegin EndIf                    { hb_compGenJumpHere( $1, HB_COMP_
            ;
 
 IfBegin    : IF ExpList
-               { ++HB_COMP_PARAM->functions.pLast->wIfCounter; hb_compLinePushIfInside( HB_COMP_PARAM ); }
+               {
+                  hb_compAstTraceNodeEnterStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_IF,
+                                                 hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+                  ++HB_COMP_PARAM->functions.pLast->wIfCounter;
+                  hb_compLinePushIfInside( HB_COMP_PARAM );
+               }
              Crlf
                { HB_COMP_EXPR_FREE( hb_compExprGenPush( $2, HB_COMP_PARAM ) ); $<sNumber>$ = hb_compGenJumpFalse( 0, HB_COMP_PARAM ); }
              EmptyStats
@@ -1461,6 +1533,7 @@ EndIf      : EndIfID
                   if( HB_COMP_PARAM->functions.pLast->wIfCounter )
                      --HB_COMP_PARAM->functions.pLast->wIfCounter;
                   HB_COMP_PARAM->functions.pLast->funFlags &= ~ ( HB_FUNF_WITH_RETURN | HB_FUNF_BREAK_CODE );
+                  hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_IF );
                }
            ;
 
@@ -1493,9 +1566,11 @@ DoCase     : DoCaseBegin
            ;
 
 EndCase    : EndCaseID
-               {  if( HB_COMP_PARAM->functions.pLast->wCaseCounter )
+               {
+                  if( HB_COMP_PARAM->functions.pLast->wCaseCounter )
                      --HB_COMP_PARAM->functions.pLast->wCaseCounter;
                   HB_COMP_PARAM->functions.pLast->funFlags &= ~ ( HB_FUNF_WITH_RETURN | HB_FUNF_BREAK_CODE );
+                  hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_CASE );
                }
            ;
 
@@ -1510,7 +1585,14 @@ EndCaseID  : ENDCASE
            | ErrEndSwitch
            ;
 
-DoCaseStart : DOCASE { ++HB_COMP_PARAM->functions.pLast->wCaseCounter; hb_compLinePushIfDebugger( HB_COMP_PARAM );} Crlf
+DoCaseStart : DOCASE
+               {
+                  hb_compAstTraceNodeEnterStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_CASE,
+                                                 hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+                  ++HB_COMP_PARAM->functions.pLast->wCaseCounter;
+                  hb_compLinePushIfDebugger( HB_COMP_PARAM );
+               }
+             Crlf
             ;
 
 DoCaseBegin : DoCaseStart
@@ -1570,11 +1652,14 @@ DoWhile    : WhileBegin ExpList Crlf
                      --HB_COMP_PARAM->functions.pLast->wWhileCounter;
                   hb_compLoopEnd( HB_COMP_PARAM );
                   HB_COMP_PARAM->functions.pLast->funFlags &= ~ HB_FUNF_WITH_RETURN;
+                  hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_WHILE );
                }
            ;
 
 WhileBegin : WHILE
                {
+                  hb_compAstTraceNodeEnterStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_WHILE,
+                                                 hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
                   $$ = HB_COMP_PARAM->functions.pLast->nPCodePos;
                   hb_compLinePushIfInside( HB_COMP_PARAM );
                   ++HB_COMP_PARAM->functions.pLast->wWhileCounter;
@@ -1599,6 +1684,8 @@ EndWhileID : ENDDO
 
 ForNext    : FOR LValue ForAssign Expression          /* 1  2  3  4 */
                {                                      /* 5 */
+                  hb_compAstTraceNodeEnterStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_FOR,
+                                                 hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
                   hb_compLinePushIfInside( HB_COMP_PARAM );
                   $<iNumber>1 = HB_COMP_PARAM->currLine;
                   hb_compDebugStart();
@@ -1656,12 +1743,13 @@ ForNext    : FOR LValue ForAssign Expression          /* 1  2  3  4 */
                   }
 
                   hb_compGenJumpFalse( $<sNumber>11 - HB_COMP_PARAM->functions.pLast->nPCodePos, HB_COMP_PARAM );
-                  hb_compLoopEnd( HB_COMP_PARAM );
-                  if( hb_compExprAsSymbol( $2 ) )
-                     hb_compForEnd( HB_COMP_PARAM, hb_compExprAsSymbol( $2 ) );
-                  HB_COMP_EXPR_FREE( $<asExpr>5 );  /* deletes $5, $2, $4 */
-                  HB_COMP_PARAM->functions.pLast->funFlags &= ~ ( HB_FUNF_WITH_RETURN | HB_FUNF_BREAK_CODE );
-               }
+               hb_compLoopEnd( HB_COMP_PARAM );
+               if( hb_compExprAsSymbol( $2 ) )
+                  hb_compForEnd( HB_COMP_PARAM, hb_compExprAsSymbol( $2 ) );
+               HB_COMP_EXPR_FREE( $<asExpr>5 );  /* deletes $5, $2, $4 */
+               HB_COMP_PARAM->functions.pLast->funFlags &= ~ ( HB_FUNF_WITH_RETURN | HB_FUNF_BREAK_CODE );
+               hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_FOR );
+             }
            ;
 
 ForAssign  : '='
@@ -1711,6 +1799,8 @@ ForArgs    : ForExpr             { $$ = hb_compExprNewArgList( $1, HB_COMP_PARAM
 
 ForEach    : FOREACH ForList IN ForArgs          /* 1  2  3  4 */
              {
+                hb_compAstTraceNodeEnterStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_FOREACH,
+                                               hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
                 ++HB_COMP_PARAM->functions.pLast->wForCounter;    /* 5 */
                 hb_compLinePushIfInside( HB_COMP_PARAM );
                 hb_compDebugStart();
@@ -1742,6 +1832,7 @@ ForEach    : FOREACH ForList IN ForArgs          /* 1  2  3  4 */
                 hb_compEnumEnd( HB_COMP_PARAM, $2 );
                 HB_COMP_EXPR_FREE( $2 );
                 HB_COMP_EXPR_FREE( $4 );
+                hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_FOREACH );
              }
            ;
 
@@ -1774,6 +1865,7 @@ EndSwitch   : EndSwitchID
                   if( HB_COMP_PARAM->functions.pLast->wSwitchCounter )
                      --HB_COMP_PARAM->functions.pLast->wSwitchCounter;
                   HB_COMP_PARAM->functions.pLast->funFlags &= ~ ( HB_FUNF_WITH_RETURN | HB_FUNF_BREAK_CODE );
+                  hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_SWITCH );
                }
             ;
 
@@ -1790,6 +1882,8 @@ EndSwitchID : ENDSWITCH
 
 SwitchStart : DOSWITCH
                {
+                  hb_compAstTraceNodeEnterStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_SWITCH,
+                                                 hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
                   ++HB_COMP_PARAM->functions.pLast->wSwitchCounter;
                   hb_compLinePushIfInside( HB_COMP_PARAM );
                }
@@ -1826,6 +1920,8 @@ SwitchDefault : OTHERWISE { hb_compSwitchAdd( HB_COMP_PARAM, NULL ); hb_compLine
 
 BeginSeq    : BEGINSEQ        /* 1 */
                {              /* 2 */
+                  hb_compAstTraceNodeEnterStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_SEQUENCE,
+                                                 hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
                   hb_compLinePushIfInside( HB_COMP_PARAM );
                   ++HB_COMP_PARAM->functions.pLast->wSeqCounter;
                   ++HB_COMP_PARAM->functions.pLast->wSeqBegCounter;
@@ -1880,6 +1976,7 @@ BeginSeq    : BEGINSEQ        /* 1 */
                   }
                   hb_compSequenceFinish( HB_COMP_PARAM, $<sNumber>2, $<sNumber>6, $9,
                                          $<lNumber>5 != 0, $7 != 0, $<lNumber>4 == lLoopCount );
+                  hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_SEQUENCE );
                }
                EndSeqID       /* 10 */
                {
@@ -1993,6 +2090,8 @@ DoArgument : IdentName        { $$ = hb_compExprNewVarRef( $1, HB_COMP_PARAM ); 
 
 WithObject : WITHOBJECT Expression Crlf
                {
+                  hb_compAstTraceNodeEnterStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_WITH,
+                                                 hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
                   hb_compLinePushIfInside( HB_COMP_PARAM );
                   HB_COMP_EXPR_FREE( hb_compExprGenPush( $2, HB_COMP_PARAM ) );
                   $<sNumber>$ = HB_COMP_PARAM->functions.pLast->nPCodePos;
@@ -2011,6 +2110,7 @@ WithObject : WITHOBJECT Expression Crlf
                                       $<sNumber>4, 1, HB_FALSE, HB_TRUE );
                      hb_compGenPCode1( HB_P_POP, HB_COMP_PARAM );
                   }
+                  hb_compAstTraceNodeLeaveStack( HB_COMP_PARAM, HB_COMP_AST_NODE_STATEMENT_WITH );
                }
            ;
 
