@@ -115,7 +115,8 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 **Start**  
 1. Read latest entries in `doc/agents/ast/progress.md`.  
 2. Confirm `git status`; review prior “Session transition” if work is in progress.  
-3. Note which objective(s) you plan to tackle.
+3. Note which objective(s) you plan to tackle.  
+4. Tooling on hand (use only when it meaningfully shortens the task): `jq` / `jsonlint` for trace JSON inspection, `tree-sitter` CLI for quick grammar experiments or parse checks. Avoid elaborate pipelines unless they unblock the immediate objective.
 
 **During**  
 - Keep feature flags disabled until stable.  
@@ -162,6 +163,12 @@ Include in final session note (and summarise in commit message):
   - [ ] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise.
   - [ ] Surface nightly build guidance for `HB_AST_TRACE_DUMP` / CLI usage.
 - **Next session prep**: Compiler rebuilt and `tests/ast` suites (including `hbmk-ast-tests`) ran clean on 2025-10-23; fixture demo snapshot refreshed after restoring the trailing newline, so keep clearing temporary artefacts (`fixture_demo.c`, stdout dumps) after runs, then pivot to new fixtures + documentation refresh for the trace-dump workflow.
+
+### Diagnostics toggle milestone (2025-10-24)
+- Added diagnostics controls (`--ast-trace-diagnostics`, `HB_AST_TRACE_DIAGNOSTICS`) so runs can surface counter-only telemetry; `hb_compChkParseSwitch()` and `HB_COMP` now track the flag throughout the compilation.
+- `hbtraceast.c` records lifecycle-safe counters for tokens, boundaries, nodes, preprocessor events, and traceinfo retain/release pairs while still emitting full JSON when tracing is enabled.
+- `tests/ast/ast_trace_tests.c` picked up coverage for the diagnostics toggle and counter validation; docs (`progress.md`, `instrumentation-plan.md`, this draft) capture the milestone.
+- Extended CLI fixture coverage with `tests/ast/fixture_blocks.prg` / `.ast.json`, keeping both default and `-m` modes green under the new diagnostics path.
 
 ### Parser hook backlog
 - [x] Class declarations / method definitions (trace node enter/leave, token mapping).
