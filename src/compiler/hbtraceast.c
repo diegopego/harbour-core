@@ -19,10 +19,12 @@ typedef struct _HB_COMP_AST_TRACE
    HB_BOOL                      fDiagnostics;
    HB_SIZE                      nTraceinfoRetained;
    HB_SIZE                      nTraceinfoReleased;
-    HB_SIZE                      nTokenTotal;
-    HB_SIZE                      nBoundaryTotal;
-    HB_SIZE                      nPpEventTotal;
-    HB_SIZE                      nNodeEventTotal;
+   HB_SIZE                      nTraceinfoRetainedTotal;
+   HB_SIZE                      nTraceinfoReleasedTotal;
+   HB_SIZE                      nTokenTotal;
+   HB_SIZE                      nBoundaryTotal;
+   HB_SIZE                      nPpEventTotal;
+   HB_SIZE                      nNodeEventTotal;
    HB_SIZE                      nNextTokenId;
    HB_SIZE                      nNextSequence;
    HB_SIZE                      nTokenCount;
@@ -501,11 +503,8 @@ void hb_compAstTraceSetDiagnostics( PHB_COMP pComp, HB_BOOL fEnabled )
          pTrace->nBoundaryTotal = 0;
          pTrace->nPpEventTotal = 0;
          pTrace->nNodeEventTotal = 0;
-         if( fEnabled )
-         {
-            pTrace->nTraceinfoRetained = 0;
-            pTrace->nTraceinfoReleased = 0;
-         }
+         pTrace->nTraceinfoRetainedTotal = 0;
+         pTrace->nTraceinfoReleasedTotal = 0;
       }
    }
    if( pComp )
@@ -536,6 +535,8 @@ void hb_compAstTraceRetainInfo( PHB_COMP pComp, PHB_PP_TRACEINFO pTraceInfo )
    {
       hb_pp_traceinfoRetain( pTraceInfo );
       ++pTrace->nTraceinfoRetained;
+      if( pTrace->fDiagnostics )
+         ++pTrace->nTraceinfoRetainedTotal;
    }
 }
 
@@ -551,6 +552,8 @@ void hb_compAstTraceReleaseInfo( PHB_COMP pComp, PHB_PP_TRACEINFO pTraceInfo )
    {
       hb_pp_traceinfoRelease( pTraceInfo );
       ++pTrace->nTraceinfoReleased;
+      if( pTrace->fDiagnostics )
+         ++pTrace->nTraceinfoReleasedTotal;
    }
 }
 
@@ -575,10 +578,10 @@ HB_SIZE hb_compAstTraceTraceinfoRetainedTotal( const HB_COMP * pComp )
 {
    const HB_COMP_AST_TRACE * pTrace = pComp ? ( const HB_COMP_AST_TRACE * ) pComp->pAstTrace : NULL;
 
-   if( ! pTrace || ! pTrace->fDiagnostics )
+  if( ! pTrace || ! pTrace->fDiagnostics )
       return 0;
 
-   return pTrace->nTraceinfoRetained;
+   return pTrace->nTraceinfoRetainedTotal;
 }
 
 HB_SIZE hb_compAstTraceTraceinfoReleasedTotal( const HB_COMP * pComp )
@@ -588,7 +591,7 @@ HB_SIZE hb_compAstTraceTraceinfoReleasedTotal( const HB_COMP * pComp )
    if( ! pTrace || ! pTrace->fDiagnostics )
       return 0;
 
-   return pTrace->nTraceinfoReleased;
+   return pTrace->nTraceinfoReleasedTotal;
 }
 
 void hb_compAstTracePublishToken( PHB_COMP pComp, const PHB_PP_TOKEN pToken )
@@ -1086,8 +1089,8 @@ void hb_compAstTraceClear( PHB_COMP pComp )
       pTrace->nBoundaryTotal = 0;
       pTrace->nPpEventTotal = 0;
       pTrace->nNodeEventTotal = 0;
-      pTrace->nTraceinfoRetained = 0;
-      pTrace->nTraceinfoReleased = 0;
+      pTrace->nTraceinfoRetainedTotal = 0;
+      pTrace->nTraceinfoReleasedTotal = 0;
    }
 }
 

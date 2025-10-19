@@ -116,7 +116,7 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 1. Read latest entries in `doc/agents/ast/progress.md`.  
 2. Confirm `git status`; review prior “Session transition” if work is in progress.  
 3. Note which objective(s) you plan to tackle.  
-4. Tooling on hand (use only when it meaningfully shortens the task): `jq` / `jsonlint` for trace JSON inspection, `tree-sitter` CLI for quick grammar experiments or parse checks. Avoid elaborate pipelines unless they unblock the immediate objective.
+4. Tooling on hand (use only when it meaningfully shortens the task): `jq` / `jsonlint` for trace JSON inspection, `tree-sitter` CLI for quick grammar tests. When naming new fixtures, tokens, or events, consult the CA‑Clipper 5.3 guide (`doc/references/c53g01c.txt`) and Harbour docs first so terminology stays aligned with the language’s canon.
 
 **During**  
 - Keep feature flags disabled until stable.  
