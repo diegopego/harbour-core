@@ -142,7 +142,7 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 - Sources: `tests/ast/fixture_compat_clipper.prg` (Clipper pragmas: `-kh- -km+ -ko-`) and `tests/ast/fixture_compat_harbour.prg` (Harbour pragmas: `-kh+ -km- -ko+`) share helpers in `tests/ast/fixture_compat_common.ch`. Golden outputs live in `tests/ast/fixtures/fixture_compat_clipper.ast.json` and `tests/ast/fixtures/fixture_compat_harbour.ast.json`.
 - CLI reproduction: `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/<name>.ast.json tests/ast/<fixture>.prg`.
 - Harness coverage: `tests/ast/hbmk-ast-tests` runs both fixtures in default and `-m` modes; `tests/ast/compilebuf-tests` covers the Clipper variant today and can add the Harbour snapshot once the workflow is locked.
-- FINALLY/RETRY: current compiler builds reject `FINALLY`/`RETRY` blocks under these pragma combinations (error `E0020`), so the fixtures log post-recover behaviour manually instead of relying on those keywords.
+- FINALLY: instead of try/catch/finally harbour uses begin sequence/recover/always for error handling.
 
 ### Reporting Template
 Include in final session note (and summarise in commit message):
@@ -171,7 +171,7 @@ Include in final session note (and summarise in commit message):
 - **Open items**:
 - [x] Fix CLI handling so `--ast-trace-dump=-` routes to stdout without triggering error `F0035` (2025-10-23: `cmdcheck.c` sentinel parsing tightened).
 - [x] Audit the dump path for formatting issues or leaks while capturing stdout (`hb_compAstTraceDumpJson` review + cmocka coverage).
-- [ ] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise — Clipper/Harbour fixtures now cover nested recovery paths; still need doc updates and to evaluate RETRY/FINALLY support (compiler rejected FINALLY/RETRY forms in these modes) before locking snapshots.
+- [ ] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise — Clipper/Harbour fixtures now cover nested recovery paths before locking snapshots.
 - [ ] Surface nightly build guidance for `HB_AST_TRACE_DUMP` / CLI usage.
 - [x] Document the new `-iinclude` requirement introduced for `hbmk-ast-tests` and compile-buffer harnesses.
 - **Next session prep**: Compiler rebuilt and `tests/ast` suites (including `hbmk-ast-tests`) ran clean on 2025-10-23; fixture demo snapshot refreshed after restoring the trailing newline, so keep clearing temporary artefacts (`fixture_demo.c`, stdout dumps) after runs, then pivot to new fixtures + documentation refresh for the trace-dump workflow.
