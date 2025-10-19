@@ -137,6 +137,12 @@ Delegation Brief: you are the Compiler Instrumentation Agent
 - Verify `HB_PP_TRACEINFO` retain/release balances return to zero.
 - When invoking the compiler from tests or manual repros, include `-iinclude` so standard Harbour headers (e.g. `error.ch`) resolve the same way the harness does.
 
+### Dialect Fixture Workflow
+- Sources: `tests/ast/fixture_compat_clipper.prg` (Clipper pragmas: `-kh- -km+ -ko-`) and `tests/ast/fixture_compat_harbour.prg` (Harbour pragmas: `-kh+ -km- -ko+`) share helpers in `tests/ast/fixture_compat_common.ch`. Golden outputs live in `tests/ast/fixtures/fixture_compat_clipper.ast.json` and `tests/ast/fixtures/fixture_compat_harbour.ast.json`.
+- CLI reproduction: `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/<name>.ast.json tests/ast/<fixture>.prg`.
+- Harness coverage: `tests/ast/hbmk-ast-tests` runs both fixtures in default and `-m` modes; `tests/ast/compilebuf-tests` covers the Clipper variant today and can add the Harbour snapshot once the workflow is locked.
+- FINALLY/RETRY: current compiler builds reject `FINALLY`/`RETRY` blocks under these pragma combinations (error `E0020`), so the fixtures log post-recover behaviour manually instead of relying on those keywords.
+
 ### Reporting Template
 Include in final session note (and summarise in commit message):
 - Objectives completed (reference list above).  

@@ -25,10 +25,11 @@ FUNCTION FixtureCompatHarbour( xValue )
       ELSE
          nTotal += FixtureCompatCompute( xValue )
       ENDIF
-   RECOVER USING oErr
-      FixtureCompatLog( aLog, "recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
+  RECOVER USING oErr
+     FixtureCompatLog( aLog, "recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
+   ALWAYS
+      FixtureCompatLog( aLog, "always:outer" )
    ENDSEQUENCE
-   FixtureCompatLog( aLog, "after:outer" )
 
    BEGIN SEQUENCE WITH {|oErr| FixtureCompatLog( aLog, "nested:handler:" + ;
          IIf( oErr == NIL, "none", oErr:Description ) ) }
@@ -44,12 +45,14 @@ FUNCTION FixtureCompatHarbour( xValue )
          FixtureCompatLog( aLog, "nested:innerrecover:" + IIf( oInner == NIL, "none", oInner:Description ) )
          oInner:Description := oInner:Description + ":reraised"
          BREAK oInner
+      ALWAYS
+         FixtureCompatLog( aLog, "nested:inneralways" )
       ENDSEQUENCE
-      FixtureCompatLog( aLog, "nested:innerexit" )
    RECOVER USING oErr
       FixtureCompatLog( aLog, "nested:recover:" + IIf( oErr == NIL, "none", oErr:Description ) )
+   ALWAYS
+      FixtureCompatLog( aLog, "nested:outeralways" )
    ENDSEQUENCE
-   FixtureCompatLog( aLog, "nested:outerexit" )
 
    FixtureCompatLog( aLog, "compat:HARBOUR:end" )
 

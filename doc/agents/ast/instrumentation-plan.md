@@ -151,6 +151,13 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 - **Diagnostics toggles**: `--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS` enable lightweight counters (token/boundary/node totals plus traceinfo retain/release tallies) for instrumentation troubleshooting.
 - **Terminology note**: References to “PP macros” denote preprocessor constructs (`#define`, `#xcommand`, conditional compilation). Runtime macro evaluation via the `&` operator remains part of the expression instrumentation backlog.
 
+### Dialect Compatibility Fixture Workflow (2025-10-24)
+
+- Fixtures: `tests/ast/fixture_compat_clipper.prg` (compiled with `#pragma -kh- -km+ -ko-`) and `tests/ast/fixture_compat_harbour.prg` (compiled with `#pragma -kh+ -km- -ko+`) capture nested `BEGIN SEQUENCE`/`RECOVER` flows under both dialect modes. Their golden traces live in `tests/ast/fixtures/fixture_compat_clipper.ast.json` and `fixture_compat_harbour.ast.json`.
+- Invocation: when re-generating snapshots or running ad-hoc repros, call the compiler with `-iinclude` so headers like `error.ch` resolve exactly as they do in the harnesses, e.g. `harbour -iinclude --ast-trace --ast-trace-dump=…`.
+- Harness integration: `tests/ast/hbmk-ast-tests` exercises both fixtures (default and `-m` single-module modes) and `tests/ast/compilebuf-tests` currently covers the Clipper variant via in-memory compilation; the Harbour compile-buffer case reuses the same helper but does not yet snapshot its output.
+- FINALLY/RETRY status: attempts to include `FINALLY` or `RETRY` blocks in these fixtures (with the current pragma combinations) trigger parser error `E0020`. Until the compiler supports those constructs under the selected dialect flags, the fixtures log post-recover state explicitly instead of relying on `FINALLY`.
+
 ### Harbour / Clipper Source Terminology Matrix
 
 Use the following naming when documenting fixtures, tests, and instrumentation so we consistently distinguish preprocessor activity from compiler directives and runtime macro evaluation.

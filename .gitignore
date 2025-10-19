@@ -60,3 +60,5 @@ fixture_ppdirectives
 fixture_statements
 fixture_compat_clipper
 fixture_compat_harbour
+test_always
+test_always_endseq
