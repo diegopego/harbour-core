@@ -46,8 +46,8 @@ Maintain a **continuous, auditable exchange** between implementation sessions an
   - Embed token/AST event emitters inside the existing compiler (token hooks in `complex.c`, parser actions in `harbour.y`).
   - Document schemas for downstream consumers.
 - **AST Tooling Agent**
-  - Extend `src/ast/` builder/utilities to consume compiler-emitted structures.
-  - Maintain JSON/CBOR parity, author fixtures, and evolve serialization docs.
+  - Steward the compiler-trace consumer surface: keep `README-AST.md`, `doc/agents/ast/*`, and `tests/ast/` fixtures aligned with the compiler-backed flow.
+  - Guide out-of-tree adapters that parse the JSON dump; no in-tree standalone tooling ships after the retirement of `src/ast/` and `utils/hbrename`.
 - **Testing & Verification Agent**
   - Expand cmocka coverage, manage fixtures, and ensure every `.prg` test compiles via `hbmk2 -w3`.
   - Track macro trace expectations and `.ppo` artefacts when they strengthen assertions.

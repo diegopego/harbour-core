@@ -295,7 +295,7 @@ Delegation Brief: you are the AST Tooling Migration Agent
 - [x] Update tooling docs/tests to reference the compiler CLI (`harbour --ast-trace --ast-trace-dump`) and retire the legacy `hbast`/`hbrename` workflows.  
 - [x] Define the packaging plan for tooling that stays standalone (directory layout, build targets, ownership).  
 - [x] Prepare phased cleanup patches to remove `src/ast/lexer`, legacy cmocka suites, and `utils/hbrename` once the replacement path is ready.  
-- [ ] Update documentation (`Agents.md`, `serialization-format.md`, `README-AST.md`) to reflect the compiler-backed flow and note retired modules.  
+- [x] Update documentation (`Agents.md`, `serialization-format.md`, `README-AST.md`) to reflect the compiler-backed flow and note retired modules.  
 - [ ] Coordinate with the Compiler Instrumentation Agent on any missing hooks or telemetry needed by the consumer adapter before deletions proceed.  
 
 ## Oversight Session 2025-10-21 Notes

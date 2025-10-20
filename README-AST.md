@@ -67,4 +67,14 @@ The earlier “first attempt” duplicated the preprocessor and serializer under
 - Keep fixtures, cmocka coverage, and CLI usage anchored to the compiler executable.
 - Avoid building or linking a separate `libhbastlex` / `hbast` binary — everything flows through `harbour`.
 
+### Retired modules (2025-10-25)
+
+The following first-attempt artefacts no longer ship with Harbour and should not be reintroduced:
+
+- `src/ast/` (parallel lexer/builder sources)
+- `utils/hbast` and `utils/hbrename`
+- Legacy hbast fixtures, cmocka suites, and associated documentation
+
+Any future experiments should live out of tree and consume the compiler’s `--ast-trace` / `--ast-trace-dump` output or the `hb_compAstTrace*` APIs directly.
+
 Future work (macro trace normalisation, additional node metadata, CBOR export) should extend the compiler trace or its dump routine so the single source of truth remains inside `src/compiler/`. Use the existing tests as templates for new scenarios. !*** End Patch
