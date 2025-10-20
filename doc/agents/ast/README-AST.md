@@ -94,3 +94,4 @@ Any experiments should live out of tree and consume `--ast-trace` / `--ast-trace
 ### Future work
 
 - Optional alternative encoders (e.g. CBOR) layered on top of the compiler-produced stream
+- Track refactoring prototypes (`scripts/ast_refactor_cli.py`) and associated data-contract notes in `doc/agents/ast/lsp-refactoring-cli.md`; use `tests/python/apply_workspace_edit.py` when replaying WorkspaceEdit payloads onto Harbour sources.

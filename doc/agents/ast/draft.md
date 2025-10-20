@@ -35,8 +35,8 @@
 - **Next**: Add coverage once `INLINE`/`INIT`/`EXIT` events exist, watch PP traceinfo retain/release balances, and consider property-based checks for macro ancestry depth. Continue documenting regen steps when fixtures move.
 
 ### LSP & Refactoring Agent
-- **Current**: Waiting on stable compiler schema; no in-tree clients beyond docs.
-- **Next**: Prototype a thin CLI consuming `hb_compAstTraceDumpJson()` (rename/extract proof), outline VS Code/LSP data contracts, and align with tooling agent on schema compatibility guarantees.
+- **Current**: CLI prototype (`scripts/ast_refactor_cli.py`), workspace edit applier (`tests/python/apply_workspace_edit.py`), pytest smoke coverage (`tests/python/test_refactor_cli.py`), and persistent fixtures (`tests/ast/fixture_demo.rename.prg`, `tests/ast/fixture_demo.extract.prg`) emit, materialise, and validate rename/extract `WorkspaceEdit` payloads derived from `hb_compAstTraceDumpJson()` dumps; VS Code contract notes captured in `doc/agents/ast/lsp-refactoring-cli.md`.
+- **Next**: Harden rename scope detection (token-type filters, node ancestry), expand fixture coverage beyond `fixture_demo`, and coordinate schema assurances (macro expansions, INLINE/INIT/EXIT coverage) with the AST tooling agent.
 
 ### Open Oversight Follow-ups
 - Coordinate with downstream consumers so they adopt the compiler dump schema; ensure no documentation references the retired `src/ast/` stack.

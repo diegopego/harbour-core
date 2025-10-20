@@ -65,3 +65,4 @@ test_always_endseq
 fixture_expressions
 fixture_includes
 fixture_macro_expansion
+__pycache__
