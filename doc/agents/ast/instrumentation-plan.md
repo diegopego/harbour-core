@@ -1,48 +1,5 @@
 # Compiler Instrumentation Plan
 
-## Executive Summary
-- **Recommendation**: keep the AST instrumentation inside Harbour’s compiler. `HB_PP_TRACEINFO` is the canonical macro-expansion payload, and all tooling should consume either the in-process APIs (`hb_compAstTrace*`) or the CLI dump (`harbour --ast-trace --ast-trace-dump`).
-- **Immediate objective**: continue to harden `include/hbpp.h`, `src/pp/ppcore.c`, `src/compiler/complex.c`, `src/compiler/harbour.y`, and `src/compiler/hbcomp.c`; extend the trace dump with additional metadata (stable macro IDs, diagnostics) and keep docs/tests aligned.
-- **Data flow**: tokens harvested in `hb_comp_yylex` emit `HB_COMP_AST_TRACE_TOKEN` events carrying trace handles; parser reductions in `harbour.y` publish `HB_COMP_AST_TRACE_NODE_EVENT`s with stable IDs tied back to those tokens; `hb_compAstTraceDumpJson()` materialises the stream for offline consumers.
-- **Timeline alignment**: instrumentation hardening (week of 2025-10-20), legacy tooling removal (week of 2025-10-25), documentation/test refresh (week of 2025-11-03).
-
-## Status Check: `HB_PP_TRACEINFO`
-- `HB_PP_TRACEINFO`, `HB_PP_TRACE_EVENT`, and `hb_pp_setTraceCallback()` **were introduced on this branch** (`include/hbpp.h`, `src/pp/ppcore.c`, `src/harbour.def`). Upstream Harbour at commit `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca` does not expose these structures.
-- Impact:
-  - The preprocessor now captures macro invocation metadata (module, line/column, byte offsets, call stack, expansion ID).
-  - When realigned, compiler instrumentation can hand these structures directly to tooling, eliminating the duplicate macro-trace reconstruction that the standalone lexer attempted.
-  - Tooling consumers must treat `HB_PP_TRACEINFO` as reference-counted objects (see retain/release helpers in `src/pp/ppcore.c`) and avoid copying strings without cloning to prevent leaks.
-
-## Strategy Assessment
-
-### Option 1 – Keep the separate lexer
-- **Pros**
-  - Rapid experimentation: can iterate on token schemas without touching core.
-  - Isolated failures: regressions limited to tooling build/test.
-  - Easier to prototype non-compiler features (e.g., rope-based incrementality).
-- **Cons**
-  - Guaranteed drift from Harbour grammar and semantics; every upstream change requires manual syncing.
-  - Duplicate macro expansion logic lacks parity with `HB_PP_TRACEINFO`, risking mismatched ranges and trace stacks.
-  - Higher maintenance load (two lexers, two AST builders, two fixture suites).
-  - Performance hit from running both the real preprocessor and the tooling clone.
-  - Testing burden doubles: need to assert equivalence between compiler output and tooling output continuously.
-
-### Option 2 – Extend / reuse Harbour core
-- **Pros**
-  - Perfect grammar alignment: tooling consumes exactly the tokens/AST the compiler uses.
-  - Leverages existing error handling, dialect flags, and macro semantics.
-  - Lower long-term maintenance: one source of truth, one set of fixtures.
-  - Unlocks deeper semantics (scope info, optimization hints) without reverse-engineering.
-  - Simplifies performance story—no second pass.
-- **Cons**
-  - Requires careful instrumentation to avoid destabilizing the compiler.
-  - Short-term complexity: need to design guarded hooks, event buffering, and APIs.
-  - Integration with existing build/test harnesses must respect Harbour’s portability guarantees.
-  - Tooling experiments must accept compiler release cadence.
-
-### Recommendation
-Adopt **Option 2**. The Harbour mission statement demands compiler-backed refactorings; carrying a forked lexer contradicts that requirement and increases risk. Guard instrumentation behind feature toggles where necessary, but keep the data flow inside the core. Maintain the existing tooling repo for experimentation, fed exclusively by compiler events emitted via the plan below.
-
 ## Hook Point Map
 
 | File | Function / Rule | Insertion site | Captured data | Emitted event / action | Status (2025-10-21) |
@@ -55,14 +12,6 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 | `src/compiler/harbour.y` | Statement / expression reductions | Within actions that allocate expressions or manage stacks | Newly created `PHB_EXPR`, node stacks, codeblock tokens | `HB_AST_TRACE_EXPR` plus `hb_compAstTraceNodeEnterStack/LeaveStack` cover expressions, control flow, and codeblocks | Done (core set; backlog tracks remaining reductions) |
 | `src/compiler/complex.c` / `tests` | Trace toggle plumbing | CLI/env switch handling prior to compilation | Feature flag state, outstanding retain counts | `hb_compAstTraceSetEnabled()` clears buffers on toggle changes; cmocka asserts zero outstanding traceinfo | Done |
 | `src/compiler/hbcomp.c` | `hb_compParserRun` (single-module path) | After the `hb_pp_tokenGet()` guard when `fSingleModule` is true | Eager tokens consumed when bypassing the parser | Defer instrumentation; evaluate once single-module fixtures depend on trace buffering | Pending |
-
-### Implementation status – 2025-10-21 oversight update
-
-- Lifecycle wiring in `hb_comp_new()`/`hb_comp_free()` now mirrors the PP callback lifecycle and retains/release counters.
-- `hb_comp_yylex` publishes token and boundary events with stable sequencing and retained `HB_PP_TRACEINFO`.
-- Parser instrumentation spans functions, classes, control-flow statements, codeblocks, and expression reductions via `HB_AST_TRACE_EXPR`.
-- `hbtraceast.c` guards toggles, clears buffers on state flips, and tracks retain/release balance with cmocka coverage.
-- `scripts/test-ast.sh` passes with instrumentation enabled and disabled; `hbmk2 -w3` sweep remains outstanding before merge.
 
 ## Instrumentation Pipeline
 
@@ -115,91 +64,6 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
   }
   ```
 
-## Incremental Migration Plan
-1. **Week of 2025-10-20 – Core trace foundation**
-   - Implement callbacks in `hb_comp_new` / `hb_comp_free`.
-   - Instrument `hb_comp_yylex` to enqueue tokens and macro traces; guard behind `HB_AST_TRACE_ENABLED`.
-   - Validate with `hbmk2 -w3` and existing compiler regression suites.
-2. **Week of 2025-10-27 – Tooling extraction**
-   - Move `src/ast/`, CLI utilities, schemas, and tests into a dedicated tooling repository branch.
-   - Update `doc/agents/ast/divergence-ledger.md` once extraction lands.
-   - Ensure `scripts/test-ast.sh` and cmocka suites run against compiler-emitted events via a shim.
-3. **Week of 2025-11-03 – Parser event bridge**
-   - Introduce `hb_astPublishNode*` helpers and modify `harbour.y` actions incrementally (start with function declarations, then statements, then expressions).
-   - Rebuild LALR (`harbour.yyc`) and rerun cmocka + compiler acceptance tests.
-4. **Rollback strategy**
-   - Each step is gated by feature toggles; if instrumentation destabilizes parsing, disable the callback (`HB_AST_TRACE_ENABLED=0`) and revert the affected commit without impacting the extracted tooling.
-
-## Risks & Mitigations
-- **Grammar drift**: If parser actions become unstable, enforce nightly diffs against upstream `harbour.y` and isolate instrumentation macros in a single header to simplify rebases.
-- **Performance overhead**: Token event emission must be amortized; use ring buffers and lazy JSON serialization to avoid excessive allocations.
-- **Trace retention leaks**: Mismanaged retain/release could leak memory. Add cmocka tests that compile macro-heavy fixtures while checking for outstanding `HB_PP_TRACEINFO` references.
-- **Cross-version compatibility**: Downstream tools must cope with absent trace callbacks (older compilers). Provide capability negotiation and ensure `hb_pp_setTraceCallback` is optional.
-- **Testing coverage gaps**: Expand fixtures to cover nested macros, inline functions, and dialect switches. Require `hbmk2 -w3`, the `tests/ast` cmocka harness, and `scripts/test-ast.sh` before merging instrumentation patches.
-- **Run log**:
-  - 2025-10-21: `scripts/test-ast.sh` succeeds with instrumentation toggled on/off; `hbmk2 -w3` remained pending.
-  - 2025-10-22: `hbmk2 -w3` sweep integrated into `tests/ast/hbmk2-fixtures`; fixtures updated to compile warning-free.
-  - 2025-10-23: CLI trace dump (`--ast-trace-dump`) wired for stdout, `hb_compMainExtModule()`/finish callbacks landed, and compile-buffer harness validates trace emission; next step is promoting these traces to golden snapshots.
-
-## Open Questions & Verification Plan
-- **Stable token IDs**: Confirm the formula (`file_id`, original range, token kind, macro depth) fits within existing Harbour data types. Prototype helper in `src/compiler/complex.c` and write cmocka tests.
-- **Expression coverage**: Identify which grammar reductions must emit node events to fully reconstruct `PHB_EXPR`. Instrument a subset, run `scripts/test-ast.sh`, and diff serialized ASTs against the legacy tooling output.
-- **Trace callback lifetime**: Ensure the callback remains valid across module boundaries (single-module vs multi-module). Instrument `hb_compParserRun`’s single-module path and add regression tests.
-- **Error handling**: Determine whether syntax errors should flush pending events or keep them for diagnostics. Simulate parse errors in tests and manually inspect event stream.
-- **Thread safety**: Harbour’s compiler is largely single-threaded, but confirm no concurrent `hb_pp_state` usage before assuming callbacks are safe. Audit call sites and document constraints.
-- **Golden snapshots**: Extend the new `hb_compMainExt()` finish callback + compile-buffer harness to emit JSON snapshots and compare against golden fixtures; define update workflow for legitimate changes.
-- **Diagnostics toggles**: `--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS` enable lightweight counters (token/boundary/node totals plus traceinfo retain/release tallies) for instrumentation troubleshooting.
-- **Terminology note**: References to “PP macros” denote preprocessor constructs (`#define`, `#xcommand`, conditional compilation). Runtime macro evaluation via the `&` operator remains part of the expression instrumentation backlog.
-
-### Dialect Compatibility Fixture Workflow (2025-10-24)
-
-- Fixtures: `tests/ast/fixture_compat_clipper.prg` (compiled with `#pragma -kh- -km+ -ko-`) and `tests/ast/fixture_compat_harbour.prg` (compiled with `#pragma -kh+ -km- -ko+`) capture nested `BEGIN SEQUENCE`/`RECOVER` flows under both dialect modes. Their golden traces live in `tests/ast/fixtures/fixture_compat_clipper.ast.json` and `fixture_compat_harbour.ast.json`.
-- Invocation: when re-generating snapshots or running ad-hoc repros, call the compiler with `-iinclude` so headers like `error.ch` resolve exactly as they do in the harnesses, e.g. `harbour -iinclude --ast-trace --ast-trace-dump=…`.
-- Harness integration: `tests/ast/hbmk-ast-tests` exercises both fixtures (default and `-m` single-module modes) and `tests/ast/compilebuf-tests` currently covers the Clipper variant via in-memory compilation; the Harbour compile-buffer case reuses the same helper but does not yet snapshot its output.
-- FINALLY/RETRY status: attempts to include `FINALLY` or `RETRY` blocks in these fixtures (with the current pragma combinations) trigger parser error `E0020`. Until the compiler supports those constructs under the selected dialect flags, the fixtures log post-recover state explicitly instead of relying on `FINALLY`.
-
-### Snapshot Regeneration Workflow (2025-10-25)
-
-Use the compiler as the sole source for golden traces. Regenerate the minimal fixture matrix with the commands below (all run from the repository root so `-iinclude` resolves standard headers):
-
-```
-bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_demo.ast.json tests/ast/fixture_demo.prg
-bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_blocks.ast.json tests/ast/fixture_blocks.prg
-bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_ppdirectives.ast.json tests/ast/fixture_ppdirectives.prg
-bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_statements.ast.json tests/ast/fixture_statements.prg
-bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_expressions.ast.json tests/ast/fixture_expressions.prg
-bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_includes.ast.json tests/ast/fixture_includes.prg
-bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_compat_clipper.ast.json tests/ast/fixture_compat_clipper.prg
-bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_compat_harbour.ast.json tests/ast/fixture_compat_harbour.prg
-```
-
-After refreshing snapshots, rerun the hbmk harness (covers default and `-m` single-module modes) to verify parity:
-
-```
-tests/ast/hbmk-ast-tests
-```
-
-Every `.prg` touched by the regeneration must remain warning-free under `hbmk2 -w3`:
-
-```
-bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_expressions.prg
-bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_includes.prg
-bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_blocks.prg
-bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_ppdirectives.prg
-bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_statements.prg
-bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_clipper.prg
-bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_compat_harbour.prg
-bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_demo.prg
-```
-
-Clean up transient C artefacts produced by the compiler once the snapshots are confirmed so the working tree stays focused on the `.prg` sources and JSON outputs.
-
-Repackage the frozen set for distribution with:
-
-```
-zip -j tests/ast/trace-pack/core-trace-pack-2025-10-25.zip tests/ast/fixture_*.prg tests/ast/fixture_*.ch tests/ast/fixtures/fixture_*.ast.json
-```
-
 ### Harbour / Clipper Source Terminology Matrix
 
 Use the following naming when documenting fixtures, tests, and instrumentation so we consistently distinguish preprocessor activity from compiler directives and runtime macro evaluation.
@@ -218,4 +82,3 @@ By default, reserve the word **macro** for the runtime `&` operator or explicitl
 
 Harbour maintains source compatibility with CA-Clipper. When Harbour documentation does not spell out nomenclature or token classification, consult the original Clipper 5.3 Programming Guide (e.g. `clc53/doc/en/c53g01c.txt` from the `ng-hbdoc` archive). Treat that manual as the authoritative reference for naming conventions and statement categories when updating fixtures, tests, or docs.
 
-Once these questions are resolved, the instrumentation plan is ready for delegation to the Compiler Instrumentation Agent and the AST Tooling Agent.

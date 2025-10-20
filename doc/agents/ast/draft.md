@@ -1,55 +1,9 @@
-# Working scratchpad for notes and decisions
+# AST Oversight and Delegation Briefs scratchpad
 
-## 2025-10-18 Oversight Baseline Review
-- Rewrote `Agents.md` to define oversight, implementation roles, and roadmap guardrails for the refactoring tooling mission.
-- Logged current compiler vs tooling architecture alignment in `doc/agents/ast/progress.md`.
-- Outstanding: draft instrumentation plan for compiler-integrated token/AST events and reconcile local `draft.md` edits prior to baseline commit.
-
-## Follow-ups (Oversight Instrumentation Kickoff)
-- DONE 2025-10-18: `doc/agents/ast/instrumentation-plan.md` documents hooks in `complex.c`, `harbour.y`, `hbcomp.c`, plus data contracts to tooling.
-- DONE 2025-10-18: Delegation briefs prepared for Compiler Instrumentation Agent and AST Tooling Agent (see dedicated sections below).
-- Define verification matrix for future commits (token parity fixtures, `PHB_EXPR` node coverage) before authorising implementation sessions.
-- Track post-session follow-ups: expanded parser hooks and `hbmk2 -w3` sweeps (event sink + instrumentation toggle landed 2025-10-20).
-- 2025-10-22: Added `tests/ast/hbmk2-fixtures` cmocka runner to enforce `hbmk2 -w3` cleanliness for all `.prg` fixtures.
-- Drafted `doc/agents/ast/hb_compilebuf_evaluation.md` outlining the callback/API work needed to harvest instrumentation outputs from `hb_compileBuf`.
-- Evaluate adding `hb_compileBuf`-based fixtures as golden AST references so only Harbour-compilable `.prg`/`.ch` inputs drive instrumentation tests.
-- Consider lightweight debug counters inside trace helpers to diagnose event sequencing (token/node counts, retained traceinfo) when future sessions debug hooks.
-- 2025-10-22: `hbmk2 -w3` sweep recorded; fixture tweaks (function conversions + `CallIncludedProc()`) cleared prior warnings so the matrix is green again.
-- 2025-10-23: CLI trace dump and compile-buffer harness landed; next instrumentation session should focus on golden snapshot comparisons, `hb_compParserRun` coverage, and diagnostics counters.
-
-## Phase 0 Assessment TODOs
-- DONE 2025-10-18: Divergence ledger recorded in `doc/agents/ast/divergence-ledger.md` (`keep / isolate / drop` vs `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`).
-- Document decision criteria: impact on upstream parity, necessity for compiler-backed refactorings, maintenance cost if embedded in core.
-- Draft an alignment memo summarising what stays in Harbour core, what moves to tooling distribution, and what is discarded, then update roadmap accordingly.
-- Note in governance checklist: Overseer prepares commit messages only; user executes commits.
-
-## Decision Criteria (Phase 0)
-- **Upstream parity risk**: Keep changes in core only if they minimally impact merge effort against Harbour main; high-risk divergences favor isolation.
-- **Compiler truth dependency**: Retain in core when instrumentation requires direct access to compiler internals (`HB_PP_TRACEINFO`, parser hooks); tooling-only logic moves out.
-- **Maintenance burden**: Embed in core only when there is a team commitment to maintain the code long-term; prototypes with uncertain ownership belong in tooling repos.
-- **Testing guarantees**: Core-integrated code must be covered by Harbour’s existing test suites; isolated tooling can rely on dedicated harnesses.
-- **Packaging boundaries**: Utilities or docs aimed at external workflows should live in the tooling distribution, not the compiler tree.
-
-## Verification Matrix
-- **Core compiler gates**:
-  - `hbmk2 -w3` must succeed with **zero warnings** for every `.prg`, `.ch`, `.hbm`, `.hbmk`, or related fixture touched by instrumentation or tooling work before merge.
-  - Harbour compiler self-tests covering macro-heavy code paths where traces are emitted.
-- **Tooling harness**:
-  - `tests/ast` cmocka suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
-  - `scripts/test-ast.sh`: rerun snapshot comparisons using compiler-sourced events; failures indicate divergence from the schema/fixtures.
-- **Run log**:
-  - 2025-10-22: `hbmk2 -w3` sweeps logged; `hbmk2-fixtures` cmocka target now enforces the warning-free requirement, `hb_compMainExt()` finish callback and `hb_compMainExtModule()` enable instrumentation harvesting, CLI trace-dump (`--ast-trace`, `--ast-trace-dump`, `HB_AST_TRACE_DUMP`) produces the JSON streams validated by `tests/ast/hbmk-ast-tests`, and `doc/agents/ast/hb_compilebuf_evaluation.md` records the `hb_compileBuf` golden-plan.
-- **Fixtures & snapshots**:
-  - Golden snapshots must originate from compiler instrumentation (CLI trace dump, compile-buffer harness); reuse and expand `tests/ast/fixtures/*.ast.json` as the authoritative source.
-  - Add variants for nested macros, dialect switches, and compile-buffer cases as coverage grows; keep snapshots in tooling repo but reference them from Harbour core for parity checks.
-- **Pass/Fail criteria**:
-  - All suites above must pass; `hbmk2 -w3` must report zero warnings/errors across the fixture set.
-  - Token IDs emitted by `hb_comp_yylex` should reconcile with nodes collected in parser reductions (no orphan tokens/nodes).
-  - `HB_PP_TRACEINFO` retain/release counts must net to zero after each test run (cmocka assertion).
-  - Any intentional change to golden snapshots must be regenerated via compiler instrumentation and documented.
-- **Reporting**:
-  - Log matrix status in `doc/agents/ast/progress.md` for each session touching instrumentation.
-  - Implementation agents attach test output summaries to their session reports.
+## Alignment Memo
+- *Harbour core scope: `include/hbpp.h`, `src/pp/ppcore.c`, `src/compiler/*`, `src/harbour.def`, and the instrumentation docs (`Agents.md`, `doc/agents/ast/progress.md`, this draft, `doc/agents/ast/hb_compilebuf_evaluation.md`) remain in-tree. They jointly define, exercise, and document the compiler trace pipeline.
+- Changes should maintain upstream Harbour compatibility and rely on compiler truth (`HB_PP_TRACEINFO`/parser hooks), and be backed by test/maintenance commitments.
+- Commands: `harbour -iinclude --ast-trace --ast-trace-dump=<fixture>.ast.json tests/ast/<fixture>.prg`.
 
 ## Parser Hook Backlog
 - [x] Emit node enter/leave events for class declarations (`DECLARE CLASS`, `DECLARE MEMBER`). (Landed 2025-10-20)
@@ -60,276 +14,100 @@
 - [ ] Introduce optional debug counters (token/node totals, retained traceinfo) toggled via instrumentation flag for deeper diagnostics.
 - [ ] Build `hb_compileBuf` integration tests that compile canonical fixtures and compare emitted AST/token streams against golden snapshots. (See `doc/agents/ast/hb_compilebuf_evaluation.md` for callback/API strategy.)
 
-## Alignment Memo (Draft)
-- **Harbour core scope**: `include/hbpp.h`, `src/pp/ppcore.c`, `src/compiler/*`, `src/harbour.def`, and the instrumentation docs (`Agents.md`, `doc/agents/ast/progress.md`, this draft, `doc/agents/ast/hb_compilebuf_evaluation.md`) remain in-tree. They jointly define, exercise, and document the compiler trace pipeline.
-- **Standalone tooling overlay**: the first-attempt artefacts (`src/ast/`, `utils/hbast`, `utils/hbrename`, legacy fixtures/tests/docs) were removed on 2025-10-25. Any future experimentation should live out of tree and consume the compiler trace APIs/CLI.
-- **Focus going forward**: harden the compiler dump (`hb_compAstTraceDumpJson()`), expand test coverage via existing cmocka/CLI harnesses, and ensure documentation (`README-AST.md`, `serialization-format.md`) reflects the compiler-as-source-of-truth model.
-- **Roadmap checkpoints**:
-  1. Week of 2025-10-20: instrumentation hooks complete (done).
-  2. Week of 2025-10-25: retire first-attempt tooling (done).
-  3. Week of 2025-11-03: refresh docs/tests to cover extended dump metadata (macro IDs, diagnostics), stage trace-pack instructions, and plan the next fixture additions.
+## Delegation Brief – Overseer Agent (Template)
+Role: Overseer Agent
+Goal: Coordinate compiler/tooling work, ensure oversight docs stay current, and keep all fixtures/tests green (`hbmk2 -w3`, cmocka, `scripts/test-ast.sh`).
+Instructions: read draft.md to familiarize, use the `### Recurring Checklist` below to audit progress, refresh documentation, and hand off cleanly to implementation agents.
+
+### Overview
+- Maintain roadmap alignment, repository hygiene, and risk management for AST instrumentation/tooling.
+- Approve delegation scopes and verify that golden snapshots (compiler-derived) remain authoritative.
+- Ensure documentation (`Agents.md`, `doc/agents/ast/*`) reflects the latest workflows.
+
+### Inputs & References
+- `doc/agents/ast/progress.md` – source of truth for recent work & test logs.
+- `doc/agents/ast/instrumentation-plan.md`, `hb_compilebuf_evaluation.md`, and this draft – planning artifacts and backlogs.
+- Verification matrix (above) – mandatory test gates.
+- Upstream baseline status via `git status -sb`, `git log`, and `hbmk2` sweeps.
+
+### Recurring Checklist
+1. Audit repository state (`git status`, pending files, unmerged branches).
+2. Review latest session reports; confirm objectives & tests align with the plan.
+3. Update this draft and `progress.md` with new decisions, follow-ups, or schedule changes.
+4. Validate the verification matrix if implementation work touched fixtures/docs.
+5. Refresh delegation briefs if scope or priorities shift.
+
+### Session Workflow
+**Start**: gather current status (progress log, instrumentation plan), note outstanding risks, and identify which delegation sessions must be spawned/continued.
+
+**During**: coordinate agents, clarify acceptance criteria, approve or defer work items, and keep oversight docs tidy (no stale instructions).
+
+**Before hand-off**: summarise decisions, update outstanding follow-ups, list required next sessions (with prompts), and ensure `hbmk2 -w3` has been run after any oversight-driven fixture changes.
+
+### Reporting Template
+Overseer wrap-up should state: planning decisions made (approvals, deferrals), sessions to spawn next (with roles/objectives), verification outcomes if oversight touched fixtures, and any risks needing escalation.
+
+### Open Oversight Follow-ups
+- Coordinate with tooling migration to ensure external consumers (vscode/lsp) adopt the compiler dump schema.
 
 ## Delegation Brief – Compiler Instrumentation Agent (Template)
-
-### Copy/Paste Session Prompt
-```
 Role: Compiler Instrumentation Agent
 Goal: Advance compiler instrumentation per doc/agents/ast/instrumentation-plan.md. Ensure every .prg/.ch/.hbm/.hbmk fixture compiles warning-free with hbmk2 -w3; compiler-generated traces (CLI dump, compile-buffer) are the golden reference.
 Instructions: Follow Active Objectives and the Execution Checklist. Document progress/tests in doc/agents/ast/progress.md and this draft before hand-off.
-```
-
-Delegation Brief: you are the Compiler Instrumentation Agent
 
 ### Overview
 - **Mandate**: Keep Harbour’s compiler as the single source of truth by emitting token, boundary, node, and preprocessor events backed by `HB_PP_TRACEINFO` (see `doc/agents/ast/instrumentation-plan.md`). All `.prg`/`.ch`/`.hbm`/`.hbmk` fixtures must remain warning-free under `hbmk2 -w3`; compiler-produced traces (CLI dump, compile-buffer) are the golden reference.
 - **Scope**: Manage PP trace lifecycle (`hb_pp_setTraceCallback`), instrument `hb_comp_yylex`, parser reductions (`harbour.y` / `hbmain.c`), feature toggles, and trace dump/compile-buffer paths.
 
 ### Inputs & References
-- Phase 0 decision criteria & parser-hook backlog (this draft).
 - Instrumentation plan (`doc/agents/ast/instrumentation-plan.md`) – hook map, run log, open questions (golden snapshots, diagnostics counters).
 - Progress log (`doc/agents/ast/progress.md`) – recent session reports/testing evidence.
-- Compile-buffer evaluation (`doc/agents/ast/hb_compilebuf_evaluation.md`) – golden snapshot design.
+- Compile-buffer evaluation (`doc/agents/ast/hb_compilebuf_evaluation.md`).
 - Verification matrix (this draft) – hbmk2 sweeps, cmocka suites, `scripts/test-ast.sh`, snapshot rules.
-- If inheriting work, review the latest “Session transition” note before editing and preserve uncommitted changes.
+- this branch starts at the commit d29cad47f5f8025136caa89f5a92392d13d87751. pay attention on the commit d29cad47f5f8025136caa89f5a92392d13d87751 where we took the decision to remove the first attempt lexer surfaces and introduce the trace adapter using only extensions on harbour core code.
 
-### Milestone Ledger (2025-10-24)
-| Milestone | Status | Notes |
-| --- | --- | --- |
-| Trace callback foundation | ✅ | `hbtraceast.c`, retain/release tests. |
-| Lexer emission pass | ✅ | Tokens/boundaries published from `hb_comp_yylex`. |
-| Parser hook pilot | ✅ | Functions/classes/control-flow instrumented; backlog tracks remaining reductions. |
-| Stabilisation & toggles | ✅ | PP sink + CLI/env toggles documented. |
-| Verification sweep | ✅ | `hbmk2-fixtures`, `compilebuf-tests`, `ast_trace_tests`, `scripts/test-ast.sh` integrated. |
-| Golden traces & diagnostics | 🔄 | Single-module coverage landed (`hb_compParserRun` instrumentation + `compilebuf-tests` `-m` harness); fixture matrix now spans `fixture_blocks`, `fixture_ppdirectives`, `fixture_statements`, `fixture_expressions`, and `fixture_includes` JSON dumps alongside dialect variants; diagnostics counters/toggles shipped; documentation + trace-pack packaging still pending to close the milestone. |
+### Achieved Objectives
+- Lexer emission pass: Tokens/boundaries published from `hb_comp_yylex`.
+- Parser hook pilot: Functions/classes/control-flow instrumented
+- Verification sweep: tests/ast
+- Single-module coverage: `hb_compParserRun` now routes through `hb_comp_yylex`; both compile-buffer and CLI harnesses iterate over `fixture_demo` and `fixture_blocks` under default/`-m` modes.
+- Diagnostics toggles: CLI/env flag (`--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS`) now exposes token/boundary/node/traceinfo totals for troubleshooting.  
 
-### Active Objectives (next sessions)
-1. ✅ **Single-module coverage** – `hb_compParserRun` now routes through `hb_comp_yylex`; both compile-buffer and CLI harnesses iterate over `fixture_demo` and `fixture_blocks` under default/`-m` modes. Next: document the behaviour and backfill additional fixtures before snapshot promotion.  
-2. ✅ **Diagnostics toggles** – CLI/env flag (`--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS`) now exposes token/boundary/node/traceinfo totals for troubleshooting.  
-3. 🔄 **Fixture snapshot freeze** – expression-heavy (`fixture_expressions`) and include-driven (`fixture_includes`) fixtures now ship with golden dumps + hbmk harness coverage; next step is to capture the regeneration commands (`hbmk2`, CLI dump) in the docs and stage the trace pack hand-off notes.  
-4. **Trace pack publication** – bundle the frozen fixtures/JSON as an initial “trace pack” and record distribution/testing instructions so tooling can consume it directly.  
-5. **Docs & cleanup** – update `instrumentation-plan.md`, `hb_compilebuf_evaluation.md`, CLI/env docs with the new toggles and fixture workflow.  
-6. **Verification sweep** – rerun the full matrix once the trace pack is frozen, logging commands and results.
-
-> Aim for one objective per session. If stopping mid-step, leave code buildable, run available tests, and log the next action for the hand-off.
+### Active Objectives
+- generate a small refactoring CLI in harbour to consume compiler-generated AST traces and perform simple transformations (e.g., rename a function, extract a method) so we can validate end-to-end tooling integration.
+- Trace publication – the compiler should output the ast for external tools such as VSCODE/LSP to consume.  
+- Docs & cleanup – update `instrumentation-plan.md`, `hb_compilebuf_evaluation.md`, CLI/env docs with the new toggles and fixture workflow.  
 
 ### Execution Checklist
 **Start**  
 1. Read latest entries in `doc/agents/ast/progress.md`.  
-2. Confirm `git status`; review prior “Session transition” if work is in progress.  
+2. Confirm `git status`
 3. Note which objective(s) you plan to tackle.  
-4. Tooling on hand (use only when it meaningfully shortens the task): `jq` / `jsonlint` for trace JSON inspection, `tree-sitter` CLI for quick grammar tests. When naming new fixtures, tokens, or events, consult the CA‑Clipper 5.3 guide (`doc/references/c53g01c.txt`) and Harbour docs first so terminology stays aligned with the language’s canon.
+4. Tooling on hand: `jq` / `jsonlint` for trace JSON inspection, `tree-sitter-cli` for quick grammar tests (use only when really needed). 
+5. When naming new fixtures, tokens, or events, consult the CA‑Clipper 5.3 guide (`doc/references/c53g01c.txt`) and Harbour docs first so terminology stays aligned with the language’s canon.
 
 **During**  
-- Keep feature flags disabled until stable.  
 - Update docs/fixtures with related code changes.  
 - Run targeted tests after each major edit.
 
 **Before hand-off**  
-1. Run applicable tests (`hbmk2 -w3`, cmocka suites, `scripts/test-ast.sh`, snapshot checks).  
+1. Run tests/ast
 2. Log results + completed work in `doc/agents/ast/progress.md`.  
-3. Refresh this draft (milestones, objectives, follow-ups).  
-4. Prepare commits or clearly state pending work if handing over without committing.
+3. Refresh this draft (milestones, objectives, follow-ups).
 
-### Testing Expectations
-- `tests/ast` cmocka suites: `ast_trace_tests`, `hbmk2-fixtures`, `compilebuf-tests`, `hbmk-ast-tests`.  
-- `scripts/test-ast.sh`.  
-- `hbmk2 -w3` on every affected `.prg`/`.ch`/`.hbm`/`.hbmk` (no warnings allowed).  
-- Golden trace comparison against compiler-generated JSON snapshots (CLI dump, compile-buffer harness).  
-- Verify `HB_PP_TRACEINFO` retain/release balances return to zero.
-- When invoking the compiler from tests or manual repros, include `-iinclude` so standard Harbour headers (e.g. `error.ch`) resolve the same way the harness does.
+## Verification Matrix
+- **Tooling harness**:
+  - `tests/ast` cmocka suites: extend to validate that emitted token events and AST node events match expected shapes; include leak detectors for `HB_PP_TRACEINFO`.
+  - `scripts/test-ast.sh`: rerun snapshot comparisons using compiler-sourced events; failures indicate divergence from the schema/fixtures.
+- **Run log**:
+  - trace-dump can be generated with hbmk2 (`--ast-trace`, `--ast-trace-dump`, `HB_AST_TRACE_DUMP`) or `hb_compileBuf` to produce the JSON streams.
+- **Pass/Fail criteria**:
+  - Token IDs emitted by `hb_comp_yylex` should reconcile with nodes collected in parser reductions (no orphan tokens/nodes).
+  - `HB_PP_TRACEINFO` retain/release counts must net to zero after each test run (cmocka assertion).
+  - Ensure CA‑Clipper terminology (PROC/STATIC/LOCAL) remains consistent when rewriting docs and CLI output.
+- **Reporting**:
+  - Log matrix status in `doc/agents/ast/progress.md` for each session touching instrumentation.
+  - Implementation agents attach test output summaries to their session reports.
 
-### Dialect Fixture Workflow
-- Sources: `tests/ast/fixture_compat_clipper.prg` (Clipper pragmas: `-kh- -km+ -ko-`) and `tests/ast/fixture_compat_harbour.prg` (Harbour pragmas: `-kh+ -km- -ko+`) share helpers in `tests/ast/fixture_compat_common.ch`. Golden outputs live in `tests/ast/fixtures/fixture_compat_clipper.ast.json` and `tests/ast/fixtures/fixture_compat_harbour.ast.json`.
-- CLI reproduction: `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/<name>.ast.json tests/ast/<fixture>.prg`.
-- Harness coverage: `tests/ast/hbmk-ast-tests` runs both fixtures in default and `-m` modes; `tests/ast/compilebuf-tests` covers the Clipper variant today and can add the Harbour snapshot once the workflow is locked.
-- FINALLY: instead of try/catch/finally harbour uses begin sequence/recover/always for error handling.
 
-### Reporting Template
-Include in final session note (and summarise in commit message):
-- Objectives completed (reference list above).  
-- Tests executed (commands + pass/fail).  
-- Docs/fixtures/code added or changed.  
-- Remaining risks or TODOs.
 
-### Session Transition Notes (compiler instrumentation oversight → next delegate)
-- **2025-10-25 (fixture freeze prep)**: Added expression-heavy `fixture_expressions.prg` and include-driven `fixture_includes.prg`, plus the supporting `fixture_include_chain.ch`; regenerated CLI snapshots and registered both fixtures with `tests/ast/ast_hbmk_ast_tests.c`.  
-  - **Commands**: `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_expressions.ast.json tests/ast/fixture_expressions.prg`, `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_includes.ast.json tests/ast/fixture_includes.prg`, `tests/ast/hbmk-ast-tests`, `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_expressions.prg`, `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_includes.prg`.  
-  - **Packaging**: Core fixtures and snapshots bundled as `tests/ast/trace-pack/core-trace-pack-2025-10-25.zip` with regeneration notes in `tests/ast/trace-pack/README.md`.  
-  - **Outstanding**: Expand compile-buffer snapshot coverage and keep the working tree limited to fixture/doc updates until those checks are logged (verification sweep completed 2025-10-25).
-- **2025-10-24 (dialect fixtures)**: Added two dedicated fixtures, `fixture_compat_clipper.prg` and `fixture_compat_harbour.prg`, backed by `fixture_compat_common.ch`. Both now exercise multiple `BEGIN SEQUENCE`/`RECOVER` flows and emit their own golden snapshots. Updated `ast_hbmk_ast_tests.c` to include the pair and extended `ast_compilebuf_tests.c` with both Clipper and Harbour in-memory variants.  
-  - **Working tree**: pending files in `.gitignore`, `tests/ast/ast_compilebuf_tests.c`, `tests/ast/ast_hbmk_ast_tests.c`, `tests/ast/fixture_compat_clipper.prg`, `tests/ast/fixture_compat_harbour.prg`, `tests/ast/fixture_compat_common.ch`, and the refreshed snapshots under `tests/ast/fixtures/`.
-- **Focus** (next sessions):  
-  1. ✅ Add the expression-heavy and include-driven fixtures, regenerate JSON, and document the commands (fixtures + snapshots landed 2025-10-25; documentation follow-up pending).  
-  2. ✅ Freeze the “trace pack” (zip or tagged directory) containing all fixtures + snapshots; log its regeneration workflow (core bundle published at `tests/ast/trace-pack/core-trace-pack-2025-10-25.zip`).  
-  3. ✅ Update docs (`instrumentation-plan.md`, `hb_compilebuf_evaluation.md`) with the final toggles/commands (snapshot workflow recorded 2025-10-25).  
-  4. ✅ Run the verification matrix once more and record results (commands executed 2025-10-25; outcomes logged in `progress.md`).
-- **Prompt for next delegate** (copy into new session):  
-  ```
-  Session hand-off – Compiler Instrumentation Agent
-  
-  1. Review `doc/agents/ast/progress.md` and the “Active Objectives” in the delegation template. 
-  2. Confirm `git status` is clean; inherit any pending fixture/doc updates noted below. 
-  3. Pick up **Objective 1** (hb_compParserRun coverage) unless otherwise directed; leave code buildable and warning-free (`hbmk2 -w3`) at every checkpoint. 
-  4. Log completed work, commands executed, and remaining tasks in both `doc/agents/ast/progress.md` and this draft before closing the session.
-  
-  Current pending items:
-   - Instrument `hb_compParserRun` (single-module path) and add regression coverage.
-   - Introduce diagnostics counters behind `--ast-trace-diagnostics` flag if additional telemetry is needed.
-   - Promote compile-buffer/CLI traces to golden snapshots beyond the current fixture pack.
-  ```
-
-### Open Follow-ups
-- DONE 2025-10-25: Added expression-heavy (`fixture_expressions`) and include-driven (`fixture_includes`) samples with golden snapshots; regeneration workflow captured in `instrumentation-plan.md` and `hb_compilebuf_evaluation.md`.  
-- [x] Add instrumentation debug counters/toggles (exposed via `--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS`).  
-- [x] Package the compile-buffer/CLI traces as the initial “trace pack”; document the regeneration workflow (see `tests/ast/trace-pack/core-trace-pack-2025-10-25.zip` and `README.md`).  
-- Update `hbmk-ast-tests`/`ast_compilebuf_tests` documentation with the exact commands/flags used to refresh snapshots.  
-- Continue the parser-hook backlog (expression reductions, error recovery, exit/return handling).
-- **Current state**: `hb_compMainExtModule()` + `--ast-trace-dump` (`HB_AST_TRACE_DUMP`) landed; `hbtraceast.c` streams JSON via `hb_compAstTraceDumpJson`; `tests/ast/hbmk-ast-tests.c` runs `fixture_demo.prg` with `--ast-trace --ast-trace-dump=-`, scrubs the banner, and matches `tests/ast/fixtures/fixture_demo.ast.json`; `tests/ast/Makefile` and `.gitignore` already cover the harness.
-- **Open items**:
-- [x] Fix CLI handling so `--ast-trace-dump=-` routes to stdout without triggering error `F0035` (2025-10-23: `cmdcheck.c` sentinel parsing tightened).
-- [x] Audit the dump path for formatting issues or leaks while capturing stdout (`hb_compAstTraceDumpJson` review + cmocka coverage).
-- [x] Expand fixture coverage (additional `.prg`/`.ch` pairs) and update docs once traces stabilise — expression-heavy and include-driven fixtures landed 2025-10-25; doc refresh + trace-pack packaging still outstanding.
-- [ ] Surface nightly build guidance for `HB_AST_TRACE_DUMP` / CLI usage.
-- [x] Document the new `-iinclude` requirement introduced for `hbmk-ast-tests` and compile-buffer harnesses.
-- **Next session prep**: Compiler rebuilt and `tests/ast` suites (including `hbmk-ast-tests`) ran clean on 2025-10-23; fixture demo snapshot refreshed after restoring the trailing newline, so keep clearing temporary artefacts (`fixture_demo.c`, stdout dumps) after runs, then pivot to new fixtures + documentation refresh for the trace-dump workflow.
-
-### Diagnostics toggle milestone (2025-10-24)
-- Added diagnostics controls (`--ast-trace-diagnostics`, `HB_AST_TRACE_DIAGNOSTICS`) so runs can surface counter-only telemetry; `hb_compChkParseSwitch()` and `HB_COMP` now track the flag throughout the compilation.
-- `hbtraceast.c` records lifecycle-safe counters for tokens, boundaries, nodes, preprocessor events, and traceinfo retain/release pairs while still emitting full JSON when tracing is enabled.
-- `tests/ast/ast_trace_tests.c` picked up coverage for the diagnostics toggle and counter validation; docs (`progress.md`, `instrumentation-plan.md`, this draft) capture the milestone.
-- Extended CLI fixture coverage with `tests/ast/fixture_blocks.prg` / `.ast.json`, keeping both default and `-m` modes green under the new diagnostics path.
-
-### Parser hook backlog
-- [x] Class declarations / method definitions (trace node enter/leave, token mapping).
-- [x] Statement-level constructs (IF/ELSE, DO WHILE, SWITCH, SEQUENCE, WITH, FOREACH).
-- [x] Track codeblock literals (enter/leave around `{|| ... }`).
-- [ ] Expression reductions beyond block literals (binary operators, macro expressions).
-- [ ] Error recovery paths (ensure events flush correctly on syntax errors).
-- [ ] Exit/return handling (ensure final boundary events align with node closures).
-- [ ] Stand up integration fixtures that compile representative `.prg` snippets via `hb_compileBuf()` / `__pp_process()` and assert the emitted trace streams match golden snapshots (captures end-to-end spec coverage for tokens + AST).
-
-## Delegation Brief – AST Tooling Agent (Template)
-
-### Copy/Paste Session Prompt
-```
-Role: AST Tooling Agent
-Goal: Migrate the external tooling stack to consume Harbour compiler events. Ensure every .prg/.ch/.hbm/.hbmk fixture compiles warning-free via hbmk2 -w3, using compiler-generated traces (CLI dump, compile-buffer) as golden outputs.
-Instructions: Follow the milestone plan below. Record progress/tests in doc/agents/ast/progress.md and this draft before hand-off. Preserve inherited changes.
-```
-
-### Overview
-- **Mandate**: Rework the tooling distribution so it consumes Harbour’s compiler-emitted events (token, boundary, node, macro traces) and generates snapshots aligning with the schema documented in `doc/agents/ast`. Tooling fixtures must compile warning-free via `hbmk2 -w3`, and compiler-derived traces constitute the golden snapshots.
-- **Scope**: Replace standalone lexer/builder with compiler-fed pipeline, update serializers/schemas, refresh fixtures, and keep tooling decoupled while honouring Harbour’s truth.
-
-### Inputs & References
-- `doc/agents/ast/instrumentation-plan.md` – event payload definitions and hook status.
-- `doc/agents/ast/progress.md` – latest instrumentation outputs and testing notes.
-- Verification matrix (this draft) – suites required before acceptance.
-- `doc/agents/ast/hb_compilebuf_evaluation.md` – golden snapshot plan interfacing with tooling.
-- Current tooling repo status (branch: ast-3rd-experiment extraction tasks).
-
-### Tooling migration note (2025-10-25)
-The first-attempt tooling overlay (`src/ast/`, `utils/hbast`, `utils/hbrename`, legacy fixtures/tests/docs) was removed from Harbour. Any future experimentation should live in a separate repository and consume the compiler trace APIs or CLI dump directly. The milestone ledger, execution checklist, and testing expectations from the earlier plan are preserved in git history but no longer apply to the core tree.
-
-## Delegation Brief – AST Tooling Migration Agent (Template)
-
-### Copy/Paste Session Prompt
-```
-Role: AST Tooling Migration Agent
-Goal: Analyse the legacy tooling commits (d29cad47f5f80251..afa3c2c7012109d0) and produce a migration/retirement plan while keeping all fixtures warning-free under hbmk2 -w3.
-Instructions: Follow the milestone ledger and step-by-step guide below. Document findings in doc/agents/ast/progress.md and this draft. Do not remove code until the overseer approves the plan.
-```
-
-### Overview
-- **Mandate**: Audit the first-attempt AST tooling work (commit range `d29cad47f5f8025136caa89f5a92392d13d87751`‒`afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`) that introduced parallel lexers, parsers, and utilities. Determine what should be merged into the compiler-backed flow, what belongs in a separate module, and what should be retired.  
-- **Goal**: Deliver a migration/retirement plan that eliminates duplicated logic while preserving useful capabilities, keeping terminology aligned with the CA‑Clipper 5.3 guide (`doc/references/c53g01c.txt`) and Harbour docs.
-
-### Inputs & References
-- Git history: `git diff --stat d29cad47f5f8025136caa89f5a92392d13d87751..afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`.  
-- Files touched in that range (e.g., instrumentation hooks, `tests/ast` harness, documentation updates).  
-- Current instrumentation plan (`doc/agents/ast/instrumentation-plan.md`) and progress log (`doc/agents/ast/progress.md`).  
-- Latest compiler extensions (trace dump, diagnostics toggles) to understand replacement capabilities.
-
-### Milestone Ledger
-| Milestone | Status | Notes |
-| --- | --- | --- |
-| Inventory legacy tooling | ✅ | File-by-file summary captured alongside the migration decision log. |
-| Triage decision matrix | ✅ | Components classified into migrate/retire buckets for overseer review. |
-| Migration blueprint | ⏳ | Outline concrete tasks (code moves, test updates, docs) for items flagged “migrate”. |
-| Retirement plan | ⏳ | Specify removal steps, cleanup patches, and verification for items flagged “retire”. |
-| Module packaging notes | ✅ | 2025-10-26 plan below documents build/ownership for the remaining tooling surface. |
-
-### Packaging Plan (2025-10-26)
-- **Deliverable**: All AST instrumentation ships inside the core `harbour` compiler binary (`bin/<platform>/<compiler>/harbour`). Build via `make HB_BUILD_PARTS=compiler HB_PLATFORM=<plat> HB_COMPILER=<cc>`; no extra libraries are produced.
-- **Developer harness**: `tests/ast/` (fixtures, cmocka suites, CLI comparison harness) and `scripts/test-ast.sh` remain in-tree for regression coverage only. They are maintained by the AST Tooling agent and run under CI/dev workflows, not packaged for end users.
-- **Out-of-tree adapters**: Any consumer-facing viewers or converters should live outside Harbour core and ingest the JSON dump. Repos should depend on `harbour --ast-trace --ast-trace-dump` instead of vendoring compiler internals.
-- **Ownership split**: The Compiler Instrumentation agent owns `src/compiler/hbtraceast.c`, `include/hbasttrace.h`, and preprocessor hooks. The AST Tooling agent maintains docs (`README-AST.md`, `doc/agents/ast/*`) and the `tests/ast` matrix to ensure tooling guidance stays aligned.
-
-### Cleanup Phases (2025-10-26)
-- **Phase 0 – Gate checks (in-flight)**  
-  - Keep `scripts/test-ast.sh`, `tests/ast` cmocka harness, and `hbmk2 -w3` runs as the verification matrix.  
-  - Collect green runs after the macro expansion field work (done).
-- **Phase 1 – Remove vestigial sources**  
-  - Delete `src/ast/Makefile` and the residual `src/ast/tracepack/` helpers once trace-pack guidance moves to docs.  
-  - Drop `utils/hbrename/` and any Makefile stubs that still reference the retired binary.  
-  - Purge legacy cmocka suites (`tests/ast/ast_{rename,builder,smoke,snapshot}.c`) if any stubs remain.
-- **Phase 2 – Tooling docs & build files**  
-  - Sweep top-level and per-module Makefiles for references to the removed paths (`src/ast`, `utils/hbrename`).  
-  - Update `.gitignore` / packaging manifests so no trace-pack binaries are expected.  
-  - Capture the removal and new workflow in `doc/agents/ast/progress.md` and release notes.
-- **Phase 3 – External notification**  
-  - Announce removal in `Agents.md` / `ChangeLog` once overseer signs off; point downstream tooling to the compiler dump schema.
-
-### Step-by-Step Guide
-1. **Gather evidence** – run `git log --stat` and targeted `git show` commands across the commit range to capture the scope of added files and functionality.  
-2. **Classify components** – for each file/function introduced, decide whether it should migrate, remain as optional tooling, or be removed; note dependencies on current compiler hooks.  
-3. **Draft migration tasks** – for “migrate” items, specify the target location (e.g., compiler trace workflow), tests to adapt, and docs that need updates.  
-4. **Draft retirement tasks** – for “retire” items, list deletion steps, Makefile/documentation cleanup, and regression checks.  
-5. **Recommend packaging** – define boundaries for tooling that stays separate (directory layout, build targets, doc updates).  
-6. **Report findings** – log the classification and proposed actions in `doc/agents/ast/progress.md` and summarise the required follow-ups here.
-
-> Treat this as an analysis-first role. Avoid large deletions until the overseer approves the plan; focus on clarity and actionable follow-ups.
-
-### Execution Checklist
-**Start**  
-- Confirm `git status` is clean (analysis-only session).  
-- Prepare diff summaries for the commit range.  
-
-**During**  
-- Use a scratchpad (`hb-ast-temp.md`) for notes before transcribing results.  
-- Cross-reference existing compiler capabilities (post `1ff54bcd6d07`) to avoid recommending duplicate work.  
-- Capture command snippets for reproducibility.
-
-**Before hand-off**  
-- Add a concise report (inventory, classifications, proposed actions) to `doc/agents/ast/progress.md`.  
-- Update this draft with TODO checkboxes for implementation agents.  
-- Leave the codebase untouched unless a blocker fix is unavoidable; document any blockers clearly.
-
-### Testing Expectations
-- None for pure analysis.  
-- If prototype cleanups occur, run `make -C tests/ast tests`, `scripts/test-ast.sh`, and `hbmk2 -w3` on affected fixtures to confirm parity.
-
-### Reporting Template
-- Summary of files reviewed / commands executed.  
-- Decision matrix (migrate / keep / retire) with reasoning.  
-- Proposed follow-up tasks grouped by agent or component.  
-- Risks or open questions for overseer review.
-
-### Session Transition Note
-- If analysis is incomplete, list remaining directories or commits.  
-- Flag any missing compiler hooks that would block migration.  
-- Record agreed next steps for implementation agents (e.g., “Compiler Instrumentation Agent to expose X”, “AST Tooling Agent to remove Y”).
-
-### Open Follow-ups
-- [x] Complete the inventory and classification of the first-attempt tooling commits.  
-- [x] Extend `hb_compAstTraceDumpJson()` so consumers get deterministic macro bookkeeping (stable IDs, depth, call ranges) straight from the compiler with no external adapter.  
-- [x] Update tooling docs/tests to reference the compiler CLI (`harbour --ast-trace --ast-trace-dump`) and retire the legacy `hbast`/`hbrename` workflows.  
-- [x] Define the packaging plan for tooling that stays standalone (directory layout, build targets, ownership).  
-- [x] Prepare phased cleanup patches to remove `src/ast/lexer`, legacy cmocka suites, and `utils/hbrename` once the replacement path is ready.  
-- [x] Update documentation (`Agents.md`, `serialization-format.md`, `README-AST.md`) to reflect the compiler-backed flow and note retired modules.  
-- [ ] Coordinate with the Compiler Instrumentation Agent on any missing hooks or telemetry needed by the consumer adapter before deletions proceed.  
-
-## Oversight Session 2025-10-21 Notes
-- Compiler instrumentation hooks (lifecycle, lexer, parser, expression helpers) verified against the plan; documentation updated with status tracking.
-- cmocka `expression_nodes_capture_reductions` fixed to unblock trace-events target; `scripts/test-ast.sh` executed successfully.
-- Outstanding work before hand-off: keep `hbmk2 -w3` in the regression rotation, assess single-module `hb_compParserRun` buffering, and continue expression backlog audit for remaining grammar reductions.

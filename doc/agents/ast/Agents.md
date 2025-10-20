@@ -51,10 +51,6 @@ Maintain a **continuous, auditable exchange** between implementation sessions an
 - **Testing & Verification Agent**
   - Expand cmocka coverage, manage fixtures, and ensure every `.prg` test compiles via `hbmk2 -w3`.
   - Track macro trace expectations and `.ppo` artefacts when they strengthen assertions.
-- **AST Tooling Migration Agent**
-  - Audit the first-attempt tooling commits (range `d29cad47f5f8025136caa89f5a92392d13d87751`‒`afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`) that introduced parallel lexers/parsers.
-  - Classify each addition as (a) to be merged into the new compiler-backed extensions, (b) to live as a separate module, or (c) to be retired.
-  - Produce concrete migration/removal plans, documenting impacted files, tests, and follow-up actions for the implementation agents.
 - **LSP & Refactoring Agent**
   - Build CLI/API bridges, scaffold the LSP server, and prototype editor workflows (rename, extract).
   - Coordinate with AST tooling to guarantee refactorings run off compiler-derived truth.
@@ -86,4 +82,3 @@ Maintain a **continuous, auditable exchange** between implementation sessions an
 - No code lands without passing cmocka suites relevant to the touched modules.
 - Macro-heavy fixtures must document `.ppo` artefacts when helpful.
 - Commits describe scope and link to roadmap checkpoints.
-- Drift from upstream is monitored via `git diff cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca`; significant divergence triggers oversight review.
