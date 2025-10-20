@@ -1,10 +1,10 @@
 # Compiler Instrumentation Plan
 
 ## Executive Summary
-- **Recommendation**: extend and reuse the existing Harbour compiler pipeline rather than maintaining the branch’s standalone lexer. This keeps refactoring features anchored to compiler truth, avoids grammar drift, and lets `HB_PP_TRACEINFO` power both token and AST projections.
-- **Immediate objective**: land minimal instrumentation into `include/hbpp.h`, `src/pp/ppcore.c`, `src/compiler/complex.c`, `src/compiler/harbour.y`, and `src/compiler/hbcomp.c`, then migrate the experimental tooling (`src/ast/`, `utils/hbast`, `utils/hbrename`, related tests/docs) into a separate toolkit branch before reintroducing consumer APIs.
-- **Data flow**: `HB_PP_TRACEINFO` (added on this branch) becomes the canonical macro-expansion payload. Tokens harvested in `hb_comp_yylex` will emit `HB_AST_EVENT_TOKEN` events carrying trace handles; parser reductions in `harbour.y` will publish `HB_AST_EVENT_NODE_{ENTER,LEAVE}` with stable IDs tied back to those tokens.
-- **Timeline alignment**: instrumentation hardening (week of 2025-10-20), tooling extraction (week of 2025-10-27), instrumentation briefs and implementation restart (week of 2025-11-03).
+- **Recommendation**: keep the AST instrumentation inside Harbour’s compiler. `HB_PP_TRACEINFO` is the canonical macro-expansion payload, and all tooling should consume either the in-process APIs (`hb_compAstTrace*`) or the CLI dump (`harbour --ast-trace --ast-trace-dump`).
+- **Immediate objective**: continue to harden `include/hbpp.h`, `src/pp/ppcore.c`, `src/compiler/complex.c`, `src/compiler/harbour.y`, and `src/compiler/hbcomp.c`; extend the trace dump with additional metadata (stable macro IDs, diagnostics) and keep docs/tests aligned.
+- **Data flow**: tokens harvested in `hb_comp_yylex` emit `HB_COMP_AST_TRACE_TOKEN` events carrying trace handles; parser reductions in `harbour.y` publish `HB_COMP_AST_TRACE_NODE_EVENT`s with stable IDs tied back to those tokens; `hb_compAstTraceDumpJson()` materialises the stream for offline consumers.
+- **Timeline alignment**: instrumentation hardening (week of 2025-10-20), legacy tooling removal (week of 2025-10-25), documentation/test refresh (week of 2025-11-03).
 
 ## Status Check: `HB_PP_TRACEINFO`
 - `HB_PP_TRACEINFO`, `HB_PP_TRACE_EVENT`, and `hb_pp_setTraceCallback()` **were introduced on this branch** (`include/hbpp.h`, `src/pp/ppcore.c`, `src/harbour.def`). Upstream Harbour at commit `cfb7bdc22c3bb722ddecc3b6c1c1a310e03a66ca` does not expose these structures.
@@ -76,8 +76,8 @@ Adopt **Option 2**. The Harbour mission statement demands compiler-backed refact
 3. **Parser reductions** (`harbour.y` / `hbmain.c`):
    - Function headers call `hb_compAstTraceNodeEnter()` with the freshly allocated `HB_HFUNC`, while `hb_compFinalizeFunction()` emits the matching leave event.
    - Node events (`HB_COMP_AST_TRACE_NODE_EVENT`) carry stable IDs, associated token IDs, and duplicated symbol names for downstream correlation.
-4. **AST tooling bridge** (new module to be reintroduced post-extraction):
-   - Consumes the token and node streams, serializes into JSON/CBOR matching the schema already documented in `serialization-format.md`.
+4. **Trace export**:
+   - `hb_compAstTraceDumpJson()` renders the event stream as JSON. Downstream tools should parse this output (or call the APIs directly) instead of relying on a separate tooling layer.
    - Macro traces remain linked via `HB_PP_TRACEINFO.nExpansionId` → `MacroExpansion.expansion_id`.
 
 ### `HB_PP_TRACEINFO` Payload

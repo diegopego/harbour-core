@@ -11,15 +11,11 @@ run_make() {
   ( cd "$ROOT_DIR/$dir" && make "$@" HB_PLATFORM="$HB_PLATFORM" HB_COMPILER="$HB_COMPILER" )
 }
 
-run_make src/ast/lexer clean
-run_make src/ast/lexer
 run_make src/pp clean
 run_make src/pp
 run_make src/compiler clean
 run_make src/compiler
-run_make utils/hbast clean
-run_make utils/hbast
 run_make tests/ast clean
 run_make tests/ast tests
 
-echo "hbast build complete: $ROOT_DIR/bin/$HB_PLATFORM/$HB_COMPILER/hbast"
+echo "AST instrumentation build complete"

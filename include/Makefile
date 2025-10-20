@@ -25,7 +25,6 @@ C_HEADERS := \
    hbapilng.h \
    hbapirdd.h \
    hbapistr.h \
-   ast/lexer/hbast_lexer.h \
    hbasttrace.h \
    hbassert.h \
    hbatomic.h \

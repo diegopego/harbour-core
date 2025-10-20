@@ -5,23 +5,17 @@
 - **Scope**: Reviewed the experimental AST tooling commits (`d29cad47f5f8025136caa89f5a92392d13d87751`‒`afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`) to map every new module to the current compiler-backed instrumentation. Commands: `git diff --stat d29cad47f5f8025136caa89f5a92392d13d87751..afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`, `git log --oneline d29cad47f5f8025136caa89f5a92392d13d87751..afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`, manual inspection of `include/hbpp.h`, `src/pp/ppcore.c`, `src/ast/lexer/*.c`, `utils/hbast`, `utils/hbrename`, `tests/ast/*.c`, `scripts/test-ast.sh`, and downstream instrumentation headers (`include/hbasttrace.h`).
 - **Decision matrix**:
 
-  | Decision | Component scope | Notes |
-  | --- | --- | --- |
-  | Migrate into compiler flow | `include/hbpp.h`, `src/pp/ppcore.c`, `src/harbour.def`, `tests/ast/ast_preprocessor_trace_test.c` | `HB_PP_TRACEINFO` and `hb_pp_setTraceCallback()` already underpin `hb_compAstTrace*`; keep them in core, tighten retain/release docs, and align fixtures with CA‑Clipper terminology. |
-  | Migrate (consumer rewrite) | `src/ast/lexer/hbast_json.c`, `doc/agents/ast/serialization-format.md`, `utils/hbast/hbast.c` | Preserve JSON/CBOR schemas and CLI surface, but reimplement over `HB_COMP_AST_TRACE_*` snapshots instead of the shadow lexer. |
-  | Optional tooling (rewrite) | `README-AST.MD`, `doc/agents/ast/incremental-lexer.md`, hbast packaging | Move into a standalone tooling bundle that ships compiler-trace consumers; update language to mirror CA‑Clipper 5.3 taxonomy. |
-  | Retire | `src/ast/lexer/hbast_lexer.c`, `src/ast/lexer/hbast_builder.c`, `include/ast/lexer/hbast_lexer.h`, `include/ast/hbast_builder.h`, `utils/hbrename`, legacy cmocka suites (`tests/ast/ast_{smoke,snapshot,rename,builder}.c`), `scripts/test-ast.sh`, fixtures tied to `HB_AST_TOKEN` | Parallel lexer duplicates Harbour semantics, builder heuristics cover only PROC/LOCAL/RETURN, rename CLI is read-only; remove once compiler consumers exist and replace tests with compiler-backed harnesses. |
+| Decision | Component scope | Notes |
+| --- | --- | --- |
+| Keep | `include/hbpp.h`, `src/pp/ppcore.c`, `src/compiler/*`, `src/harbour.def`, instrumentation governance docs | Foundation of the compiler trace pipeline; remains in Harbour. |
+| Update docs/tests | `README-AST.md`, `doc/agents/ast/serialization-format.md`, `doc/agents/ast/instrumentation-plan.md`, `scripts/test-ast.sh`, `tests/ast/{ast_trace_tests.c,ast_compilebuf_tests.c,ast_hbmk_ast_tests.c}` | Ensure guidance and harnesses reference `harbour --ast-trace --ast-trace-dump` and the core APIs exclusively. |
+| Removed (2025-10-25) | `src/ast/`, `include/ast/`, `utils/hbast`, `utils/hbrename`, legacy cmocka suites (`tests/ast/ast_{smoke,snapshot,rename,builder}.c`), hbast fixtures/docs | First-attempt tooling overlay deleted; compiler trace output is now the sole source of AST data. |
 
 - **Migration blueprint**:
-  - Build a consumer adapter that materialises the snapshot/macro/symbol JSON directly from `hb_compAstTraceDumpJson()` output (reuse CA‑Clipper terminology from `doc/references/c53g01c.txt` and the current schema).
-  - Port the hbast CLI to invoke the compiler with `--ast-trace{,-dump}` rather than running the standalone lexer; keep CBOR writer by serialising compiler JSON.
+  - Extend the compiler-owned dump path (`hb_compAstTraceDumpJson()`) so macro bookkeeping (stable IDs, depth, call ranges) is preserved without relying on external adapters.
+  - Document canonical usage (`harbour --ast-trace --ast-trace-dump`) and retire redundant tooling binaries; consumers should link directly against `hb_compAstTrace*` or parse the compiler dump.
   - Fold `hb_pp_traceinfoRetain/Release` guidance into instrumentation docs; ensure diagnostics toggles exercise the callback path before removing duplicate retainers.
-- **Retirement plan**:
-  - Stage deletions for `src/ast/lexer` and dependent headers after the consumer adapter lands and fixtures pass (`tests/ast/ast_trace_tests.c` already covers the new API).
-  - Drop `utils/hbrename` and the legacy cmocka targets once replacement compiler-driven tools/tests exist; confirm `scripts/test-ast.sh` is superseded by the instrumentation harness.
-  - Archive fixtures (`tests/ast/fixture_demo.hbast.json`, `tests/tooling/cmocka/*`) into the tooling bundle or remove if redundant.
-- **Module packaging notes**:
-  - House the rewritten hbast CLI + docs under a dedicated `tools/ast-cli/` subtree with its own build/test targets powered by compiler traces.
+- **Retirement status**: All first-attempt tooling sources, fixtures, and utilities were deleted from Harbour on 2025-10-25. Any future experimentation must live out of tree and consume the compiler trace APIs/CLI.
   - Treat `doc/agents/ast/serialization-format.md` as the shared schema contract; update wording to describe compiler events and call out retired modules.
   - Keep preprocessor trace fixtures in `tests/ast/preprocessor/fixtures` as the validation bed for `HB_PP_TRACE_EVENT`.
 - **Risks / open questions**:
@@ -130,16 +124,10 @@
   - `complex.c` owns the token pipeline: it integrates the Harbour preprocessor, produces `HB_PP_TOKEN` records, tracks source modules, and feeds tokens to the parser while managing include stacks and macro expansion.
   - `harbour.y` defines the grammar and semantic actions that build `PHB_EXPR` trees; its generated counterpart `harbour.yyc` contains the C implementation (`hb_yyparse`, reduction handlers) consumed at build time.
   - Semantic data is layered through `ppcore.c`/`function.c` helpers that attach scope and symbol metadata to `PHB_EXPR` nodes before code generation.
-- **New branch additions (ast-3rd-experiment)**:
-  - `src/ast/lexer/hbast_lexer.c` implements an incremental lexer that mirrors the preprocessor, capturing macro traces (`HB_PP_TRACEINFO`), source ranges, and token history snapshots.
-  - `src/ast/lexer/hbast_builder.c` provides a standalone builder to assemble node and symbol graphs, backed by dynamic arrays and JSON/CBOR serialization helpers in `src/ast/lexer/hbast_json.c`.
-  - Tooling docs under `doc/agents/ast/` describe serialization schemas, incremental lexer design, and verification strategy (`hbast-verify.md`, `incremental-lexer.md`, etc.).
-  - Tests in `tests/ast/` exercise the prototype lexer/builder via cmocka suites and snapshot fixtures, plus shell helpers in `scripts/test-ast.sh`.
-- **Gaps between compiler AST and tooling AST**:
-  - Tooling currently replays preprocessor output independently; the compiler proper (`complex.c`, `harbour.y`) is not yet instrumented to emit the same token stream, causing duplication and potential drift (ranges, macro depth, trivia channels).
-  - `PHB_EXPR` trees built during parsing are not exposed to the tooling builder; the JSON/CBOR output is generated from a parallel structure that lacks guaranteed parity with compiler semantics (symbol resolution, codegen flags, hidden nodes).
-  - Macro trace fidelity depends on reconstructing `HB_PP_TRACEINFO` snapshots outside the compiler, with no guarantees that parser-time transformations (e.g., implicit statements, aliasing) are reflected.
-  - No current bridge exists from the compiler’s semantic passes (scope resolution, optimisations) to the tooling layer, leaving refactoring features blind to compiler-only insights.
+- **Post-cleanup state (2025-10-25)**:
+  - The experimental `src/ast/` subtree, hbast CLI, hbrename prototype, and their fixtures/tests were deleted; Harbour no longer ships a parallel lexer/builder.
+  - Documentation and tests now point exclusively to the compiler instrumentation (`hb_compAstTrace*`, `harbour --ast-trace --ast-trace-dump`).
+  - Remaining work is focused on enriching the compiler dump (macro bookkeeping, diagnostics) and tightening the verification matrix around it.
 - **Immediate follow-ups**:
   - Finalise instrumentation plan for hooking `complex.c` token lifecycle and `harbour.y` reductions without regressing compiler behaviour.
   - Align tooling builder schemas with real `PHB_EXPR` node kinds to avoid divergence as grammar evolves.
@@ -153,6 +141,7 @@
   - Author `doc/agents/ast/instrumentation-plan.md` capturing concrete hook points (token emission in `complex.c`, reduction callbacks in `harbour.y`, aggregation in `hbcomp.c`).
   - Prepare delegation brief for the Compiler Instrumentation Agent to surface stable token IDs and macro traces from the real preprocessor into the AST pipeline.
   - Prepare delegation brief for the AST Tooling Agent to map `PHB_EXPR` kinds onto the JSON/CBOR schema, identifying missing coverage in `hbast_builder`.
+  - *Update 2025-10-25: the hbast-derived tasks were superseded once the standalone tooling overlay was removed; instrumentation work now targets the compiler dump directly.*
 - **Risks & guards**: `ppcore.c` modifications touch critical preprocessor paths; mandate `hbmk2 -w3` and cmocka suites before any commit integrating new hooks.
 - **Follow-ups**: Update `doc/agents/ast/draft.md` with delegation outlines and testing matrix revisions ahead of implementation sessions.
 
