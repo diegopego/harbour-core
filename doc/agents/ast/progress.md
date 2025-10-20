@@ -1,5 +1,13 @@
 # AST Tooling Progress Log
 
+## 2025-10-26 – Packaging Plan for Compiler Trace Tooling
+
+- **Outcome**: Confirmed that no standalone binaries remain after retiring the first-attempt overlay. The AST trace experience is packaged entirely inside the core `harbour` compiler.
+- **Build**: `make HB_BUILD_PARTS=compiler HB_PLATFORM=<plat> HB_COMPILER=<cc>` produces `bin/<platform>/<compiler>/harbour` with `hb_compAstTrace*` enabled; no supplemental libraries or tools are emitted.
+- **Developer assets**: `tests/ast/` (fixtures, cmocka, CLI comparison harness) and `scripts/test-ast.sh` stay in-repo as regression tooling. They are maintained by the AST Tooling agent and exercised in CI/dev workflows; they are not published as user-facing artifacts.
+- **Consumer guidance**: Downstream adapters should live out of tree and consume the JSON dump via `harbour --ast-trace --ast-trace-dump` (or the `hb_compAstTraceDumpJson()` API). Future viewers/converters must not vendor compiler-internal sources.
+- **Ownership**: Compiler Instrumentation agent — `src/compiler/hbtraceast.c`, `include/hbasttrace.h`, preprocessor hooks. AST Tooling agent — docs in `doc/agents/ast/*`, `README-AST.md`, `tests/ast`, `scripts/test-ast.sh`.
+
 ## 2025-10-25 – Legacy AST Tooling Audit
 
 - **Scope**: Reviewed the experimental AST tooling commits (`d29cad47f5f8025136caa89f5a92392d13d87751`‒`afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`) to map every new module to the current compiler-backed instrumentation. Commands: `git diff --stat d29cad47f5f8025136caa89f5a92392d13d87751..afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`, `git log --oneline d29cad47f5f8025136caa89f5a92392d13d87751..afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`, manual inspection of `include/hbpp.h`, `src/pp/ppcore.c`, `src/ast/lexer/*.c`, `utils/hbast`, `utils/hbrename`, `tests/ast/*.c`, `scripts/test-ast.sh`, and downstream instrumentation headers (`include/hbasttrace.h`).
