@@ -234,6 +234,21 @@ Delegation Brief: you are the AST Tooling Migration Agent
 - **Out-of-tree adapters**: Any consumer-facing viewers or converters should live outside Harbour core and ingest the JSON dump. Repos should depend on `harbour --ast-trace --ast-trace-dump` instead of vendoring compiler internals.
 - **Ownership split**: The Compiler Instrumentation agent owns `src/compiler/hbtraceast.c`, `include/hbasttrace.h`, and preprocessor hooks. The AST Tooling agent maintains docs (`README-AST.md`, `doc/agents/ast/*`) and the `tests/ast` matrix to ensure tooling guidance stays aligned.
 
+### Cleanup Phases (2025-10-26)
+- **Phase 0 – Gate checks (in-flight)**  
+  - Keep `scripts/test-ast.sh`, `tests/ast` cmocka harness, and `hbmk2 -w3` runs as the verification matrix.  
+  - Collect green runs after the macro expansion field work (done).
+- **Phase 1 – Remove vestigial sources**  
+  - Delete `src/ast/Makefile` and the residual `src/ast/tracepack/` helpers once trace-pack guidance moves to docs.  
+  - Drop `utils/hbrename/` and any Makefile stubs that still reference the retired binary.  
+  - Purge legacy cmocka suites (`tests/ast/ast_{rename,builder,smoke,snapshot}.c`) if any stubs remain.
+- **Phase 2 – Tooling docs & build files**  
+  - Sweep top-level and per-module Makefiles for references to the removed paths (`src/ast`, `utils/hbrename`).  
+  - Update `.gitignore` / packaging manifests so no trace-pack binaries are expected.  
+  - Capture the removal and new workflow in `doc/agents/ast/progress.md` and release notes.
+- **Phase 3 – External notification**  
+  - Announce removal in `Agents.md` / `ChangeLog` once overseer signs off; point downstream tooling to the compiler dump schema.
+
 ### Step-by-Step Guide
 1. **Gather evidence** – run `git log --stat` and targeted `git show` commands across the commit range to capture the scope of added files and functionality.  
 2. **Classify components** – for each file/function introduced, decide whether it should migrate, remain as optional tooling, or be removed; note dependencies on current compiler hooks.  
@@ -279,7 +294,7 @@ Delegation Brief: you are the AST Tooling Migration Agent
 - [x] Extend `hb_compAstTraceDumpJson()` so consumers get deterministic macro bookkeeping (stable IDs, depth, call ranges) straight from the compiler with no external adapter.  
 - [x] Update tooling docs/tests to reference the compiler CLI (`harbour --ast-trace --ast-trace-dump`) and retire the legacy `hbast`/`hbrename` workflows.  
 - [x] Define the packaging plan for tooling that stays standalone (directory layout, build targets, ownership).  
-- [ ] Prepare phased cleanup patches to remove `src/ast/lexer`, legacy cmocka suites, and `utils/hbrename` once the replacement path is ready.  
+- [x] Prepare phased cleanup patches to remove `src/ast/lexer`, legacy cmocka suites, and `utils/hbrename` once the replacement path is ready.  
 - [ ] Update documentation (`Agents.md`, `serialization-format.md`, `README-AST.md`) to reflect the compiler-backed flow and note retired modules.  
 - [ ] Coordinate with the Compiler Instrumentation Agent on any missing hooks or telemetry needed by the consumer adapter before deletions proceed.  
 

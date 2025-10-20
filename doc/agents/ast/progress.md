@@ -7,6 +7,11 @@
 - **Developer assets**: `tests/ast/` (fixtures, cmocka, CLI comparison harness) and `scripts/test-ast.sh` stay in-repo as regression tooling. They are maintained by the AST Tooling agent and exercised in CI/dev workflows; they are not published as user-facing artifacts.
 - **Consumer guidance**: Downstream adapters should live out of tree and consume the JSON dump via `harbour --ast-trace --ast-trace-dump` (or the `hb_compAstTraceDumpJson()` API). Future viewers/converters must not vendor compiler-internal sources.
 - **Ownership**: Compiler Instrumentation agent — `src/compiler/hbtraceast.c`, `include/hbasttrace.h`, preprocessor hooks. AST Tooling agent — docs in `doc/agents/ast/*`, `README-AST.md`, `tests/ast`, `scripts/test-ast.sh`.
+- **Cleanup phasing**:
+  1. **Gate checks** – keep the current regression matrix (`scripts/test-ast.sh`, cmocka harness, `hbmk2 -w3`) green while we stage removals.  
+  2. **Remove vestigial sources** – delete `src/ast/Makefile`, `src/ast/tracepack/`, `utils/hbrename/`, and any residual legacy cmocka suites once overseer approves.  
+  3. **Docs/build sweep** – strip Makefile references, adjust `.gitignore`, and update documentation to reflect the compiler-only workflow.  
+  4. **External comms** – announce the removal in `Agents.md`/`ChangeLog` and direct downstream users to the compiler trace schema.
 
 ## 2025-10-25 – Legacy AST Tooling Audit
 
