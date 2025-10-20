@@ -70,6 +70,14 @@
   3. Week of 2025-11-03: refresh docs/tests to cover extended dump metadata (macro IDs, diagnostics), stage trace-pack instructions, and plan the next fixture additions.
 
 ## Delegation Brief – Compiler Instrumentation Agent (Template)
+
+### Copy/Paste Session Prompt
+```
+Role: Compiler Instrumentation Agent
+Goal: Advance compiler instrumentation per doc/agents/ast/instrumentation-plan.md. Ensure every .prg/.ch/.hbm/.hbmk fixture compiles warning-free with hbmk2 -w3; compiler-generated traces (CLI dump, compile-buffer) are the golden reference.
+Instructions: Follow Active Objectives and the Execution Checklist. Document progress/tests in doc/agents/ast/progress.md and this draft before hand-off.
+```
+
 Delegation Brief: you are the Compiler Instrumentation Agent
 
 ### Overview
@@ -143,7 +151,7 @@ Include in final session note (and summarise in commit message):
 - Docs/fixtures/code added or changed.  
 - Remaining risks or TODOs.
 
-### Session Transition Notes
+### Session Transition Notes (compiler instrumentation oversight → next delegate)
 - **2025-10-25 (fixture freeze prep)**: Added expression-heavy `fixture_expressions.prg` and include-driven `fixture_includes.prg`, plus the supporting `fixture_include_chain.ch`; regenerated CLI snapshots and registered both fixtures with `tests/ast/ast_hbmk_ast_tests.c`.  
   - **Commands**: `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_expressions.ast.json tests/ast/fixture_expressions.prg`, `bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=tests/ast/fixtures/fixture_includes.ast.json tests/ast/fixture_includes.prg`, `tests/ast/hbmk-ast-tests`, `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_expressions.prg`, `bin/linux/gcc/hbmk2 -w3 tests/ast/fixture_includes.prg`.  
   - **Packaging**: Core fixtures and snapshots bundled as `tests/ast/trace-pack/core-trace-pack-2025-10-25.zip` with regeneration notes in `tests/ast/trace-pack/README.md`.  
@@ -155,7 +163,20 @@ Include in final session note (and summarise in commit message):
   2. ✅ Freeze the “trace pack” (zip or tagged directory) containing all fixtures + snapshots; log its regeneration workflow (core bundle published at `tests/ast/trace-pack/core-trace-pack-2025-10-25.zip`).  
   3. ✅ Update docs (`instrumentation-plan.md`, `hb_compilebuf_evaluation.md`) with the final toggles/commands (snapshot workflow recorded 2025-10-25).  
   4. ✅ Run the verification matrix once more and record results (commands executed 2025-10-25; outcomes logged in `progress.md`).
-- **Prompt for next delegate**: “Record completed subtasks, outstanding items, test outcomes, and uncommitted file status in both `doc/agents/ast/progress.md` and `doc/agents/ast/draft.md` before ending the session. If work was inherited mid-task, describe exactly what remains.”
+- **Prompt for next delegate** (copy into new session):  
+  ```
+  Session hand-off – Compiler Instrumentation Agent
+  
+  1. Review `doc/agents/ast/progress.md` and the “Active Objectives” in the delegation template. 
+  2. Confirm `git status` is clean; inherit any pending fixture/doc updates noted below. 
+  3. Pick up **Objective 1** (hb_compParserRun coverage) unless otherwise directed; leave code buildable and warning-free (`hbmk2 -w3`) at every checkpoint. 
+  4. Log completed work, commands executed, and remaining tasks in both `doc/agents/ast/progress.md` and this draft before closing the session.
+  
+  Current pending items:
+   - Instrument `hb_compParserRun` (single-module path) and add regression coverage.
+   - Introduce diagnostics counters behind `--ast-trace-diagnostics` flag if additional telemetry is needed.
+   - Promote compile-buffer/CLI traces to golden snapshots beyond the current fixture pack.
+  ```
 
 ### Open Follow-ups
 - DONE 2025-10-25: Added expression-heavy (`fixture_expressions`) and include-driven (`fixture_includes`) samples with golden snapshots; regeneration workflow captured in `instrumentation-plan.md` and `hb_compilebuf_evaluation.md`.  
@@ -189,7 +210,12 @@ Include in final session note (and summarise in commit message):
 
 ## Delegation Brief – AST Tooling Agent (Template)
 
-Delegation Brief: you are the AST Tooling Agent
+### Copy/Paste Session Prompt
+```
+Role: AST Tooling Agent
+Goal: Migrate the external tooling stack to consume Harbour compiler events. Ensure every .prg/.ch/.hbm/.hbmk fixture compiles warning-free via hbmk2 -w3, using compiler-generated traces (CLI dump, compile-buffer) as golden outputs.
+Instructions: Follow the milestone plan below. Record progress/tests in doc/agents/ast/progress.md and this draft before hand-off. Preserve inherited changes.
+```
 
 ### Overview
 - **Mandate**: Rework the tooling distribution so it consumes Harbour’s compiler-emitted events (token, boundary, node, macro traces) and generates snapshots aligning with the schema documented in `doc/agents/ast`. Tooling fixtures must compile warning-free via `hbmk2 -w3`, and compiler-derived traces constitute the golden snapshots.
@@ -207,7 +233,12 @@ The first-attempt tooling overlay (`src/ast/`, `utils/hbast`, `utils/hbrename`, 
 
 ## Delegation Brief – AST Tooling Migration Agent (Template)
 
-Delegation Brief: you are the AST Tooling Migration Agent
+### Copy/Paste Session Prompt
+```
+Role: AST Tooling Migration Agent
+Goal: Analyse the legacy tooling commits (d29cad47f5f80251..afa3c2c7012109d0) and produce a migration/retirement plan while keeping all fixtures warning-free under hbmk2 -w3.
+Instructions: Follow the milestone ledger and step-by-step guide below. Document findings in doc/agents/ast/progress.md and this draft. Do not remove code until the overseer approves the plan.
+```
 
 ### Overview
 - **Mandate**: Audit the first-attempt AST tooling work (commit range `d29cad47f5f8025136caa89f5a92392d13d87751`‒`afa3c2c7012109d03c0ed6ee3ed94ea4d6b0426c`) that introduced parallel lexers, parsers, and utilities. Determine what should be merged into the compiler-backed flow, what belongs in a separate module, and what should be retired.  
