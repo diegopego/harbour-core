@@ -92,8 +92,6 @@ def load_trace_data(
 
     cmd: List[str] = [
         str(harbour_path),
-        "--quiet",
-        "--nologo",
         "--ast-trace",
         "--ast-trace-dump=-",
         str(source),
@@ -116,8 +114,13 @@ def load_trace_data(
             f"Harbour invocation failed with exit code {exc.returncode}: {message}"
         ) from exc
 
+    stdout = result.stdout
+    start = stdout.find("{")
+    end = stdout.rfind("}")
+    if start != -1 and end != -1:
+        stdout = stdout[start : end + 1]
     try:
-        return json.loads(result.stdout)
+        return json.loads(stdout)
     except json.JSONDecodeError as exc:
         raise TraceLoadError(
             "Failed to parse JSON emitted by hb_compAstTraceDumpJson()."
@@ -216,6 +219,69 @@ def find_enclosing_scope(
         if enter_sequence <= sequence <= leave_sequence:
             return (enter_sequence, leave_sequence)
     return None
+
+
+def is_definition_token(
+    module_tokens: List[Dict[str, object]], index: int
+) -> bool:
+    token_line = int(module_tokens[index].get("line", 0))
+    has_open_paren_ahead = any(
+        t.get("value") == "(" and int(t.get("line", 0)) == token_line
+        for t in module_tokens[index + 1 : index + 4]
+    )
+    for j in range(index - 1, -1, -1):
+        prev = module_tokens[j]
+        if int(prev.get("line", 0)) != token_line:
+            break
+        value = prev.get("value")
+        if not isinstance(value, str):
+            continue
+        upper = value.upper()
+        if upper in {"FUNCTION", "PROCEDURE"}:
+            return True
+        if upper == "STATIC" and has_open_paren_ahead:
+            return True
+    return False
+
+
+def compute_references(
+    traces: List[Tuple[Dict[str, object], Optional[Path]]],
+    symbol: str,
+    cwd: Path,
+) -> Dict[str, object]:
+    references: List[Dict[str, object]] = []
+    for trace, _ in traces:
+        tokens: List[Dict[str, object]] = trace.get("tokens", [])
+        modules: Dict[Path, List[Dict[str, object]]] = {}
+        for token in tokens:
+            module_path = normalise_module(token.get("module"), cwd)
+            if module_path is None:
+                continue
+            modules.setdefault(module_path, []).append(token)
+
+        for module_path, module_tokens in modules.items():
+            module_tokens.sort(key=lambda token: int(token.get("sequence", 0)))
+            for idx, token in enumerate(module_tokens):
+                if token.get("value") != symbol:
+                    continue
+                if is_definition_token(module_tokens, idx):
+                    continue
+                references.append(
+                    {
+                        "module": module_path.as_posix(),
+                        "line": int(token.get("line", 0)),
+                        "column": int(token.get("column", 0)),
+                        "endColumn": int(token.get("endColumn", 0)),
+                        "sequence": int(token.get("sequence", 0)),
+                    }
+                )
+
+    references.sort(key=lambda ref: (ref["module"], ref["line"], ref["column"]))
+    return {
+        "kind": "references",
+        "symbol": symbol,
+        "references": references,
+    }
 
 
 def compute_rename(
@@ -439,7 +505,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--trace",
         type=Path,
-        help="Existing hb_compAstTraceDumpJson() output to consume instead of invoking Harbour.",
+        action="append",
+        help="Existing hb_compAstTraceDumpJson() output(s) to consume instead of invoking Harbour.",
     )
     parser.add_argument(
         "-I",
@@ -494,16 +561,33 @@ def main(argv: Optional[List[str]] = None) -> int:
         help="1-based line at which to insert the new function (defaults to EOF).",
     )
 
+    references_parser = subparsers.add_parser(
+        "references", help="List symbol references across source files."
+    )
+    references_parser.add_argument(
+        "--symbol",
+        required=True,
+        help="Identifier to search for.",
+    )
+    references_parser.add_argument(
+        "sources",
+        nargs="+",
+        type=Path,
+        help="Source files to analyse for references.",
+    )
+
     args = parser.parse_args(argv)
     cwd = Path.cwd()
 
     try:
+        trace_paths = args.trace or []
         if args.command == "rename":
+            trace_path = trace_paths[0] if trace_paths else None
             trace = load_trace_data(
                 source=args.source,
                 harbour_path=args.harbour,
                 includes=args.includes,
-                trace_path=args.trace,
+                trace_path=trace_path,
             )
             payload = compute_rename(
                 trace=trace,
@@ -513,11 +597,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                 cwd=cwd,
             )
         elif args.command == "extract":
+            trace_path = trace_paths[0] if trace_paths else None
             trace = load_trace_data(
                 source=args.source,
                 harbour_path=args.harbour,
                 includes=args.includes,
-                trace_path=args.trace,
+                trace_path=trace_path,
             )
             payload = compute_extract(
                 trace=trace,
@@ -525,6 +610,25 @@ def main(argv: Optional[List[str]] = None) -> int:
                 selection=args.range,
                 new_name=args.new_name,
                 insert_line=args.insert_line,
+                cwd=cwd,
+            )
+        elif args.command == "references":
+            traces: List[Tuple[Dict[str, object], Optional[Path]]] = []
+            if trace_paths:
+                for path in trace_paths:
+                    traces.append((load_trace_data(path, args.harbour, args.includes, path), None))
+            else:
+                for source_path in args.sources:
+                    trace = load_trace_data(
+                        source=source_path,
+                        harbour_path=args.harbour,
+                        includes=args.includes,
+                        trace_path=None,
+                    )
+                    traces.append((trace, source_path))
+            payload = compute_references(
+                traces=traces,
+                symbol=args.symbol,
                 cwd=cwd,
             )
         else:

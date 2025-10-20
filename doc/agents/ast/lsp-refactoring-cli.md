@@ -40,7 +40,8 @@
 ### Capabilities
 - Emits rename and extract plans as JSON documents already shaped like a VS Code `WorkspaceEdit`.
 - Consumes an existing trace dump via `--trace` or spawns the compiler directly (`harbour --ast-trace --ast-trace-dump=-`).
-- Logs structured metadata (`occurrenceCount`, `selectedTokenCount`, insertion line) that downstream integrations can use for previews.
+- Logs structured metadata (`occurrenceCount`, `selectedTokenCount`, insertion line, `functionScope`) that downstream integrations can use for previews.
+- Lists symbol references across one or more source files (`references` subcommand).
 
 ### Usage
 
@@ -60,14 +61,21 @@ python3 tests/ast/python/ast_refactor_cli.py \
   --range 5:4-6:24 \
   --new-name DemoBody \
   --pretty
+
+# Locate calls to SupportFunc() across two modules.
+python3 tests/ast/python/ast_refactor_cli.py \
+  references --symbol SupportFunc \
+  tests/ast/ref_project/main.prg \
+  tests/ast/ref_project/support.prg
 ```
 
 ### Output
-- Both commands emit JSON with the keys:
-  - `kind`: `"rename"` or `"extract"`.
-  - `workspaceEdit`: LSP-compatible `WorkspaceEdit`.
-  - `metadata`: helper fields for tooling (counts, selection range, insertion line).
+- All commands emit JSON with the keys:
+  - `kind`: `"rename"`, `"extract"`, or `"references"`.
+  - `workspaceEdit`: LSP-compatible `WorkspaceEdit` (rename/extract commands).
+  - `metadata`: helper fields for tooling (counts, selection range, insertion line, scope boundaries).
     - Rename responses include `functionScope.startSequence` / `endSequence` when the identifier belongs to a function/procedure.
+  - `references`: for the reference finder, an array of `{module, line, column, endColumn, sequence}` entries sorted by module and position.
 - `workspaceEdit.changes` holds text edits keyed by absolute POSIX paths (per VS Code expectations).
 - Extraction appends the new function at the requested line (defaults to EOF) and normalises indentation relative to the selection start.
 - To materialise edits for inspection, use `tests/ast/python/apply_workspace_edit.py`:
@@ -100,8 +108,9 @@ python3 tests/ast/python/ast_refactor_cli.py \
   ```
 
 ### Tests
-- `tests/ast/python/test_refactor_cli.py` provides pytest-based rename/extract coverage against the `fixture_demo` trace fixture, including scoped rename verification (`tests/ast/fixture_demo.helper_scope.prg`). `tests/ast/python/test-python.sh` runs the Python suite and is invoked from `tests/ast/Makefile`, so `scripts/test-ast.sh` executes it alongside the cmocka binaries.
+- `tests/ast/python/test_refactor_cli.py` provides pytest-based coverage against the `fixture_demo` fixtures and the `ref_project` multi-module sample. `tests/ast/python/test-python.sh` runs the Python suite and is invoked from `tests/ast/Makefile`, so `scripts/test-ast.sh` executes it alongside the cmocka binaries.
 - The pytest module rewrites `tests/ast/fixture_demo.rename.prg`, `tests/ast/fixture_demo.helper_scope.prg`, and `tests/ast/fixture_demo.extract.prg` using the CLI output and asserts that the emitted content matches the checked-in fixtures, leaving the refactored `.prg` copies available for inspection.
+- Reference tests rely on `tests/ast/ref_project/*.prg` and ensure that the CLI reports every call site without misclassifying function definitions.
 
 ## Schema Alignment Notes
 - Downstream refactoring logic currently relies only on stable fields documented in `doc/agents/ast/serialization-format.md`:

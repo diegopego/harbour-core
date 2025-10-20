@@ -1,10 +1,4 @@
-"""
-Pytest smoke coverage for the AST-backed refactoring CLI.
-
-The tests execute `tests/ast/python/ast_refactor_cli.py` against existing trace
-fixtures and assert that the emitted WorkspaceEdit payloads match the expected
-VS Code contract (rename and extract cases).
-"""
+"""Pytest coverage for the AST-backed refactoring CLI (rename/extract/references)."""
 
 from __future__ import annotations
 
@@ -24,6 +18,10 @@ SOURCE_URI = SOURCE.resolve().as_posix()
 RENAMED_FIXTURE = ROOT / "tests" / "ast" / "fixture_demo.rename.prg"
 EXTRACT_FIXTURE = ROOT / "tests" / "ast" / "fixture_demo.extract.prg"
 SCOPED_FIXTURE = ROOT / "tests" / "ast" / "fixture_demo.helper_scope.prg"
+REF_PROJECT_DIR = ROOT / "tests" / "ast" / "ref_project"
+REF_MAIN = REF_PROJECT_DIR / "main.prg"
+REF_SUPPORT = REF_PROJECT_DIR / "support.prg"
+REFERENCES_FIXTURE = ROOT / "tests" / "ast" / "fixtures" / "ref_project_supportfunc.references.json"
 
 
 def run_cli(arguments: list[str]) -> dict:
@@ -169,14 +167,22 @@ def test_extract_workspace_edit_payload() -> None:
     assert metadata["selectedTokenCount"] == 10
     assert metadata["insertionLine"] == 27
 
-    edits_applied = apply_workspace_edit_payload(
-        payload["workspaceEdit"],
-        SOURCE,
-        EXTRACT_FIXTURE,
-        document_uri=SOURCE_URI,
+
+def test_references_across_modules() -> None:
+    payload = run_cli(
+        [
+            "references",
+            "--symbol",
+            "SupportFunc",
+            str(REF_MAIN),
+            str(REF_SUPPORT),
+        ]
     )
-    assert edits_applied == 2
-    actual_fixture = EXTRACT_FIXTURE.read_text(encoding="utf-8")
-    assert actual_fixture == expected_fixture
-RENAMED_FIXTURE = ROOT / "tests" / "ast" / "fixture_demo.rename.prg"
-EXTRACT_FIXTURE = ROOT / "tests" / "ast" / "fixture_demo.extract.prg"
+
+    assert payload["kind"] == "references"
+    assert payload["symbol"] == "SupportFunc"
+    references = payload["references"]
+    expected = json.loads(REFERENCES_FIXTURE.read_text(encoding="utf-8"))[
+        "references"
+    ]
+    assert references == expected

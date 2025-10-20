@@ -35,8 +35,8 @@
 - **Next**: Add coverage once `INLINE`/`INIT`/`EXIT` events exist, watch PP traceinfo retain/release balances, and consider property-based checks for macro ancestry depth. Continue documenting regen steps when fixtures move.
 
 ### LSP & Refactoring Agent
-- **Current**: CLI prototype (`tests/ast/python/ast_refactor_cli.py`), workspace edit applier (`tests/ast/python/apply_workspace_edit.py`), pytest smoke coverage (`tests/ast/python/test_refactor_cli.py`), and persistent fixtures (`tests/ast/fixture_demo.rename.prg`, `tests/ast/fixture_demo.helper_scope.prg`, `tests/ast/fixture_demo.extract.prg`) emit, materialise, and validate rename/extract `WorkspaceEdit` payloads derived from `hb_compAstTraceDumpJson()` dumps; rename is now scoped to the containing function/procedure. VS Code contract notes captured in `doc/agents/ast/lsp-refactoring-cli.md`.
-- **Next**: Harden rename analysis beyond lexical scopes (token-type filters, node ancestry), expand fixture coverage beyond `fixture_demo`, and coordinate schema assurances (macro expansions, INLINE/INIT/EXIT coverage) with the AST tooling agent.
+- **Current**: CLI prototype (`tests/ast/python/ast_refactor_cli.py`), workspace edit applier (`tests/ast/python/apply_workspace_edit.py`), pytest coverage (`tests/ast/python/test_refactor_cli.py`), and persistent fixtures (`tests/ast/fixture_demo.rename.prg`, `tests/ast/fixture_demo.helper_scope.prg`, `tests/ast/fixture_demo.extract.prg`, `tests/ast/ref_project/*.prg`, `tests/ast/fixtures/ref_project_supportfunc.references.json`) emit, materialise, and validate rename/extract/reference payloads derived from `hb_compAstTraceDumpJson()` dumps; rename is scoped to the containing function/procedure.
+- **Next**: Harden rename analysis beyond lexical scopes (token-type filters, node ancestry), extend reference coverage to macro expansions, and coordinate schema assurances (INLINE/INIT/EXIT coverage) with the AST tooling agent.
 
 ### Open Oversight Follow-ups
 - Coordinate with downstream consumers so they adopt the compiler dump schema; ensure no documentation references the retired `src/ast/` stack.

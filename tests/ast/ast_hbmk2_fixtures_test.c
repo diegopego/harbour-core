@@ -11,9 +11,8 @@
 #include <string.h>
 #include <sys/wait.h>
 
-static void hbmk2_verify_fixture( const char * pszFixture )
+static void hbmk2_verify_command( const char * pszCommand )
 {
-   char szCommand[ 512 ];
    FILE * pPipe;
    char szLine[ 512 ];
    char * pszOutput = NULL;
@@ -22,12 +21,9 @@ static void hbmk2_verify_fixture( const char * pszFixture )
    int iStatus;
    int iExitCode = -1;
 
-   assert_non_null( pszFixture );
+   assert_non_null( pszCommand );
 
-   assert_true( snprintf( szCommand, sizeof( szCommand ),
-                          "hbmk2 -w3 %s 2>&1", pszFixture ) > 0 );
-
-   pPipe = popen( szCommand, "r" );
+   pPipe = popen( pszCommand, "r" );
    assert_non_null( pPipe );
 
    while( fgets( szLine, sizeof( szLine ), pPipe ) != NULL )
@@ -65,11 +61,23 @@ static void hbmk2_verify_fixture( const char * pszFixture )
 
    if( iExitCode != 0 || fSawWarning )
    {
-      fail_msg( "hbmk2 -w3 %s failed (exit=%d, warnings=%d)\n%s",
-                pszFixture, iExitCode, fSawWarning ? 1 : 0, pszOutput ? pszOutput : "" );
+      fail_msg( "%s failed (exit=%d, warnings=%d)\n%s",
+                pszCommand, iExitCode, fSawWarning ? 1 : 0, pszOutput ? pszOutput : "" );
    }
 
    free( pszOutput );
+}
+
+static void hbmk2_verify_fixture( const char * pszFixture )
+{
+   char szCommand[ 512 ];
+
+   assert_non_null( pszFixture );
+
+   assert_true( snprintf( szCommand, sizeof( szCommand ),
+                          "hbmk2 -w3 %s 2>&1", pszFixture ) > 0 );
+
+   hbmk2_verify_command( szCommand );
 }
 
 static void hbmk2_compile_fixtures( void ** state )
@@ -101,10 +109,19 @@ static void hbmk2_compile_fixtures( void ** state )
 
    for( i = 0; i < globbuf.gl_pathc; ++i )
    {
+      if( strstr( globbuf.gl_pathv[ i ], "/ref_project/" ) != NULL )
+         continue;
       hbmk2_verify_fixture( globbuf.gl_pathv[ i ] );
    }
 
    globfree( &globbuf );
+}
+
+static void hbmk2_compile_ref_project( void ** state )
+{
+   ( void ) state;
+
+   hbmk2_verify_command( "hbmk2 -w3 tests/ast/ref_project/main.prg tests/ast/ref_project/support.prg 2>&1" );
 }
 
 int main( void )
@@ -112,6 +129,7 @@ int main( void )
    const struct CMUnitTest tests[] =
    {
       cmocka_unit_test( hbmk2_compile_fixtures ),
+      cmocka_unit_test( hbmk2_compile_ref_project ),
    };
 
    return cmocka_run_group_tests( tests, NULL, NULL );
