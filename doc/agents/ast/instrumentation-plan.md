@@ -2,7 +2,7 @@
 
 ## Hook Point Map
 
-| File | Function / Rule | Insertion site | Captured data | Emitted event / action | Status (2025-10-21) |
+| File | Function / Rule | Insertion site | Captured data | Emitted event / action | Status (2025-10-25) |
 | --- | --- | --- | --- | --- | --- |
 | `src/compiler/hbcomp.c` | `hb_comp_new` / `hb_comp_free` | After the lexer owns `pPP` / before teardown frees it | `PHB_PP_STATE` callback slots, AST trace heap | `hb_compAstTraceInit()` installs the PP callback; `hb_compAstTraceShutdown()` clears it and releases retained buffers | Done |
 | `src/compiler/complex.c` | `hb_comp_yylex` (post fetch) | Immediately after `pToken = hb_pp_tokenGet( pLex->pPP );` | Full `HB_PP_TOKEN`, including `pTraceInfo` | `hb_compAstTracePublishToken( pComp, pToken )` copies payload and retains trace info | Done |
@@ -10,8 +10,8 @@
 | `src/compiler/harbour.y` | `Function` rule actions | After each `hb_compFunctionAdd()` call | Newly created `HB_HFUNC` handle, start token ID | `hb_compAstTraceNodeEnter()` records node enter events with stable IDs | Done |
 | `src/compiler/hbmain.c` | `hb_compFinalizeFunction` | After jump fixups and before returning | Active `HB_HFUNC`, last token ID | `hb_compAstTraceNodeLeave()` emits the matching leave event | Done |
 | `src/compiler/harbour.y` | Statement / expression reductions | Within actions that allocate expressions or manage stacks | Newly created `PHB_EXPR`, node stacks, codeblock tokens | `HB_AST_TRACE_EXPR` plus `hb_compAstTraceNodeEnterStack/LeaveStack` cover expressions, control flow, and codeblocks | Done (core set; backlog tracks remaining reductions) |
-| `src/compiler/complex.c` / `tests` | Trace toggle plumbing | CLI/env switch handling prior to compilation | Feature flag state, outstanding retain counts | `hb_compAstTraceSetEnabled()` clears buffers on toggle changes; cmocka asserts zero outstanding traceinfo | Done |
-| `src/compiler/hbcomp.c` | `hb_compParserRun` (single-module path) | After the `hb_pp_tokenGet()` guard when `fSingleModule` is true | Eager tokens consumed when bypassing the parser | Defer instrumentation; evaluate once single-module fixtures depend on trace buffering | Pending |
+| `src/compiler/complex.c` / `tests` | Trace toggle & diagnostics plumbing | CLI/env switch handling prior to compilation (`--ast-trace`, `--ast-trace-diagnostics`, env toggles) | Feature flag state, outstanding retain counts, diagnostics totals | `hb_compAstTraceSetEnabled()` clears buffers; `hb_compAstTraceSetDiagnostics()` tracks totals; cmocka asserts zero outstanding traceinfo | Done |
+| `src/compiler/hbcomp.c` | `hb_compParserRun` (single-module path) | After the `hb_pp_tokenGet()` guard when `fSingleModule` is true | Eager tokens consumed when bypassing the parser | Under audit — compile-buffer tests cover default/`-m` flows, but we still need explicit mitigation notes if module-level node events are skipped | In progress |
 
 ## Instrumentation Pipeline
 
@@ -28,6 +28,12 @@
 4. **Trace export**:
    - `hb_compAstTraceDumpJson()` renders the event stream as JSON. Downstream tools should parse this output (or call the APIs directly) instead of relying on a separate tooling layer.
    - Macro traces remain linked via `HB_PP_TRACEINFO.nExpansionId` → `MacroExpansion.expansion_id`.
+
+### Diagnostics Counters
+- Controlled via `hb_compAstTraceSetDiagnostics()` (`--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS`).
+- Track totals for tokens, boundaries, nodes, PP events, and retained/released traceinfo without storing payloads.
+- Exposed through `hb_compAstTraceTokenTotal()`, `hb_compAstTraceBoundaryTotal()`, `hb_compAstTraceNodeTotal()`, `hb_compAstTracePpEventTotal()`, `hb_compAstTraceTraceinfoRetainedTotal()`, and `hb_compAstTraceTraceinfoReleasedTotal()`.
+- cmocka coverage: `tests/ast/ast_trace_tests.c` toggles diagnostics on/off and asserts counters reset when disabled.
 
 ### `HB_PP_TRACEINFO` Payload
 - Fields:
@@ -81,4 +87,3 @@ By default, reserve the word **macro** for the runtime `&` operator or explicitl
 #### Canonical language reference
 
 Harbour maintains source compatibility with CA-Clipper. When Harbour documentation does not spell out nomenclature or token classification, consult the original Clipper 5.3 Programming Guide (e.g. `clc53/doc/en/c53g01c.txt` from the `ng-hbdoc` archive). Treat that manual as the authoritative reference for naming conventions and statement categories when updating fixtures, tests, or docs.
-

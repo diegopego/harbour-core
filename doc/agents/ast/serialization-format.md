@@ -19,7 +19,7 @@ emits a JSON document containing the token stream, parser node events, lexer bou
 }
 ```
 
-Each array is emitted in the order events occurred. Consumers should treat the stream as append-only and rely on the monotonic `sequence` field to correlate events.
+Each array is emitted in the order events occurred. Consumers should treat the stream as append-only and rely on the monotonic `sequence` field to correlate events. The shape is asserted by `tests/ast/ast_hbmk_ast_tests.c` (CLI dumps) and `tests/ast/ast_trace_tests.c` (macro ancestry).
 
 > **Note (2025-10-25)**  
 > The standalone hbast/hbrename tooling overlay was removed. Every field documented here is emitted directly by `hb_compAstTraceDumpJson()` inside the Harbour compiler; downstream utilities should consume this payload instead of depending on legacy modules.

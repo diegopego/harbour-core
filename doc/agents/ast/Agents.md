@@ -55,6 +55,13 @@ Maintain a **continuous, auditable exchange** between implementation sessions an
   - Build CLI/API bridges, scaffold the LSP server, and prototype editor workflows (rename, extract).
   - Coordinate with AST tooling to guarantee refactorings run off compiler-derived truth.
 
+## Current Focus
+- **Overseer** – keep documentation in `doc/agents/ast/*` aligned with the compiler-trace-only architecture, log session outcomes in `progress.md`, and sequence the backlog for inline/init/exit instrumentation plus the `fSingleModule` audit.
+- **Compiler Instrumentation Agent** – extend node coverage for `INLINE`/`INIT`/`EXIT`, tag macro-generated statements, document the single-module review, and update the instrumentation plan + compile-buffer notes when hooks evolve.
+- **AST Tooling Agent** – maintain fixtures/serialization docs in sync with `hb_compAstTraceDumpJson()`, draft a lightweight consumer example (CLI or adapter), and coordinate schema changes with downstream LSP work.
+- **Testing & Verification Agent** – run the cmocka suite (`tests/ast/*.c`), `hbmk2 -w3` sweeps, and `scripts/test-ast.sh`; add coverage when new node kinds land and preserve regen instructions for PP trace fixtures.
+- **LSP & Refactoring Agent** – prototype a CLI that consumes `hb_compAstTraceDumpJson()` for rename/extract experiments, capture VS Code data-contract expectations, and align with tooling agent on schema stability.
+
 ## Execution Workflow
 - **Checkpoint planning**: Overseer reviews outstanding work, updates roadmap entries, and confirms baseline status (`git status`, diff against `cfb7bdc2`).
 - **Delegation packets**: For each substantive task, create a session brief detailing scope, files, tests, and success criteria.
@@ -69,14 +76,13 @@ Maintain a **continuous, auditable exchange** between implementation sessions an
 - Additional specs (e.g., LSP, refactoring backlog) live under `doc/agents/`.
 
 ## Roadmap Alignment
-- **Phase 0 – Considerations**: This branch contains multiple changes. Evaluate them to decide whether it should be rewritten or retained, based on the project’s goals — especially regarding creating new code versus adapting the existing Harbour core.
 - **Phase 1 – Baseline alignment**: refresh roles (this document), audit repository state, and map compiler vs tooling AST flows.
 - **Phase 2 – Instrumentation design**: document hook points and prove non-disruptive event capture.
 - **Phase 3 – Token event stream**: ship compiler-backed token APIs with regression tests.
 - **Phase 4 – AST projection**: traverse `PHB_EXPR` trees into tooling structures, validating against legacy expectations.
 - **Phase 5 – Tooling interface & CLI**: surface snapshot requests through stable APIs and updated docs.
-- **Phase 6 – VSCode/LSP scaffolding**: prototype LSP server pinned to compiler-derived data.
-- **Phase 7 – Refactoring features**: iterate on rename/extract capabilities backed by rigorous tests and documentation.
+- **Phase 6 – Refactoring features**: iterate on rename/extract capabilities backed by rigorous tests and documentation.
+- **Phase 8 – VSCode/LSP scaffolding**: prototype LSP server pinned to compiler-derived data.
 
 ## Quality Gates
 - No code lands without passing cmocka suites relevant to the touched modules.
