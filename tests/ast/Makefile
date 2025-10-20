@@ -52,4 +52,4 @@ tests: build
 	(cd $(ROOT) && ./tests/ast/hbmk2-fixtures)
 	(cd $(ROOT) && ./tests/ast/compilebuf-tests)
 	(cd $(ROOT) && ./tests/ast/hbmk-ast-tests)
-	(cd $(ROOT) && ./scripts/test-python.sh -q)
+	(cd $(ROOT) && ./tests/ast/python/test-python.sh -q)

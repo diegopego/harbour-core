@@ -17,7 +17,7 @@ import sys
 import textwrap
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -180,6 +180,44 @@ def token_overlaps_selection(token: Dict[str, object], selection: Range) -> bool
     return True
 
 
+def build_function_scopes(
+    trace_tokens: List[Dict[str, object]],
+    module_path: Path,
+    cwd: Path,
+) -> List[Tuple[int, int]]:
+    module_tokens = [
+        token
+        for token in trace_tokens
+        if normalise_module(token.get("module"), cwd) == module_path
+    ]
+    module_tokens.sort(key=lambda token: int(token.get("sequence", 0)))
+    scopes: List[Tuple[int, int]] = []
+    current_start: Optional[int] = None
+    prev_sequence: Optional[int] = None
+    for token in module_tokens:
+        sequence = int(token.get("sequence", 0))
+        value = token.get("value")
+        upper_value = value.upper() if isinstance(value, str) else ""
+        if upper_value in {"FUNCTION", "PROCEDURE"}:
+            if current_start is not None and prev_sequence is not None:
+                scopes.append((current_start, prev_sequence))
+            current_start = sequence
+        prev_sequence = sequence
+    if current_start is not None and prev_sequence is not None:
+        scopes.append((current_start, prev_sequence))
+    scopes.sort(key=lambda scope: (scope[1] - scope[0], scope[0]))
+    return scopes
+
+
+def find_enclosing_scope(
+    scopes: List[Tuple[int, int]], sequence: int
+) -> Optional[Tuple[int, int]]:
+    for enter_sequence, leave_sequence in scopes:
+        if enter_sequence <= sequence <= leave_sequence:
+            return (enter_sequence, leave_sequence)
+    return None
+
+
 def compute_rename(
     trace: Dict[str, object],
     source: Path,
@@ -201,6 +239,10 @@ def compute_rename(
             "Target token does not carry a renameable lexeme (value is empty)."
         )
 
+    token_sequence = int(token.get("sequence", 0))
+    function_scopes = build_function_scopes(tokens, source_path, cwd)
+    enclosing_scope = find_enclosing_scope(function_scopes, token_sequence)
+
     affected_ranges: Dict[Path, List[Range]] = {source_path: []}
     for candidate in tokens:
         candidate_module = normalise_module(candidate.get("module"), cwd)
@@ -208,6 +250,12 @@ def compute_rename(
             continue
         if candidate.get("value") != original_text:
             continue
+        if enclosing_scope is not None:
+            candidate_sequence = int(candidate.get("sequence", 0))
+            if not (
+                enclosing_scope[0] <= candidate_sequence <= enclosing_scope[1]
+            ):
+                continue
         line = int(candidate.get("line", 0))
         column = int(candidate.get("column", 0))
         end_column = int(candidate.get("endColumn", 0))
@@ -223,14 +271,21 @@ def compute_rename(
     if not affected_ranges[source_path]:
         raise TraceLoadError("No candidate occurrences found for rename.")
 
+    metadata: Dict[str, object] = {
+        "occurrenceCount": len(affected_ranges[source_path]),
+    }
+    if enclosing_scope is not None:
+        metadata["functionScope"] = {
+            "startSequence": enclosing_scope[0],
+            "endSequence": enclosing_scope[1],
+        }
+
     return {
         "kind": "rename",
         "oldText": original_text,
         "newText": new_name,
         "workspaceEdit": build_workspace_edit(affected_ranges, new_name),
-        "metadata": {
-            "occurrenceCount": len(affected_ranges[source_path]),
-        },
+        "metadata": metadata,
     }
 
 
@@ -259,7 +314,12 @@ def compute_extract(
     excerpt_dedented = textwrap.dedent(excerpt)
     call_indent = " " * (selection.start.column - 1)
 
-    replacement_text = f"{call_indent}{new_name}()"
+    stripped_lines = [line.lstrip() for line in excerpt_dedented.splitlines() if line.strip()]
+    tail = stripped_lines[-1] if stripped_lines else ""
+    if tail.upper().startswith("RETURN "):
+        replacement_text = f"{call_indent}RETURN {new_name}()"
+    else:
+        replacement_text = f"{call_indent}{new_name}()"
     if selection.start.column == 1:
         replacement_text += "\n"
 

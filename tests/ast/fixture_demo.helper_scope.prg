@@ -2,11 +2,13 @@
 #include "fixture_extrahelpers.ch"
 
 FUNCTION Demo()
-      RETURN DemoBody()
+   LOCAL n := VALUE
+   RETURN Helper() + n
+
 FUNCTION Outer()
-   LOCAL cName := MODULE_NAME()
+   LOCAL cNameScoped := MODULE_NAME()
    InnerProc()
-   RETURN Helper() + Len( cName )
+   RETURN Helper() + Len( cNameScoped )
 
 FUNCTION Another()
    LOCAL cName := "scoped literal"
@@ -22,7 +24,3 @@ FUNCTION Exported()
 PROCEDURE CallIncludedProc()
    IncludedProc()
    RETURN
-
-FUNCTION DemoBody()
-   LOCAL n := VALUE
-   RETURN Helper() + n

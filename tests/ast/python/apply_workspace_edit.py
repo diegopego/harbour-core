@@ -3,9 +3,9 @@
 Apply a VS Code-style WorkspaceEdit JSON payload to a Harbour source file copy.
 
 The script is intended to help inspect refactoring results produced by
-`scripts/ast_refactor_cli.py`. By default it writes edits to a separate output
-path so the original file remains untouched (which makes `diff` workflows
-straightforward).
+`tests/ast/python/ast_refactor_cli.py`. By default it writes edits to a
+separate output path so the original file remains untouched (which makes
+`diff` workflows straightforward).
 """
 
 from __future__ import annotations

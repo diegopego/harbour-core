@@ -1,1 +1,1 @@
-# Python test utilities package for Harbour AST tooling experiments.
+"""Python test utilities for Harbour AST refactoring experiments."""

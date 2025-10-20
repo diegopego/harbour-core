@@ -10,6 +10,10 @@ FUNCTION Outer()
    InnerProc()
    RETURN Helper() + Len( cName )
 
+FUNCTION Another()
+   LOCAL cName := "scoped literal"
+   RETURN cName
+
 STATIC FUNCTION InnerProc()
    LOCAL nCount := INLINE_HELPER()
    RETURN nCount

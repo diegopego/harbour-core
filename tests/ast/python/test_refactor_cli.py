@@ -1,9 +1,9 @@
 """
 Pytest smoke coverage for the AST-backed refactoring CLI.
 
-The tests execute `scripts/ast_refactor_cli.py` against existing trace fixtures
-and assert that the emitted WorkspaceEdit payloads match the expected VS Code
-contract (rename and extract cases).
+The tests execute `tests/ast/python/ast_refactor_cli.py` against existing trace
+fixtures and assert that the emitted WorkspaceEdit payloads match the expected
+VS Code contract (rename and extract cases).
 """
 
 from __future__ import annotations
@@ -16,11 +16,14 @@ from pathlib import Path
 from .apply_workspace_edit import apply_workspace_edit_payload
 
 
-ROOT = Path(__file__).resolve().parents[2]
-CLI = ROOT / "scripts" / "ast_refactor_cli.py"
+ROOT = Path(__file__).resolve().parents[3]
+CLI = ROOT / "tests" / "ast" / "python" / "ast_refactor_cli.py"
 TRACE = ROOT / "tests" / "ast" / "fixtures" / "fixture_demo.ast.json"
 SOURCE = ROOT / "tests" / "ast" / "fixture_demo.prg"
 SOURCE_URI = SOURCE.resolve().as_posix()
+RENAMED_FIXTURE = ROOT / "tests" / "ast" / "fixture_demo.rename.prg"
+EXTRACT_FIXTURE = ROOT / "tests" / "ast" / "fixture_demo.extract.prg"
+SCOPED_FIXTURE = ROOT / "tests" / "ast" / "fixture_demo.helper_scope.prg"
 
 
 def run_cli(arguments: list[str]) -> dict:
@@ -62,6 +65,9 @@ def test_rename_workspace_edit_payload() -> None:
         "end": {"line": 3, "character": 13},
     }
     assert payload["metadata"]["occurrenceCount"] == 1
+    scope = payload["metadata"].get("functionScope")
+    assert scope is not None
+    assert scope["startSequence"] <= scope["endSequence"]
 
     edits_applied = apply_workspace_edit_payload(
         payload["workspaceEdit"],
@@ -71,6 +77,53 @@ def test_rename_workspace_edit_payload() -> None:
     )
     assert edits_applied == 1
     actual_fixture = RENAMED_FIXTURE.read_text(encoding="utf-8")
+    assert actual_fixture == expected_fixture
+
+
+def test_rename_scoped_to_function() -> None:
+    expected_fixture = SCOPED_FIXTURE.read_text(encoding="utf-8")
+    payload = run_cli(
+        [
+            "--trace",
+            str(TRACE),
+            "rename",
+            str(SOURCE),
+            "--position",
+            "9:11",
+            "--new-name",
+            "cNameScoped",
+        ]
+    )
+
+    assert payload["kind"] == "rename"
+    assert payload["oldText"] == "cName"
+    assert payload["newText"] == "cNameScoped"
+    changes = payload["workspaceEdit"]["changes"]
+    assert SOURCE_URI in changes
+    edits = changes[SOURCE_URI]
+    assert len(edits) == 2
+    assert edits[0]["newText"] == "cNameScoped"
+    assert edits[0]["range"] == {
+        "start": {"line": 8, "character": 9},
+        "end": {"line": 8, "character": 14},
+    }
+    assert edits[1]["newText"] == "cNameScoped"
+    assert edits[1]["range"] == {
+        "start": {"line": 10, "character": 26},
+        "end": {"line": 10, "character": 31},
+    }
+    assert payload["metadata"]["occurrenceCount"] == 2
+    scope = payload["metadata"].get("functionScope")
+    assert scope is not None
+
+    edits_applied = apply_workspace_edit_payload(
+        payload["workspaceEdit"],
+        SOURCE,
+        SCOPED_FIXTURE,
+        document_uri=SOURCE_URI,
+    )
+    assert edits_applied == 2
+    actual_fixture = SCOPED_FIXTURE.read_text(encoding="utf-8")
     assert actual_fixture == expected_fixture
 
 
@@ -96,14 +149,14 @@ def test_extract_workspace_edit_payload() -> None:
     edits = changes[SOURCE_URI]
     assert len(edits) == 2
     call_edit, insert_edit = edits
-    assert call_edit["newText"] == "   DemoBody()"
+    assert call_edit["newText"] == "   RETURN DemoBody()"
     assert call_edit["range"] == {
         "start": {"line": 4, "character": 3},
         "end": {"line": 5, "character": 23},
     }
     assert insert_edit["range"] == {
-        "start": {"line": 22, "character": 0},
-        "end": {"line": 22, "character": 0},
+        "start": {"line": 26, "character": 0},
+        "end": {"line": 26, "character": 0},
     }
     assert insert_edit["newText"] == (
         "\nFUNCTION DemoBody()\n   LOCAL n := VALUE\n   RETURN Helper() + n\n"
@@ -114,7 +167,7 @@ def test_extract_workspace_edit_payload() -> None:
         "end": {"line": 5, "character": 23},
     }
     assert metadata["selectedTokenCount"] == 10
-    assert metadata["insertionLine"] == 23
+    assert metadata["insertionLine"] == 27
 
     edits_applied = apply_workspace_edit_payload(
         payload["workspaceEdit"],

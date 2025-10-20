@@ -66,3 +66,6 @@ fixture_expressions
 fixture_includes
 fixture_macro_expansion
 __pycache__
+fixture_demo.extract
+fixture_demo.helper_scope
+fixture_demo.rename

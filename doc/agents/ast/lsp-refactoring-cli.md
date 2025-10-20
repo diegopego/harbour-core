@@ -18,7 +18,7 @@
   - `tokens[].module`, `line`, `column`, `endColumn` (converted to zero-based) to build edit ranges.
   - `tokens[].sequence` (implicitly, because the trace preserves event ordering).
 - **Current constraints**:
-  - Scope resolution is naïve: every token with the same `value` inside the target module is renamed. Macro expansions (`module == null`) are ignored.
+  - Scope resolution is lexical: tokens are renamed only inside the containing `FUNCTION`/`PROCEDURE` block. Macro expansions (`module == null`) are ignored.
   - Token-type filtering is not yet implemented; identifier vs literal disambiguation relies on follow-up schema work.
 
 ### Extract (`codeAction` → `codeAction/resolve` → `workspace/applyEdit`)
@@ -35,7 +35,7 @@
   - Indentation is normalised relative to the selection start; mixed tabs are not yet treated.
   - Fallback `RETURN NIL` insertion only happens when the extracted block does not already end with a `RETURN`.
 
-## CLI Prototype (`scripts/ast_refactor_cli.py`)
+## CLI Prototype (`tests/ast/python/ast_refactor_cli.py`)
 
 ### Capabilities
 - Emits rename and extract plans as JSON documents already shaped like a VS Code `WorkspaceEdit`.
@@ -46,7 +46,7 @@
 
 ```sh
 # Rename the identifier at line 4, column 10 in fixture_demo.prg.
-python3 scripts/ast_refactor_cli.py \
+python3 tests/ast/python/ast_refactor_cli.py \
   --trace tests/ast/fixtures/fixture_demo.ast.json \
   rename tests/ast/fixture_demo.prg \
   --position 4:10 \
@@ -54,7 +54,7 @@ python3 scripts/ast_refactor_cli.py \
   --pretty
 
 # Extract lines 5-6 into a new function called DemoBody.
-python3 scripts/ast_refactor_cli.py \
+python3 tests/ast/python/ast_refactor_cli.py \
   --trace tests/ast/fixtures/fixture_demo.ast.json \
   extract tests/ast/fixture_demo.prg \
   --range 5:4-6:24 \
@@ -67,19 +67,20 @@ python3 scripts/ast_refactor_cli.py \
   - `kind`: `"rename"` or `"extract"`.
   - `workspaceEdit`: LSP-compatible `WorkspaceEdit`.
   - `metadata`: helper fields for tooling (counts, selection range, insertion line).
+    - Rename responses include `functionScope.startSequence` / `endSequence` when the identifier belongs to a function/procedure.
 - `workspaceEdit.changes` holds text edits keyed by absolute POSIX paths (per VS Code expectations).
 - Extraction appends the new function at the requested line (defaults to EOF) and normalises indentation relative to the selection start.
-- To materialise edits for inspection, use `tests/python/apply_workspace_edit.py`:
+- To materialise edits for inspection, use `tests/ast/python/apply_workspace_edit.py`:
 
   ```sh
-  python3 scripts/ast_refactor_cli.py --pretty \
+  python3 tests/ast/python/ast_refactor_cli.py --pretty \
     --trace tests/ast/fixtures/fixture_demo.ast.json \
     rename tests/ast/fixture_demo.prg \
     --position 4:10 \
     --new-name DemoRenamed \
     > /tmp/rename.json
 
-  python3 tests/python/apply_workspace_edit.py \
+  python3 tests/ast/python/apply_workspace_edit.py \
     --edit /tmp/rename.json \
     --source tests/ast/fixture_demo.prg \
     --output /tmp/fixture_demo.renamed.prg
@@ -99,8 +100,8 @@ python3 scripts/ast_refactor_cli.py \
   ```
 
 ### Tests
-- `tests/python/test_refactor_cli.py` provides pytest-based rename/extract smoke coverage against the `fixture_demo` trace fixture. `scripts/test-python.sh` runs the full Python test suite and is invoked from `tests/ast/Makefile`, so `scripts/test-ast.sh` executes it alongside the cmocka binaries.
-- The pytest module rewrites `tests/ast/fixture_demo.rename.prg` and `tests/ast/fixture_demo.extract.prg` using the CLI output and asserts that the emitted content matches the checked-in fixtures, leaving the refactored `.prg` copies available for inspection.
+- `tests/ast/python/test_refactor_cli.py` provides pytest-based rename/extract coverage against the `fixture_demo` trace fixture, including scoped rename verification (`tests/ast/fixture_demo.helper_scope.prg`). `tests/ast/python/test-python.sh` runs the Python suite and is invoked from `tests/ast/Makefile`, so `scripts/test-ast.sh` executes it alongside the cmocka binaries.
+- The pytest module rewrites `tests/ast/fixture_demo.rename.prg`, `tests/ast/fixture_demo.helper_scope.prg`, and `tests/ast/fixture_demo.extract.prg` using the CLI output and asserts that the emitted content matches the checked-in fixtures, leaving the refactored `.prg` copies available for inspection.
 
 ## Schema Alignment Notes
 - Downstream refactoring logic currently relies only on stable fields documented in `doc/agents/ast/serialization-format.md`:
@@ -113,4 +114,4 @@ python3 scripts/ast_refactor_cli.py \
 
 ## Next Steps
 - Enrich rename analysis with token-type filtering and node ancestry to avoid literal collisions.
-- Surface scope boundaries in the trace (leveraging node events) so extraction can validate containment before proposing edits.
+- Replace the current lexical function scoping with AST-backed boundaries (node events / symbol resolution) so extraction and rename can validate containment before proposing edits.
