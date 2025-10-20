@@ -1139,6 +1139,24 @@ static void hb_compAstTraceJsonWriteString( FILE * fp, const char * pszValue )
    fputc( '"', fp );
 }
 
+static HB_SIZE hb_compAstTraceTraceinfoParentId( const HB_PP_TRACEINFO * pInfo )
+{
+   return ( pInfo && pInfo->pParent ) ? pInfo->pParent->nExpansionId : 0;
+}
+
+static HB_SIZE hb_compAstTraceTraceinfoDepth( const HB_PP_TRACEINFO * pInfo )
+{
+   HB_SIZE depth = 0;
+
+   while( pInfo && pInfo->pParent )
+   {
+      ++depth;
+      pInfo = pInfo->pParent;
+   }
+
+   return depth;
+}
+
 static const char * hb_compAstTraceNodeKindName( HB_COMP_AST_NODE_KIND kind )
 {
    switch( kind )
@@ -1192,6 +1210,10 @@ HB_BOOL hb_compAstTraceDumpJson( const HB_COMP * pComp, FILE * fp )
    for( i = 0; i < pTrace->nTokenCount; ++i )
    {
       const HB_COMP_AST_TRACE_TOKEN * pToken = &pTrace->pTokens[ i ];
+      const HB_PP_TRACEINFO * pTraceInfo = pToken->traceInfo;
+      HB_SIZE nExpansionId = pTraceInfo ? pTraceInfo->nExpansionId : 0;
+      HB_SIZE nExpansionParentId = hb_compAstTraceTraceinfoParentId( pTraceInfo );
+      HB_SIZE nExpansionDepth = hb_compAstTraceTraceinfoDepth( pTraceInfo );
 
       fprintf( fp,
                "    {\"sequence\":%lu,\"id\":%lu,\"type\":%u,\"marker\":%u,\"value\":",
@@ -1203,12 +1225,16 @@ HB_BOOL hb_compAstTraceDumpJson( const HB_COMP * pComp, FILE * fp )
       fputs( ",\"module\":", fp );
       hb_compAstTraceJsonWriteString( fp, pToken->module );
       fprintf( fp,
-               ",\"line\":%d,\"column\":%d,\"endColumn\":%d,\"offset\":%lu,\"endOffset\":%lu}%s\n",
+               ",\"line\":%d,\"column\":%d,\"endColumn\":%d,\"offset\":%lu,\"endOffset\":%lu,"
+               "\"expansionId\":%lu,\"expansionParentId\":%lu,\"expansionDepth\":%lu}%s\n",
                pToken->line,
                pToken->column,
                pToken->endColumn,
                ( unsigned long ) pToken->offset,
                ( unsigned long ) pToken->endOffset,
+               ( unsigned long ) nExpansionId,
+               ( unsigned long ) nExpansionParentId,
+               ( unsigned long ) nExpansionDepth,
                ( i + 1 < pTrace->nTokenCount ) ? "," : "" );
    }
    fputs( "  ],\n  \"nodes\": [\n", fp );
@@ -1243,6 +1269,9 @@ HB_BOOL hb_compAstTraceDumpJson( const HB_COMP * pComp, FILE * fp )
    for( i = 0; i < pTrace->nPpEventCount; ++i )
    {
       const HB_COMP_AST_TRACE_PP_EVENT * pEvent = &pTrace->pPpEvents[ i ];
+      const HB_PP_TRACEINFO * pTraceInfo = pEvent->traceInfo;
+      HB_SIZE nExpansionParentId = hb_compAstTraceTraceinfoParentId( pTraceInfo );
+      HB_SIZE nExpansionDepth = hb_compAstTraceTraceinfoDepth( pTraceInfo );
 
       fprintf( fp,
                "    {\"sequence\":%lu,\"ruleKind\":",
@@ -1254,14 +1283,17 @@ HB_BOOL hb_compAstTraceDumpJson( const HB_COMP * pComp, FILE * fp )
       hb_compAstTraceJsonWriteString( fp, pEvent->callModule );
       fprintf( fp,
                ",\"callLine\":%d,\"callColumn\":%d,\"callEndLine\":%d,\"callEndColumn\":%d,"
-               "\"callOffset\":%lu,\"callEndOffset\":%lu,\"expansionId\":%lu,\"source\":",
+               "\"callOffset\":%lu,\"callEndOffset\":%lu,\"expansionId\":%lu,"
+               "\"expansionParentId\":%lu,\"expansionDepth\":%lu,\"source\":",
                pEvent->callLine,
                pEvent->callColumn,
                pEvent->callEndLine,
                pEvent->callEndColumn,
                ( unsigned long ) pEvent->callOffset,
                ( unsigned long ) pEvent->callEndOffset,
-               ( unsigned long ) pEvent->expansionId );
+               ( unsigned long ) pEvent->expansionId,
+               ( unsigned long ) nExpansionParentId,
+               ( unsigned long ) nExpansionDepth );
       hb_compAstTraceJsonWriteString( fp, pEvent->source );
       fputs( ",\"result\":", fp );
       hb_compAstTraceJsonWriteString( fp, pEvent->result );

@@ -35,7 +35,10 @@ Each array is emitted in the order events occurred. Consumers should treat the s
   "column": 1,
   "endColumn": 9,
   "offset": 256,
-  "endOffset": 264
+  "endOffset": 264,
+  "expansionId": 0,
+  "expansionParentId": 0,
+  "expansionDepth": 0
 }
 ```
 
@@ -47,8 +50,9 @@ Each array is emitted in the order events occurred. Consumers should treat the s
 * `module`: logical source module; `null` for tokens injected by the preprocessor.
 * `line`, `column`, `endColumn`: 1-based coordinates in the module file.
 * `offset`, `endOffset`: byte offsets relative to the start of the module file (`HB_SIZE_MAX` when unavailable).
-
-Tokens reference macro expansions indirectly via the preprocessor events (see below). Downstream tools that need deterministic expansion IDs should correlate tokens with the `preprocessor` array by matching `sequence` numbers and `HB_PP_TRACEINFO` metadata (future work will extend the dump with explicit macro IDs).
+* `expansionId`: `HB_PP_TRACEINFO::nExpansionId` for the macro expansion that produced the token (`0` when the token originates from primary source input).
+* `expansionParentId`: the parent macro expansion ID, enabling reconstruction of nested macro calls without consulting compiler-internal pointers.
+* `expansionDepth`: zero-based nesting depth derived from the expansion ancestry.
 
 ## `NodeEvent`
 
@@ -98,12 +102,14 @@ Boundaries mark lexer state changes (end-of-expression, block delimiters, etc.).
   "callOffset": 312,
   "callEndOffset": 320,
   "expansionId": 27,
+  "expansionParentId": 13,
+  "expansionDepth": 1,
   "source": "DBG(\"hello\")",
   "result": "?? \"hello\""
 }
 ```
 
-`expansionId` is the value recorded in `HB_PP_TRACEINFO::nExpansionId`. Parent/child relationships can be derived by following the `traceInfo->pParent` links during capture (future instrumentation work will materialise that chain directly in the dump).
+`expansionId`, `expansionParentId`, and `expansionDepth` mirror the ancestry stored in `HB_PP_TRACEINFO`. They provide a deterministic mapping for downstream tools without requiring pointer traversal inside the compiler.
 
 ## Binary representation
 

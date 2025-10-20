@@ -64,3 +64,4 @@ test_always
 test_always_endseq
 fixture_expressions
 fixture_includes
+fixture_macro_expansion

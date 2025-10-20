@@ -3,6 +3,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "hbapi.h"
 #include "hbcomp.h"
@@ -171,6 +172,86 @@ static void pp_events_capture_macro_traces( void ** state )
 
    hb_compAstTraceClear( pComp );
    assert_int_equal( hb_compAstTracePpEventCount( pComp ), 0 );
+
+   hb_comp_free( pComp );
+}
+
+static void dump_json_serializes_macro_expansion_hierarchy( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+   PHB_PP_TRACEINFO pParent;
+   PHB_PP_TRACEINFO pChild;
+   HB_PP_TOKEN token;
+   HB_PP_TRACE_EVENT event;
+   FILE * fp;
+   char buffer[4096];
+   size_t nRead;
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compAstTraceSetEnabled( pComp, HB_TRUE );
+   hb_compAstTraceClear( pComp );
+
+   pParent = ( PHB_PP_TRACEINFO ) hb_xgrabz( sizeof( HB_PP_TRACEINFO ) );
+   pParent->nRefCount = 1;
+   pParent->nExpansionId = 100;
+
+   pChild = ( PHB_PP_TRACEINFO ) hb_xgrabz( sizeof( HB_PP_TRACEINFO ) );
+   pChild->nRefCount = 1;
+   pChild->nExpansionId = 200;
+   pChild->pParent = pParent;
+   hb_pp_traceinfoRetain( pParent );
+
+   hb_xmemset( &token, 0, sizeof( token ) );
+   token.type = HB_PP_TOKEN_NUMBER;
+   token.value = "42";
+   token.len = 2;
+   token.szModule = "macro_test.prg";
+   token.iLine = 1;
+   token.iColumn = 1;
+   token.iEndColumn = 2;
+   token.nOffset = 0;
+   token.nEndOffset = 1;
+   token.pTraceInfo = pChild;
+
+   hb_compAstTracePublishToken( pComp, &token );
+
+   hb_xmemset( &event, 0, sizeof( event ) );
+   event.szRuleKind = "define";
+   event.szMacroName = "VALUE";
+   event.szCallModule = "macro_test.prg";
+   event.iCallLine = 1;
+   event.iCallColumn = 1;
+   event.iCallEndLine = 1;
+   event.iCallEndColumn = 1;
+   event.nCallOffset = 0;
+   event.nCallEndOffset = 0;
+   event.nExpansionId = pChild->nExpansionId;
+   event.pszSource = "VALUE";
+   event.pszResult = "42";
+   event.pTraceInfo = pChild;
+
+   hb_compAstTracePublishPreprocessorEvent( pComp, &event );
+
+   fp = tmpfile();
+   assert_non_null( fp );
+   assert_true( hb_compAstTraceDumpJson( pComp, fp ) );
+   fflush( fp );
+   assert_return_code( fseek( fp, 0, SEEK_SET ), 0 );
+
+   nRead = fread( buffer, 1, sizeof( buffer ) - 1, fp );
+   assert_true( nRead > 0 );
+   buffer[ nRead ] = '\0';
+   fclose( fp );
+
+   assert_non_null( strstr( buffer, "\"expansionId\":200,\"expansionParentId\":100,\"expansionDepth\":1" ) );
+
+   hb_compAstTraceClear( pComp );
+
+   hb_pp_traceinfoRelease( pChild );
+   hb_pp_traceinfoRelease( pParent );
 
    hb_comp_free( pComp );
 }
@@ -587,6 +668,7 @@ int main( void )
       cmocka_unit_test( disabled_state_blocks_events ),
       cmocka_unit_test( token_and_boundary_events_capture_metadata ),
       cmocka_unit_test( pp_events_capture_macro_traces ),
+      cmocka_unit_test( dump_json_serializes_macro_expansion_hierarchy ),
       cmocka_unit_test( cli_toggle_controls_trace ),
       cmocka_unit_test( cli_toggle_controls_trace_diagnostics ),
       cmocka_unit_test( diagnostics_counters_track_events ),

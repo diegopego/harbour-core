@@ -20,6 +20,22 @@ bin/linux/gcc/harbour -iinclude --ast-trace --ast-trace-dump=- tests/ast/fixture
 
 This streams a JSON event log containing the token stream, boundary events, parser node enter/leave events, and preprocessor trace information. Redirect `--ast-trace-dump` to a file when you want to archive the snapshot.
 
+### Refreshing trace fixtures
+
+Regenerate the golden dumps that power `tests/ast/hbmk-ast-tests.c` with a single loop:
+
+```sh
+for prg in fixture_demo fixture_blocks fixture_ppdirectives fixture_statements \
+           fixture_expressions fixture_includes fixture_compat_clipper fixture_compat_harbour \
+           fixture_macro_expansion; do
+  bin/linux/gcc/harbour -iinclude --ast-trace \
+    --ast-trace-dump=tests/ast/fixtures/${prg}.ast.json tests/ast/${prg}.prg
+done
+rm -f fixture_*.c
+```
+
+The compiler leaves intermediate `fixture_*.c` sources in the working directory; remove them (and any staged `tests/ast/*.c`) before committing.
+
 ### Tests to reuse
 
 - `tests/ast/ast_trace_tests.c` — drives `hb_comp_new()`/`hb_compAstTraceSetEnabled()` and asserts token, boundary, and PP event metadata.

@@ -89,14 +89,13 @@ static void hb_astCleanupArtifacts( const char * prgPath )
    remove( staged );
 }
 
-static void hb_astAssertFixtureDump( const char * prgPath, const char * expectedPath, HB_BOOL fSingleModule )
+static char * hb_astCaptureFixtureDump( const char * prgPath, HB_BOOL fSingleModule )
 {
    const char * argv[6];
    size_t argc = 0;
+   char * actualRaw;
    char * actual;
    char * jsonStart;
-   char * actualRaw;
-   char * expected;
    FILE * capture;
    int savedStdout;
    int iStatus;
@@ -134,6 +133,7 @@ static void hb_astAssertFixtureDump( const char * prgPath, const char * expected
       fprintf( stderr, "%s", dump );
       free( dump );
       fclose( capture );
+      hb_astCleanupArtifacts( prgPath );
       fail_msg( "hb_compMainExtModule() returned %d", iStatus );
    }
 
@@ -148,6 +148,15 @@ static void hb_astAssertFixtureDump( const char * prgPath, const char * expected
    free( actualRaw );
 
    hb_astCleanupArtifacts( prgPath );
+
+    /* expected will be handled by callers */
+   return actual;
+}
+
+static void hb_astAssertFixtureDump( const char * prgPath, const char * expectedPath, HB_BOOL fSingleModule )
+{
+   char * actual = hb_astCaptureFixtureDump( prgPath, fSingleModule );
+   char * expected;
 
    expected = hb_astLoadFile( expectedPath );
    assert_non_null( expected );
@@ -173,7 +182,8 @@ static const HB_AST_FIXTURE s_cases[] =
    { "tests/ast/fixture_expressions.prg", "tests/ast/fixtures/fixture_expressions.ast.json" },
    { "tests/ast/fixture_includes.prg", "tests/ast/fixtures/fixture_includes.ast.json" },
    { "tests/ast/fixture_compat_clipper.prg", "tests/ast/fixtures/fixture_compat_clipper.ast.json" },
-   { "tests/ast/fixture_compat_harbour.prg", "tests/ast/fixtures/fixture_compat_harbour.ast.json" }
+   { "tests/ast/fixture_compat_harbour.prg", "tests/ast/fixtures/fixture_compat_harbour.ast.json" },
+   { "tests/ast/fixture_macro_expansion.prg", "tests/ast/fixtures/fixture_macro_expansion.ast.json" }
 };
 
 static void hb_astCompileFixture_default( void ** state )
@@ -198,12 +208,50 @@ static void hb_astCompileFixture_single_module( void ** state )
    }
 }
 
+static void hb_astFixture_macro_expansion_metadata( void ** state )
+{
+   /* fixture_macro_expansion.prg expands TOP()->MIDDLE()->LEAF() so the literal 42
+      arrives via nested macros; the JSON must surface non-zero expansion ancestry. */
+   char * json;
+   const char * value42;
+   const char * cursor;
+   unsigned long expansionId;
+   unsigned long expansionParentId;
+   unsigned long expansionDepth;
+
+   HB_SYMBOL_UNUSED( state );
+
+   json = hb_astCaptureFixtureDump( "tests/ast/fixture_macro_expansion.prg", HB_FALSE );
+   assert_non_null( json );
+
+   value42 = strstr( json, "\"value\":\"42\"" );
+   assert_non_null( value42 );
+
+   cursor = strstr( value42, "\"expansionId\":" );
+   assert_non_null( cursor );
+   expansionId = strtoul( cursor + strlen( "\"expansionId\":" ), NULL, 10 );
+   assert_true( expansionId > 0 );
+
+   cursor = strstr( value42, "\"expansionParentId\":" );
+   assert_non_null( cursor );
+   expansionParentId = strtoul( cursor + strlen( "\"expansionParentId\":" ), NULL, 10 );
+   assert_true( expansionParentId > 0 );
+
+   cursor = strstr( value42, "\"expansionDepth\":" );
+   assert_non_null( cursor );
+   expansionDepth = strtoul( cursor + strlen( "\"expansionDepth\":" ), NULL, 10 );
+   assert_true( expansionDepth > 0 );
+
+   free( json );
+}
+
 int main( void )
 {
    const struct CMUnitTest tests[] =
    {
       cmocka_unit_test( hb_astCompileFixture_default ),
       cmocka_unit_test( hb_astCompileFixture_single_module ),
+      cmocka_unit_test( hb_astFixture_macro_expansion_metadata ),
    };
 
    return cmocka_run_group_tests( tests, NULL, NULL );
