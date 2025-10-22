@@ -70,7 +70,7 @@ Each array is emitted in the order events occurred. Consumers should treat the s
 }
 ```
 
-* `kind`: textual representation of `HB_COMP_AST_NODE_KIND` (e.g., `FUNCTION`, `CLASS`, `STATEMENT_IF`, `CODEBLOCK`, …).
+* `kind`: textual representation of `HB_COMP_AST_NODE_KIND` (e.g., `FUNCTION`, `FUNCTION_INIT`, `FUNCTION_EXIT`, `INLINE`, `CLASS`, `STATEMENT_IF`, `CODEBLOCK`, …).
 * `phase`: `"ENTER"` or `"LEAVE"`.
 * `tokenId`: compiler token ID associated with the node (0 when not available).
 * `name`: optional symbol/function name captured during instrumentation.

@@ -34,7 +34,7 @@ bin/linux/gcc/harbour -iinclude --ast-trace \
 ```sh
 for prg in fixture_demo fixture_blocks fixture_ppdirectives fixture_statements \
            fixture_expressions fixture_includes fixture_compat_clipper fixture_compat_harbour \
-           fixture_macro_expansion; do
+           fixture_macro_expansion fixture_inline_real; do
   bin/linux/gcc/harbour -iinclude --ast-trace \
     --ast-trace-dump=tests/ast/fixtures/${prg}.ast.json tests/ast/${prg}.prg
 done
@@ -51,6 +51,7 @@ In-process consumers call `hb_compMainExtModule()` with trace enabled. See `test
 
 - `tests/ast/ast_trace_tests.c` — toggles trace enable/disable, validates token/boundary/node metadata, exercises diagnostics counters, and checks macro ancestry in JSON dumps.
 - `tests/ast/ast_compilebuf_tests.c` — verifies compile-buffer callbacks (`hb_compMainExtModule`) across canonical fixtures.
+- `tests/ast/fixture_inline_real.prg` — real-world INLINE/INIT/EXIT scenario; `ast_compilebuf_tests.c` consumes it to assert INLINE node emission and INIT/EXIT coverage without synthesised snippets.
 - `tests/ast/ast_hbmk_ast_tests.c` — runs the compiler CLI with `--ast-trace-dump=-` and compares the payload against fixtures in `tests/ast/fixtures/`.
 - `tests/ast/ast_preprocessor_trace_test.c` — drives `hb_pp_setTraceCallback()` directly, ensuring `.trace.json` and `.ppo` fixtures stay in sync.
 - `tests/ast/ast_hbmk2_fixtures_test.c` — enforces that every `.prg` under `tests/ast/` compiles warning-free with `hbmk2 -w3`.
@@ -72,6 +73,8 @@ Consumers should call the `hb_compAstTrace*` accessors exported in `include/hbas
 - `hb_compAstTraceDumpJson()` — emit the canonical JSON for downstream tools without spawning a subprocess.
 
 Whenever you retain `HB_PP_TRACEINFO` pointers beyond the compiler’s lifetime, balance `hb_compAstTraceRetainInfo()` / `hb_compAstTraceReleaseInfo()` so reference counts remain correct. Diagnostics mode (`--ast-trace-diagnostics`) will surface leaks if counts diverge.
+
+Node event `kind` values now distinguish compiler-init and exit routines (`FUNCTION_INIT`, `FUNCTION_EXIT`) and inline definitions (`INLINE`) in addition to the existing `FUNCTION`, class, statement, and expression buckets. Downstream consumers should treat the new kinds as peers to the original function entries.
 
 ### Why no standalone tooling?
 

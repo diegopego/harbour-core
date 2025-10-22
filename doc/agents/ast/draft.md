@@ -9,11 +9,11 @@
 - `tests/ast/ast_hbmk2_fixtures_test.c` guarantees every `.prg` under `tests/ast/` compiles warning-free via `hbmk2 -w3`. `scripts/test-ast.sh` rebuilds pp/compiler/test targets and runs the cmocka harness end-to-end.
 
 ## Multi-Session Instrumentation Plan (2025-10-26 kickoff)
-- **Session 1 – Grammar & node coverage foundation**
-  - Locate INLINE / INIT / EXIT reductions in `harbour.y`, extend `HB_COMP_AST_NODE_KIND` + dumps/JSON for new node/event kinds, and bolt enter/leave calls into parser/stack helpers.
-  - Wire supporting helpers in `hbmain.c` / `complex.c` if additional handles or token IDs are needed; update `hbtraceast.c` serialization structures.
-  - Regenerate/extend unit coverage in `tests/ast/ast_trace_tests.c` and `tests/ast/ast_compilebuf_tests.c`; scope fixture refresh to minimal `.ast.json` snapshots.
-  - Documentation touchpoints: refresh `instrumentation-plan.md` (hook map + payload schema) and note status in this scratchpad + `progress.md`.
+- **Session 1 – Grammar & node coverage foundation** ✅ (2025-10-26)
+  - Delivered differentiated node kinds for `FUNCTION`/`INIT`/`EXIT` via `hb_compAstTraceFunctionKind()`, updated parser actions, and emitted INLINE node events from `hb_compInlineAdd()`.
+  - Extended cmocka coverage (function scope mapping, inline node naming) and compile-buffer tests with INIT/EXIT fixtures; regenerated `tests/ast/compilebuf_init_exit.c`.
+  - Added `tests/ast/fixture_inline_real.prg` to exercise class-level INLINE methods alongside `INIT`/`EXIT` procedures; compile-buffer harness now asserts INLINE node emission against the real source.
+  - Docs refreshed (`instrumentation-plan.md`) to document new helpers; recorded results in `progress.md`.
 - **Session 2 – Macro ancestry propagation for statements**
   - Thread `HB_PP_TRACEINFO` from macro-expanded reductions into node events, adding `expansionId`/`parent`/`depth` to `HB_COMP_AST_TRACE_NODE_EVENT` and JSON output.
   - Create targeted fixtures demonstrating macro-sourced statements (likely new `.prg` under `tests/ast/`) and extend cmocka assertions to validate ancestry fields.
@@ -39,7 +39,8 @@
 - [x] Emit node enter/leave events for class declarations (`DECLARE CLASS`, `DECLARE MEMBER`).
 - [x] Capture statement-level reductions (IF/ELSE, FOR/NEXT, WHILE/ENDDO) with parent-child references.
 - [x] Track codeblock (`{|| ... }`) entry/exit, linking to originating tokens.
-- [ ] Surface inline (`INLINE`) definitions and `INIT/EXIT` procedures with dedicated node kinds.
+- [x] Surface inline (`INLINE`) definitions and `INIT/EXIT` procedures with dedicated node kinds.
+- [x] Provide real-world INLINE fixture (`tests/ast/fixture_inline_real.prg`) plus compile-buffer assertions to keep coverage from regressing.
 - [ ] Map macro-generated constructs to node events once traceinfo-to-node bindings are stabilised.
 - [x] Introduce optional debug counters (token/node totals, retained traceinfo) toggled via instrumentation flag for deeper diagnostics.
 - [x] Build `hb_compileBuf` integration tests that compile canonical fixtures and compare emitted AST/token streams against golden snapshots.

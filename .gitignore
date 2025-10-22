@@ -52,6 +52,7 @@ tests/ast/compilebuf-tests
 tests/ast/fixture_demo
 tests/ast/compilebuf_compat_clipper.c
 tests/ast/compilebuf_compat_harbour.c
+tests/ast/fixture_inline_real.c
 command_trace
 fixture_demo
 macro_trace
@@ -69,3 +70,5 @@ __pycache__
 fixture_demo.extract
 fixture_demo.helper_scope
 fixture_demo.rename
+fixture_inline_real
+main

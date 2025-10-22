@@ -7,8 +7,9 @@
 | `src/compiler/hbcomp.c` | `hb_comp_new` / `hb_comp_free` | After the lexer owns `pPP` / before teardown frees it | `PHB_PP_STATE` callback slots, AST trace heap | `hb_compAstTraceInit()` installs the PP callback; `hb_compAstTraceShutdown()` clears it and releases retained buffers | Done |
 | `src/compiler/complex.c` | `hb_comp_yylex` (post fetch) | Immediately after `pToken = hb_pp_tokenGet( pLex->pPP );` | Full `HB_PP_TOKEN`, including `pTraceInfo` | `hb_compAstTracePublishToken( pComp, pToken )` copies payload and retains trace info | Done |
 | `src/compiler/complex.c` | `hb_comp_yylex` (pre-return) | Right before returning `0`, `ENDERR`, or any token code | Parser return code, `pLex->iState`, latest token ID | `hb_compAstTracePublishBoundary( pComp, code, pLex->iState )` sequences boundaries | Done |
-| `src/compiler/harbour.y` | `Function` rule actions | After each `hb_compFunctionAdd()` call | Newly created `HB_HFUNC` handle, start token ID | `hb_compAstTraceNodeEnter()` records node enter events with stable IDs | Done |
+| `src/compiler/harbour.y` | `Function` rule actions | After each `hb_compFunctionAdd()` call | Newly created `HB_HFUNC` handle, start token ID | `hb_compAstTraceNodeEnter()` records node enter events with stable IDs and `hb_compAstTraceFunctionKind()` now differentiates FUNCTION vs INIT/EXIT scopes | Done |
 | `src/compiler/hbmain.c` | `hb_compFinalizeFunction` | After jump fixups and before returning | Active `HB_HFUNC`, last token ID | `hb_compAstTraceNodeLeave()` emits the matching leave event | Done |
+| `src/compiler/hbmain.c` | `hb_compInlineAdd` | After inline entry appended to list | Newly created `HB_HINLINE` entry, last token ID | `hb_compAstTraceNodeEnter()` / `Leave()` wrap INLINE definitions as dedicated node events | Done |
 | `src/compiler/harbour.y` | Statement / expression reductions | Within actions that allocate expressions or manage stacks | Newly created `PHB_EXPR`, node stacks, codeblock tokens | `HB_AST_TRACE_EXPR` plus `hb_compAstTraceNodeEnterStack/LeaveStack` cover expressions, control flow, and codeblocks | Done (core set; backlog tracks remaining reductions) |
 | `src/compiler/complex.c` / `tests` | Trace toggle & diagnostics plumbing | CLI/env switch handling prior to compilation (`--ast-trace`, `--ast-trace-diagnostics`, env toggles) | Feature flag state, outstanding retain counts, diagnostics totals | `hb_compAstTraceSetEnabled()` clears buffers; `hb_compAstTraceSetDiagnostics()` tracks totals; cmocka asserts zero outstanding traceinfo | Done |
 | `src/compiler/hbcomp.c` | `hb_compParserRun` (single-module path) | After the `hb_pp_tokenGet()` guard when `fSingleModule` is true | Eager tokens consumed when bypassing the parser | Under audit — compile-buffer tests cover default/`-m` flows, but we still need explicit mitigation notes if module-level node events are skipped | In progress |
@@ -23,11 +24,13 @@
    - Wrap retrieved `HB_PP_TOKEN` objects in `HB_COMP_AST_TRACE_TOKEN` payloads: `{ id, sequence, type, value, source_range, traceInfo }`.
    - Retain the referenced `HB_PP_TRACEINFO` until instrumentation releases it (mirroring current retain/release helpers).
 3. **Parser reductions** (`harbour.y` / `hbmain.c`):
-   - Function headers call `hb_compAstTraceNodeEnter()` with the freshly allocated `HB_HFUNC`, while `hb_compFinalizeFunction()` emits the matching leave event.
+   - Function headers call `hb_compAstTraceNodeEnter()` with the freshly allocated `HB_HFUNC`; `hb_compAstTraceFunctionKind()` maps scopes so INIT/EXIT procedures surface distinct node kinds. `hb_compFinalizeFunction()` emits the matching leave event using the same helper.
+   - `hb_compInlineAdd()` wraps each inline snippet in a pair of INLINE node events so downstream consumers can recognize HB_INLINE payloads.
    - Node events (`HB_COMP_AST_TRACE_NODE_EVENT`) carry stable IDs, associated token IDs, and duplicated symbol names for downstream correlation.
 4. **Trace export**:
-   - `hb_compAstTraceDumpJson()` renders the event stream as JSON. Downstream tools should parse this output (or call the APIs directly) instead of relying on a separate tooling layer.
-   - Macro traces remain linked via `HB_PP_TRACEINFO.nExpansionId` → `MacroExpansion.expansion_id`.
+- `hb_compAstTraceDumpJson()` renders the event stream as JSON. Downstream tools should parse this output (or call the APIs directly) instead of relying on a separate tooling layer.
+- Macro traces remain linked via `HB_PP_TRACEINFO.nExpansionId` → `MacroExpansion.expansion_id`.
+- INLINE coverage is validated end-to-end via `tests/ast/fixture_inline_real.prg`, which combines class methods, `INIT`/`EXIT` procedures, and an inline helper function surfaced through the compile-buffer harness (`tests/ast/ast_compilebuf_tests.c`).
 
 ### Diagnostics Counters
 - Controlled via `hb_compAstTraceSetDiagnostics()` (`--ast-trace-diagnostics` / `HB_AST_TRACE_DIAGNOSTICS`).

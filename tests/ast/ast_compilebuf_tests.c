@@ -113,9 +113,11 @@ typedef struct
 {
    const char * module;
    const char * source;
+   const char * sourcePath;
    const char * outputTemp;
    const char * outputFinal;
    const char * requiredToken;
+   HB_COMP_AST_NODE_KIND expectedNodeKind;
 }
 HB_COMPILEBUF_CASE;
 
@@ -126,9 +128,11 @@ static const HB_COMPILEBUF_CASE s_cases[] =
       "FUNCTION Demo()\n"
       "   LOCAL n := 1\n"
       "   RETURN n\n",
+      NULL,
       "compilebuf_fixture.c",
       "tests/ast/compilebuf_fixture.c",
-      "FUNCTION"
+      "FUNCTION",
+      HB_COMP_AST_NODE_FUNCTION
    },
    {
       "compilebuf_compat_clipper.prg",
@@ -153,9 +157,11 @@ static const HB_COMPILEBUF_CASE s_cases[] =
       "   ENDSEQUENCE\n"
       "   FixtureCompatLog( aLog, \"compat:CLIPPER:end\" )\n"
       "   RETURN Len( aLog )\n",
+      NULL,
       "compilebuf_compat_clipper.c",
       "tests/ast/compilebuf_compat_clipper.c",
-      "FUNCTION"
+      "FUNCTION",
+      HB_COMP_AST_NODE_FUNCTION
    },
    {
       "compilebuf_compat_harbour.prg",
@@ -180,11 +186,63 @@ static const HB_COMPILEBUF_CASE s_cases[] =
       "   ENDSEQUENCE\n"
       "   FixtureCompatLog( aLog, \"compat:HARBOUR:end\" )\n"
       "   RETURN Len( aLog )\n",
+      NULL,
       "compilebuf_compat_harbour.c",
       "tests/ast/compilebuf_compat_harbour.c",
-      "FUNCTION"
+      "FUNCTION",
+      HB_COMP_AST_NODE_FUNCTION
+   },
+   {
+      "compilebuf_init_exit.prg",
+      "INIT PROCEDURE CompileBufInit()\n"
+      "   RETURN\n"
+      "\n"
+      "EXIT PROCEDURE CompileBufExit()\n"
+      "   RETURN\n",
+      NULL,
+      "compilebuf_init_exit.c",
+      "tests/ast/compilebuf_init_exit.c",
+      "INIT",
+      HB_COMP_AST_NODE_FUNCTION_INIT
+   },
+   {
+      "fixture_inline_real.prg",
+      NULL,
+      "tests/ast/fixture_inline_real.prg",
+      "fixture_inline_real.c",
+      "tests/ast/fixture_inline_real.c",
+      NULL,
+      HB_COMP_AST_NODE_INLINE
    }
 };
+
+static char * hb_read_text_file( const char * path )
+{
+   FILE * fp;
+   long size;
+   size_t readSize;
+   char * buffer;
+
+   assert_non_null( path );
+
+   fp = fopen( path, "rb" );
+   assert_non_null( fp );
+
+   assert_int_equal( fseek( fp, 0, SEEK_END ), 0 );
+   size = ftell( fp );
+   assert_true( size >= 0 );
+   assert_int_equal( fseek( fp, 0, SEEK_SET ), 0 );
+
+   buffer = ( char * ) malloc( ( size_t ) size + 1 );
+   assert_non_null( buffer );
+
+   readSize = fread( buffer, 1, ( size_t ) size, fp );
+   assert_int_equal( readSize, ( size_t ) size );
+   buffer[ size ] = '\0';
+
+   fclose( fp );
+   return buffer;
+}
 
 static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
                                      size_t argc,
@@ -194,6 +252,8 @@ static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
    bool foundToken = false;
    size_t i;
    int iResult;
+   const char * source = pCase->source;
+   char * loadedSource = NULL;
 
    memset( &capture, 0, sizeof( capture ) );
    capture.expectedModule = pCase->module;
@@ -202,9 +262,17 @@ static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
    remove( pCase->outputFinal );
    remove( pCase->outputTemp );
 
+   if( !source && pCase->sourcePath )
+   {
+      loadedSource = hb_read_text_file( pCase->sourcePath );
+      source = loadedSource;
+   }
+
+   assert_non_null( source );
+
    iResult = hb_compMainExtModule( ( int ) argc, argv,
                                    NULL, NULL,
-                                   pCase->module, pCase->source, 0,
+                                   pCase->module, source, 0,
                                    NULL, NULL, NULL,
                                    hb_trace_capture_finish, &capture );
    assert_int_equal( iResult, EXIT_SUCCESS );
@@ -246,11 +314,25 @@ static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
    if( capture.nodeCount > 0 )
    {
       assert_non_null( capture.nodeKinds );
-      assert_int_equal( capture.nodeKinds[ 0 ], HB_COMP_AST_NODE_FUNCTION );
-      assert_int_equal( capture.nodePhases[ 0 ], HB_COMP_AST_NODE_EVENT_ENTER );
+      if( pCase->expectedNodeKind != 0 )
+      {
+         bool sawExpectedKind = false;
+
+         for( i = 0; i < capture.nodeCount; ++i )
+         {
+            if( capture.nodeKinds[ i ] == pCase->expectedNodeKind &&
+                capture.nodePhases[ i ] == HB_COMP_AST_NODE_EVENT_ENTER )
+            {
+               sawExpectedKind = true;
+               break;
+            }
+         }
+         assert_true( sawExpectedKind );
+      }
    }
 
    hb_trace_capture_release( &capture );
+   free( loadedSource );
 }
 
 static void compilebuf_generates_trace_events( void ** state )

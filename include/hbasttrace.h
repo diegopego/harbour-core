@@ -65,6 +65,9 @@ typedef enum
    HB_COMP_AST_NODE_CLASS = 2,
    HB_COMP_AST_NODE_CLASS_METHOD = 3,
    HB_COMP_AST_NODE_CLASS_DATA = 4,
+   HB_COMP_AST_NODE_FUNCTION_INIT = 5,
+   HB_COMP_AST_NODE_FUNCTION_EXIT = 6,
+   HB_COMP_AST_NODE_INLINE = 7,
    HB_COMP_AST_NODE_STATEMENT_IF = 10,
    HB_COMP_AST_NODE_STATEMENT_CASE = 11,
    HB_COMP_AST_NODE_STATEMENT_WHILE = 12,
@@ -133,6 +136,7 @@ HB_SIZE hb_compAstTraceNodeCount( const HB_COMP * pComp );
 HB_SIZE hb_compAstTraceNodeTotal( const HB_COMP * pComp );
 const HB_COMP_AST_TRACE_NODE_EVENT * hb_compAstTraceNode( const HB_COMP * pComp, HB_SIZE index );
 HB_SIZE hb_compAstTraceLastTokenId( const HB_COMP * pComp );
+HB_COMP_AST_NODE_KIND hb_compAstTraceFunctionKind( const HB_HFUNC * pFunc );
 void    hb_compAstTraceClear( PHB_COMP pComp );
 #if ! defined( HB_MACRO_SUPPORT )
 HB_BOOL hb_compAstTraceDumpJson( const HB_COMP * pComp, FILE * fp );

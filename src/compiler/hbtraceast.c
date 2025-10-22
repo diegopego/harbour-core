@@ -783,7 +783,10 @@ static HB_SIZE hb_compAstTraceNodeEnterInternal( PHB_COMP pComp, HB_COMP_AST_NOD
 
    if( name )
       pEvent->name = hb_strdup( name );
-   else if( handle && kind == HB_COMP_AST_NODE_FUNCTION )
+   else if( handle &&
+            ( kind == HB_COMP_AST_NODE_FUNCTION ||
+              kind == HB_COMP_AST_NODE_FUNCTION_INIT ||
+              kind == HB_COMP_AST_NODE_FUNCTION_EXIT ) )
    {
       const HB_HFUNC * pFunc = ( const HB_HFUNC * ) handle;
 
@@ -803,6 +806,13 @@ static HB_SIZE hb_compAstTraceNodeEnterInternal( PHB_COMP pComp, HB_COMP_AST_NOD
 
       if( pDeclared->szName )
          pEvent->name = hb_strdup( pDeclared->szName );
+   }
+   else if( handle && kind == HB_COMP_AST_NODE_INLINE )
+   {
+      const HB_HINLINE * pInline = ( const HB_HINLINE * ) handle;
+
+      if( pInline->szName )
+         pEvent->name = hb_strdup( pInline->szName );
    }
 
    ++pTrace->nNodeCount;
@@ -861,7 +871,10 @@ void hb_compAstTraceNodeLeave( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const
    pEvent->tokenId = pTrace->nLastTokenId;
    pEvent->handle = handle;
 
-   if( handle && kind == HB_COMP_AST_NODE_FUNCTION )
+   if( handle &&
+       ( kind == HB_COMP_AST_NODE_FUNCTION ||
+         kind == HB_COMP_AST_NODE_FUNCTION_INIT ||
+         kind == HB_COMP_AST_NODE_FUNCTION_EXIT ) )
    {
       const HB_HFUNC * pFunc = ( const HB_HFUNC * ) handle;
 
@@ -881,6 +894,13 @@ void hb_compAstTraceNodeLeave( PHB_COMP pComp, HB_COMP_AST_NODE_KIND kind, const
 
       if( pDeclared->szName )
          pEvent->name = hb_strdup( pDeclared->szName );
+   }
+   else if( handle && kind == HB_COMP_AST_NODE_INLINE )
+   {
+      const HB_HINLINE * pInline = ( const HB_HINLINE * ) handle;
+
+      if( pInline->szName )
+         pEvent->name = hb_strdup( pInline->szName );
    }
 
    ++pTrace->nNodeCount;
@@ -1068,6 +1088,18 @@ HB_SIZE hb_compAstTraceLastTokenId( const HB_COMP * pComp )
    return pTrace ? pTrace->nLastTokenId : 0;
 }
 
+HB_COMP_AST_NODE_KIND hb_compAstTraceFunctionKind( const HB_HFUNC * pFunc )
+{
+   if( pFunc )
+   {
+      if( ( pFunc->cScope & HB_FS_INIT ) != 0 )
+         return HB_COMP_AST_NODE_FUNCTION_INIT;
+      if( ( pFunc->cScope & HB_FS_EXIT ) != 0 )
+         return HB_COMP_AST_NODE_FUNCTION_EXIT;
+   }
+   return HB_COMP_AST_NODE_FUNCTION;
+}
+
 void hb_compAstTraceClear( PHB_COMP pComp )
 {
    HB_COMP_AST_TRACE * pTrace = hb_compAstTraceState( pComp );
@@ -1165,6 +1197,9 @@ static const char * hb_compAstTraceNodeKindName( HB_COMP_AST_NODE_KIND kind )
       case HB_COMP_AST_NODE_CLASS:             return "CLASS";
       case HB_COMP_AST_NODE_CLASS_METHOD:      return "CLASS_METHOD";
       case HB_COMP_AST_NODE_CLASS_DATA:        return "CLASS_DATA";
+      case HB_COMP_AST_NODE_FUNCTION_INIT:     return "FUNCTION_INIT";
+      case HB_COMP_AST_NODE_FUNCTION_EXIT:     return "FUNCTION_EXIT";
+      case HB_COMP_AST_NODE_INLINE:            return "INLINE";
       case HB_COMP_AST_NODE_STATEMENT_IF:      return "STATEMENT_IF";
       case HB_COMP_AST_NODE_STATEMENT_CASE:    return "STATEMENT_CASE";
       case HB_COMP_AST_NODE_STATEMENT_WHILE:   return "STATEMENT_WHILE";

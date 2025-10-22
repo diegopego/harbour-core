@@ -1,5 +1,18 @@
 # AST Tooling Progress Log
 
+## 2025-10-26 Compiler Instrumentation session (Codex)
+- Added dedicated AST node kinds for init/exit procedures and inline definitions (`HB_COMP_AST_NODE_FUNCTION_INIT`, `HB_COMP_AST_NODE_FUNCTION_EXIT`, `HB_COMP_AST_NODE_INLINE`) with helper `hb_compAstTraceFunctionKind()` driving parser enter/leave instrumentation.
+- Updated `hb_compFinalizeFunction()` and `hb_compInlineAdd()` to emit the new events; JSON dumps now report `FUNCTION_INIT`, `FUNCTION_EXIT`, and `INLINE` kinds.
+- Extended cmocka coverage (`tests/ast/ast_trace_tests.c`) to assert scope→kind mapping and inline node naming, and expanded compile-buffer tests with an INIT/EXIT case producing `tests/ast/compilebuf_init_exit.c`.
+- Documentation refresh: `doc/agents/ast/instrumentation-plan.md` and `doc/agents/ast/draft.md` capture the new hook points and mark Session 1 complete.
+- Tests: `make -C tests/ast tests` (cmocka + python harness) — all suites passing after library rebuild.
+
+## 2025-10-26 Compiler Instrumentation session (Codex) – inline fixture follow-up
+- Introduced `tests/ast/fixture_inline_real.prg`, a hbmk2-clean source demonstrating class INLINE methods alongside `INIT`/`EXIT` procedures, and wired it into the compile-buffer harness so INLINE node events are exercised against real-world code.
+- Updated `tests/ast/ast_compilebuf_tests.c` to load the new fixture, assert `HB_COMP_AST_NODE_INLINE` emission, and avoid hard-coded snippets by reading the `.prg` file directly.
+- Documented fixture regeneration and coverage expectations in `doc/agents/ast/README-AST.md` and `doc/agents/ast/instrumentation-plan.md`; status board reflects the new permanent test asset.
+- Validation: `hbmk2 -w3 tests/ast/fixture_inline_real.prg`.
+
 ## 2025-10-26 Planning session (Compiler Instrumentation Agent)
 - Reviewed outstanding instrumentation backlog and captured a three-session roadmap for INLINE / INIT / EXIT node coverage, macro ancestry propagation, and the single-module (`-m`) audit.
 - Logged execution expectations per session (code touchpoints, cmocka/fixture scope, documentation updates) in `doc/agents/ast/draft.md` under “Multi-Session Instrumentation Plan”.

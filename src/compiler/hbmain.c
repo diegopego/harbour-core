@@ -1973,7 +1973,11 @@ static void hb_compFinalizeFunction( HB_COMP_DECL ) /* fixes all last defined fu
       }
 
       if( ( pFunc->funFlags & HB_FUNF_FILE_DECL ) == 0 )
-         hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_FUNCTION, pFunc );
+      {
+         HB_COMP_AST_NODE_KIND traceKind = hb_compAstTraceFunctionKind( pFunc );
+
+         hb_compAstTraceNodeLeave( HB_COMP_PARAM, traceKind, pFunc );
+      }
    }
 }
 
@@ -2389,6 +2393,10 @@ PHB_HINLINE hb_compInlineAdd( HB_COMP_DECL, const char * szFunName, int iLine )
    }
 
    HB_COMP_PARAM->inlines.iCount++;
+
+   hb_compAstTraceNodeEnter( HB_COMP_PARAM, HB_COMP_AST_NODE_INLINE, pInline,
+                             hb_compAstTraceLastTokenId( HB_COMP_PARAM ) );
+   hb_compAstTraceNodeLeave( HB_COMP_PARAM, HB_COMP_AST_NODE_INLINE, pInline );
 
    return pInline;
 }

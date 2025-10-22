@@ -435,6 +435,68 @@ static void node_events_pair_enter_and_leave( void ** state )
    hb_comp_free( pComp );
 }
 
+static void function_kind_maps_scope( void ** state )
+{
+   HB_HFUNC func;
+
+   HB_SYMBOL_UNUSED( state );
+
+   hb_xmemset( &func, 0, sizeof( func ) );
+   assert_int_equal( hb_compAstTraceFunctionKind( &func ), HB_COMP_AST_NODE_FUNCTION );
+
+   func.cScope = HB_FS_INIT;
+   assert_int_equal( hb_compAstTraceFunctionKind( &func ), HB_COMP_AST_NODE_FUNCTION_INIT );
+
+   func.cScope = HB_FS_EXIT;
+   assert_int_equal( hb_compAstTraceFunctionKind( &func ), HB_COMP_AST_NODE_FUNCTION_EXIT );
+
+   func.cScope = HB_FS_INIT | HB_FS_EXIT;
+   assert_int_equal( hb_compAstTraceFunctionKind( &func ), HB_COMP_AST_NODE_FUNCTION_INIT );
+}
+
+static void inline_node_events_capture_names( void ** state )
+{
+   PHB_COMP pComp = hb_comp_new();
+   HB_PP_TOKEN token;
+   HB_HINLINE inl;
+   const HB_COMP_AST_TRACE_NODE_EVENT * pEnter;
+   const HB_COMP_AST_TRACE_NODE_EVENT * pLeave;
+
+   HB_SYMBOL_UNUSED( state );
+
+   assert_non_null( pComp );
+
+   hb_compAstTraceSetEnabled( pComp, HB_TRUE );
+   hb_compAstTraceClear( pComp );
+
+   hb_xmemset( &token, 0, sizeof( token ) );
+   token.value = "INLINE";
+   token.len = 6;
+
+   hb_compAstTracePublishToken( pComp, &token );
+
+   hb_xmemset( &inl, 0, sizeof( inl ) );
+   inl.szName = "SampleInline";
+
+   hb_compAstTraceNodeEnter( pComp, HB_COMP_AST_NODE_INLINE, &inl,
+                             hb_compAstTraceLastTokenId( pComp ) );
+   hb_compAstTraceNodeLeave( pComp, HB_COMP_AST_NODE_INLINE, &inl );
+
+   assert_int_equal( hb_compAstTraceNodeCount( pComp ), 2 );
+
+   pEnter = hb_compAstTraceNode( pComp, 0 );
+   pLeave = hb_compAstTraceNode( pComp, 1 );
+
+   assert_non_null( pEnter );
+   assert_non_null( pLeave );
+   assert_int_equal( pEnter->kind, HB_COMP_AST_NODE_INLINE );
+   assert_string_equal( pEnter->name, "SampleInline" );
+   assert_int_equal( pLeave->kind, HB_COMP_AST_NODE_INLINE );
+   assert_string_equal( pLeave->name, "SampleInline" );
+
+   hb_comp_free( pComp );
+}
+
 static void expression_nodes_capture_reductions( void ** state )
 {
    PHB_COMP pComp = hb_comp_new();
@@ -675,6 +737,8 @@ int main( void )
       cmocka_unit_test( diagnostics_traceinfo_totals ),
       cmocka_unit_test( expression_nodes_capture_reductions ),
       cmocka_unit_test( class_and_member_events_capture_names ),
+      cmocka_unit_test( function_kind_maps_scope ),
+      cmocka_unit_test( inline_node_events_capture_names ),
       cmocka_unit_test( statement_stack_records_nested_nodes ),
       cmocka_unit_test( node_events_pair_enter_and_leave ),
    };
