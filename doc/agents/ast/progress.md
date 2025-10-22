@@ -1,5 +1,10 @@
 # AST Tooling Progress Log
 
+## 2025-10-26 Planning session (Compiler Instrumentation Agent)
+- Reviewed outstanding instrumentation backlog and captured a three-session roadmap for INLINE / INIT / EXIT node coverage, macro ancestry propagation, and the single-module (`-m`) audit.
+- Logged execution expectations per session (code touchpoints, cmocka/fixture scope, documentation updates) in `doc/agents/ast/draft.md` under “Multi-Session Instrumentation Plan”.
+- No code changes or tests executed in this planning pass; future sessions must record implemented deltas and verification evidence against the outlined checklist.
+
 ## 2025-10-25 Overseer session (Codex)
 - Confirmed branch head `4ae9ecd262` builds on the pivot that deleted the first-attempt AST stack (`4da14975e24335cf02db6e340d4b0ec2e8ae75ce`); instrumentation now lives solely in `src/compiler/`.
 - Reviewed coordination docs and cmocka suites (`tests/ast/ast_trace_tests.c`, `ast_compilebuf_tests.c`, `ast_hbmk_ast_tests.c`, `ast_preprocessor_trace_test.c`, `ast_hbmk2_fixtures_test.c`) to verify coverage: tokens/boundaries/nodes/PP events, diagnostics counters, compile-buffer paths, CLI dumps, PP fixtures, and `hbmk2 -w3` sweeps.

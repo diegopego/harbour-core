@@ -8,6 +8,25 @@
 - Preprocessor trace fixtures (`tests/ast/preprocessor/fixtures/`) are verified through `tests/ast/ast_preprocessor_trace_test.c`, preserving `.trace.json` + `.ppo` artefacts.
 - `tests/ast/ast_hbmk2_fixtures_test.c` guarantees every `.prg` under `tests/ast/` compiles warning-free via `hbmk2 -w3`. `scripts/test-ast.sh` rebuilds pp/compiler/test targets and runs the cmocka harness end-to-end.
 
+## Multi-Session Instrumentation Plan (2025-10-26 kickoff)
+- **Session 1 – Grammar & node coverage foundation**
+  - Locate INLINE / INIT / EXIT reductions in `harbour.y`, extend `HB_COMP_AST_NODE_KIND` + dumps/JSON for new node/event kinds, and bolt enter/leave calls into parser/stack helpers.
+  - Wire supporting helpers in `hbmain.c` / `complex.c` if additional handles or token IDs are needed; update `hbtraceast.c` serialization structures.
+  - Regenerate/extend unit coverage in `tests/ast/ast_trace_tests.c` and `tests/ast/ast_compilebuf_tests.c`; scope fixture refresh to minimal `.ast.json` snapshots.
+  - Documentation touchpoints: refresh `instrumentation-plan.md` (hook map + payload schema) and note status in this scratchpad + `progress.md`.
+- **Session 2 – Macro ancestry propagation for statements**
+  - Thread `HB_PP_TRACEINFO` from macro-expanded reductions into node events, adding `expansionId`/`parent`/`depth` to `HB_COMP_AST_TRACE_NODE_EVENT` and JSON output.
+  - Create targeted fixtures demonstrating macro-sourced statements (likely new `.prg` under `tests/ast/`) and extend cmocka assertions to validate ancestry fields.
+  - Update serialization docs (`README-AST.md`, `serialization-format.md`) and annotate regen commands in `progress.md`.
+- **Session 3 – Single-module (-m) audit & regression**
+  - Examine `hb_compParserRun()` single-module path for missing trace emission; instrument or document mitigation steps.
+  - Expand compile-buffer and CLI tests to assert INLINE/INIT/EXIT coverage under `-m`, plus hbmk2 sweeps for any new fixtures.
+  - Close out diagnostics sanity checks (`--ast-trace-diagnostics`) ensuring retain/release totals match with the new nodes.
+- **Carryover / hand-off expectations**
+  - Each session logs completed work, outstanding tasks, and test evidence in `doc/agents/ast/progress.md`.
+  - Suggested commit messages drafted per session; overseer to bundle after verification.
+  - Flag open risks (schema churn, fixture regen backlog) here and in the progress log so follow-up sessions can rehydrate context quickly.
+
 ## Agent Status Board
 
 ### Overseer
