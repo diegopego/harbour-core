@@ -96,6 +96,9 @@ static PHB_EXPR hb_compExprNew( HB_COMP_DECL, HB_EXPRTYPE iType )
    pExpr->pNext    = NULL;
    pExpr->ValType  = HB_EV_UNKNOWN;
 
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstNodeBorn( HB_COMP_PARAM, pExpr );
+
    return pExpr;
 }
 
@@ -360,6 +363,10 @@ void hb_comp_free( PHB_COMP pComp )
 
    if( pComp->pI18nFileName )
       hb_xfree( pComp->pI18nFileName );
+
+   hb_compAstFree( pComp );
+   if( pComp->pAstFileName )
+      hb_xfree( pComp->pAstFileName );
 
    hb_xfree( pComp );
 }

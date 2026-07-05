@@ -328,6 +328,32 @@ extern HB_BOOL hb_compI18nSave( HB_COMP_DECL, HB_BOOL fFinal );
 extern void hb_compI18nAdd( HB_COMP_DECL, const char * szText, const char * szContext, const char * szModule, HB_UINT uiLine );
 extern void hb_compI18nAddPlural( HB_COMP_DECL, const char ** szTexts, HB_ULONG ulCount, const char * szContext, const char * szModule, HB_UINT uiLine );
 
+/* compast.c - AST dump (-x switch): the compiler exports the facts a
+   refactoring tool needs (tokens with source positions, declarations with
+   resolved scopes, every reference with access mode, calls, sends, control
+   block events and the expression tree of each statement) as a JSON file
+   while compiling.  All logic lives in compast.c; the core only carries
+   one-line hook calls gated by HB_COMP_PARAM->fAst. */
+extern void hb_compAstFree( HB_COMP_DECL );
+extern HB_BOOL hb_compAstSave( HB_COMP_DECL );
+extern void hb_compAstToken( HB_COMP_DECL, PHB_PP_TOKEN pToken );
+extern void hb_compAstNodeBorn( HB_COMP_DECL, PHB_EXPR pExpr );
+extern void hb_compAstStatement( HB_COMP_DECL, PHB_EXPR pExpr, int iKind );
+extern void hb_compAstFuncBegin( HB_COMP_DECL );
+extern void hb_compAstUse( HB_COMP_DECL, const char * szVarName, int iScope, int iAccess );
+extern void hb_compAstTag( HB_COMP_DECL, const char * szVarName, int iAccess );
+extern void hb_compAstCallAdd( HB_COMP_DECL, const char * szFunName );
+extern void hb_compAstSendAdd( HB_COMP_DECL, const char * szMsgName );
+extern void hb_compAstBlock( HB_COMP_DECL, int iKind, int iEvent );
+
+#if defined( HB_MACRO_SUPPORT )
+   #define HB_COMP_AST_STATEMENT( pExpr )   do {} while( 0 )
+   #define HB_COMP_AST_PUSH( pExpr )        do {} while( 0 )
+#else
+   #define HB_COMP_AST_STATEMENT( pExpr )   do { if( HB_COMP_PARAM->fAst ) hb_compAstStatement( HB_COMP_PARAM, ( pExpr ), 's' ); } while( 0 )
+   #define HB_COMP_AST_PUSH( pExpr )        do { if( HB_COMP_PARAM->fAst ) hb_compAstStatement( HB_COMP_PARAM, ( pExpr ), 'p' ); } while( 0 )
+#endif
+
 /* global readonly variables used by compiler
  */
 

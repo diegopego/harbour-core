@@ -689,6 +689,10 @@ PHB_HVAR hb_compVariableFind( HB_COMP_DECL, const char * szVarName, int * piPos,
    PHB_HVAR pVar = NULL;
    int iPos = 0, iScope = 0, iLevel = 0;
 
+   /* callers generating code for a real source reference pass piPos;
+      scope-only queries pass NULL - do not record those (-x switch) */
+   HB_BOOL fRecord = piPos != NULL;
+
    if( piPos )
       *piPos = 0;
    else
@@ -867,6 +871,9 @@ PHB_HVAR hb_compVariableFind( HB_COMP_DECL, const char * szVarName, int * piPos,
 
    if( pVar && fGlobal )
       *piScope |= HB_VS_FILEWIDE;
+
+   if( fRecord && HB_COMP_PARAM->fAst )
+      hb_compAstUse( HB_COMP_PARAM, szVarName, *piScope, 'u' );
 
    return pVar;
 }
@@ -2256,6 +2263,9 @@ void hb_compFunctionAdd( HB_COMP_DECL, const char * szFunName, HB_SYMBOLSCOPE cS
       hb_compGenModuleName( HB_COMP_PARAM, szFunName );
    else
       HB_COMP_PARAM->lastLine = -1;
+
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstFuncBegin( HB_COMP_PARAM );
 }
 
 /* create an ANNOUNCEd procedure
@@ -2662,6 +2672,8 @@ void hb_compGenMessage( const char * szMsgName, HB_BOOL bIsObject, HB_COMP_DECL 
       if( ! pSym )  /* the symbol was not found on the symbol table */
          pSym = hb_compSymbolAdd( HB_COMP_PARAM, szMsgName, &wSym, HB_SYM_MSGNAME );
       pSym->cScope |= HB_FS_MESSAGE;
+      if( HB_COMP_PARAM->fAst )
+         hb_compAstSendAdd( HB_COMP_PARAM, szMsgName );
       if( bIsObject )
          hb_compGenPCode3( HB_P_MESSAGE, HB_LOBYTE( wSym ), HB_HIBYTE( wSym ), HB_COMP_PARAM );
       else
@@ -2733,6 +2745,8 @@ void hb_compGenPopVar( const char * szVarName, HB_COMP_DECL ) /* generates the p
    PHB_HVAR pVar;
 
    pVar = hb_compVariableFind( HB_COMP_PARAM, szVarName, &iVar, &iScope );
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstTag( HB_COMP_PARAM, szVarName, 'w' );
    if( pVar )
    {
       if( HB_COMP_PARAM->functions.pLast->iEarlyEvalPass == 1 )
@@ -2813,6 +2827,8 @@ void hb_compGenPushVar( const char * szVarName, HB_COMP_DECL )
    PHB_HVAR pVar;
 
    pVar = hb_compVariableFind( HB_COMP_PARAM, szVarName, &iVar, &iScope );
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstTag( HB_COMP_PARAM, szVarName, 'r' );
    if( pVar )
    {
       if( HB_COMP_PARAM->functions.pLast->iEarlyEvalPass == 1 )
@@ -2871,6 +2887,8 @@ void hb_compGenPushVarRef( const char * szVarName, HB_COMP_DECL ) /* generates t
    PHB_HVAR pVar;
 
    pVar = hb_compVariableFind( HB_COMP_PARAM, szVarName, &iVar, &iScope );
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstTag( HB_COMP_PARAM, szVarName, 'x' );
    if( pVar )
    {
       if( HB_COMP_PARAM->functions.pLast->iEarlyEvalPass == 1 )
@@ -2924,12 +2942,31 @@ void hb_compGenPushMemvarRef( const char * szVarName, HB_COMP_DECL ) /* generate
 /* generates the pcode to pop a value from the virtual machine stack onto
  * an aliased variable
  */
+/* classify an explicit alias for the AST dump:
+   M->/MEMVAR-> is a memvar, anything else acts as a field */
+static int hb_compAstAliasScope( HB_BOOL bPushAliasValue, const char * szAlias )
+{
+   if( bPushAliasValue && szAlias )
+   {
+      int iLen = ( int ) strlen( szAlias );
+
+      if( szAlias[ 0 ] == 'M' && ( iLen == 1 ||
+          ( iLen >= 4 && iLen <= 6 && memcmp( szAlias, "MEMVAR", iLen ) == 0 ) ) )
+         return HB_VS_LOCAL_MEMVAR;
+   }
+   return HB_VS_LOCAL_FIELD;
+}
+
 void hb_compGenPopAliasedVar( const char * szVarName,
                               HB_BOOL bPushAliasValue,
                               const char * szAlias,
                               HB_MAXINT nWorkarea,
                               HB_COMP_DECL )
 {
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstUse( HB_COMP_PARAM, szVarName,
+                     hb_compAstAliasScope( bPushAliasValue, szAlias ), 'w' );
+
    if( bPushAliasValue )
    {
       if( szAlias )
@@ -2978,6 +3015,10 @@ void hb_compGenPushAliasedVar( const char * szVarName,
                                HB_MAXINT nWorkarea,
                                HB_COMP_DECL )
 {
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstUse( HB_COMP_PARAM, szVarName,
+                     hb_compAstAliasScope( bPushAliasValue, szAlias ), 'r' );
+
    if( bPushAliasValue )
    {
       if( szAlias )
@@ -3059,6 +3100,9 @@ void hb_compGenPushFunCall( const char * szFunName, int iFlags, HB_COMP_DECL )
 
    pSym->cScope |= HB_FS_USED;
 
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstCallAdd( HB_COMP_PARAM, szFunName );
+
    hb_compGenPCode3( HB_P_PUSHFUNCSYM, HB_LOBYTE( wSym ), HB_HIBYTE( wSym ), HB_COMP_PARAM );
 }
 
@@ -3084,7 +3128,11 @@ void hb_compGenPushSymbol( const char * szSymbolName, HB_BOOL bFunction, HB_COMP
       pSym = hb_compSymbolAdd( HB_COMP_PARAM, szSymbolName, &wSym, bFunction );
 
    if( bFunction )
+   {
       pSym->cScope |= HB_FS_USED;
+      if( HB_COMP_PARAM->fAst )
+         hb_compAstCallAdd( HB_COMP_PARAM, szSymbolName );
+   }
 
    if( wSym > 255 )
       hb_compGenPCode3( HB_P_PUSHSYM, HB_LOBYTE( wSym ), HB_HIBYTE( wSym ), HB_COMP_PARAM );
@@ -3967,6 +4015,10 @@ void hb_compModuleAdd( HB_COMP_DECL, const char * szModuleName, HB_BOOL fForce )
 
 void hb_compCompileEnd( HB_COMP_DECL )
 {
+   /* the AST tables keep pointers to this module's functions; they must
+      not survive the function list released below */
+   hb_compAstFree( HB_COMP_PARAM );
+
    if( HB_COMP_PARAM->pFileName )
    {
       hb_xfree( HB_COMP_PARAM->pFileName );
@@ -4174,6 +4226,7 @@ static void hb_compSaveSwitches( HB_COMP_DECL, PHB_COMP_SWITCHES pSwitches )
    pSwitches->fHideSource       = HB_COMP_PARAM->fHideSource;
    pSwitches->fAutoMemvarAssume = HB_COMP_PARAM->fAutoMemvarAssume;
    pSwitches->fI18n             = HB_COMP_PARAM->fI18n;
+   pSwitches->fAst              = HB_COMP_PARAM->fAst;
    pSwitches->fLineNumbers      = HB_COMP_PARAM->fLineNumbers;
    pSwitches->fPPO              = HB_COMP_PARAM->fPPO;
    pSwitches->fPPT              = HB_COMP_PARAM->fPPT;
@@ -4193,6 +4246,7 @@ static void hb_compRestoreSwitches( HB_COMP_DECL, PHB_COMP_SWITCHES pSwitches )
    HB_COMP_PARAM->fHideSource       = pSwitches->fHideSource;
    HB_COMP_PARAM->fAutoMemvarAssume = pSwitches->fAutoMemvarAssume;
    HB_COMP_PARAM->fI18n             = pSwitches->fI18n;
+   HB_COMP_PARAM->fAst              = pSwitches->fAst;
    HB_COMP_PARAM->fLineNumbers      = pSwitches->fLineNumbers;
    HB_COMP_PARAM->fPPO              = pSwitches->fPPO;
    HB_COMP_PARAM->fPPT              = pSwitches->fPPT;
@@ -4541,6 +4595,8 @@ static int hb_compCompile( HB_COMP_DECL, const char * szPrg, const char * szBuff
       {
          if( hb_compI18nSave( HB_COMP_PARAM, HB_FALSE ) )
             hb_compI18nFree( HB_COMP_PARAM );
+         if( HB_COMP_PARAM->fAst )
+            hb_compAstSave( HB_COMP_PARAM );
       }
    }
    else

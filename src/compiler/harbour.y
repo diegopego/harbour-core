@@ -1409,7 +1409,7 @@ IfEndif    : IfBegin EndIf                    { hb_compGenJumpHere( $1, HB_COMP_
            ;
 
 IfBegin    : IF ExpList
-               { ++HB_COMP_PARAM->functions.pLast->wIfCounter; hb_compLinePushIfInside( HB_COMP_PARAM ); }
+               { ++HB_COMP_PARAM->functions.pLast->wIfCounter; hb_compLinePushIfInside( HB_COMP_PARAM ); if( HB_COMP_PARAM->fAst ) hb_compAstBlock( HB_COMP_PARAM, 'i', 'o' ); }
              Crlf
                { HB_COMP_EXPR_FREE( hb_compExprGenPush( $2, HB_COMP_PARAM ) ); $<sNumber>$ = hb_compGenJumpFalse( 0, HB_COMP_PARAM ); }
              EmptyStats
@@ -1445,6 +1445,8 @@ EndIf      : EndIfID
                {
                   if( HB_COMP_PARAM->functions.pLast->wIfCounter )
                      --HB_COMP_PARAM->functions.pLast->wIfCounter;
+                  if( HB_COMP_PARAM->fAst )
+                     hb_compAstBlock( HB_COMP_PARAM, 'i', 'c' );
                   HB_COMP_PARAM->functions.pLast->funFlags &= ~ ( HB_FUNF_WITH_RETURN | HB_FUNF_BREAK_CODE );
                }
            ;
@@ -1480,6 +1482,8 @@ DoCase     : DoCaseBegin
 EndCase    : EndCaseID
                {  if( HB_COMP_PARAM->functions.pLast->wCaseCounter )
                      --HB_COMP_PARAM->functions.pLast->wCaseCounter;
+                  if( HB_COMP_PARAM->fAst )
+                     hb_compAstBlock( HB_COMP_PARAM, 'c', 'c' );
                   HB_COMP_PARAM->functions.pLast->funFlags &= ~ ( HB_FUNF_WITH_RETURN | HB_FUNF_BREAK_CODE );
                }
            ;
@@ -1495,7 +1499,7 @@ EndCaseID  : ENDCASE
            | ErrEndSwitch
            ;
 
-DoCaseStart : DOCASE { ++HB_COMP_PARAM->functions.pLast->wCaseCounter; hb_compLinePushIfDebugger( HB_COMP_PARAM );} Crlf
+DoCaseStart : DOCASE { ++HB_COMP_PARAM->functions.pLast->wCaseCounter; hb_compLinePushIfDebugger( HB_COMP_PARAM ); if( HB_COMP_PARAM->fAst ) hb_compAstBlock( HB_COMP_PARAM, 'c', 'o' );} Crlf
             ;
 
 DoCaseBegin : DoCaseStart
@@ -1553,6 +1557,8 @@ DoWhile    : WhileBegin ExpList Crlf
                   hb_compGenJumpHere( $<sNumber>4, HB_COMP_PARAM );
                   if( HB_COMP_PARAM->functions.pLast->wWhileCounter )
                      --HB_COMP_PARAM->functions.pLast->wWhileCounter;
+                  if( HB_COMP_PARAM->fAst )
+                     hb_compAstBlock( HB_COMP_PARAM, 'w', 'c' );
                   hb_compLoopEnd( HB_COMP_PARAM );
                   HB_COMP_PARAM->functions.pLast->funFlags &= ~ HB_FUNF_WITH_RETURN;
                }
@@ -1563,6 +1569,8 @@ WhileBegin : WHILE
                   $$ = HB_COMP_PARAM->functions.pLast->nPCodePos;
                   hb_compLinePushIfInside( HB_COMP_PARAM );
                   ++HB_COMP_PARAM->functions.pLast->wWhileCounter;
+                  if( HB_COMP_PARAM->fAst )
+                     hb_compAstBlock( HB_COMP_PARAM, 'w', 'o' );
                   hb_compLoopStart( HB_COMP_PARAM, HB_TRUE );
                }
            ;
@@ -1588,6 +1596,8 @@ ForNext    : FOR LValue ForAssign Expression          /* 1  2  3  4 */
                   $<iNumber>1 = HB_COMP_PARAM->currLine;
                   hb_compDebugStart();
                   ++HB_COMP_PARAM->functions.pLast->wForCounter;
+                  if( HB_COMP_PARAM->fAst )
+                     hb_compAstBlock( HB_COMP_PARAM, 'f', 'o' );
                   $2 = hb_compExprReduce( $2, HB_COMP_PARAM );
                   $<asExpr>$ = hb_compExprGenPush( hb_compExprAssign( $2, $4, HB_COMP_PARAM ), HB_COMP_PARAM );
                   if( hb_compExprAsSymbol( $2 ) )
@@ -1662,6 +1672,8 @@ ForStatements : EmptyStats EndForID
                      hb_compLinePush( HB_COMP_PARAM );
                      if( HB_COMP_PARAM->functions.pLast->wForCounter )
                         --HB_COMP_PARAM->functions.pLast->wForCounter;
+                     if( HB_COMP_PARAM->fAst )
+                        hb_compAstBlock( HB_COMP_PARAM, 'f', 'c' );
                   }
               ;
 
@@ -1697,6 +1709,8 @@ ForArgs    : ForExpr             { $$ = hb_compExprNewArgList( $1, HB_COMP_PARAM
 ForEach    : FOREACH ForList IN ForArgs          /* 1  2  3  4 */
              {
                 ++HB_COMP_PARAM->functions.pLast->wForCounter;    /* 5 */
+                if( HB_COMP_PARAM->fAst )
+                   hb_compAstBlock( HB_COMP_PARAM, 'f', 'o' );
                 hb_compLinePushIfInside( HB_COMP_PARAM );
                 hb_compDebugStart();
              }
@@ -1758,6 +1772,8 @@ EndSwitch   : EndSwitchID
                {
                   if( HB_COMP_PARAM->functions.pLast->wSwitchCounter )
                      --HB_COMP_PARAM->functions.pLast->wSwitchCounter;
+                  if( HB_COMP_PARAM->fAst )
+                     hb_compAstBlock( HB_COMP_PARAM, 's', 'c' );
                   HB_COMP_PARAM->functions.pLast->funFlags &= ~ ( HB_FUNF_WITH_RETURN | HB_FUNF_BREAK_CODE );
                }
             ;
@@ -1776,6 +1792,8 @@ EndSwitchID : ENDSWITCH
 SwitchStart : DOSWITCH
                {
                   ++HB_COMP_PARAM->functions.pLast->wSwitchCounter;
+                  if( HB_COMP_PARAM->fAst )
+                     hb_compAstBlock( HB_COMP_PARAM, 's', 'o' );
                   hb_compLinePushIfInside( HB_COMP_PARAM );
                }
               Expression Crlf
@@ -1814,6 +1832,8 @@ BeginSeq    : BEGINSEQ        /* 1 */
                   hb_compLinePushIfInside( HB_COMP_PARAM );
                   ++HB_COMP_PARAM->functions.pLast->wSeqCounter;
                   ++HB_COMP_PARAM->functions.pLast->wSeqBegCounter;
+                  if( HB_COMP_PARAM->fAst )
+                     hb_compAstBlock( HB_COMP_PARAM, 'q', 'o' );
                   $<sNumber>$ = hb_compSequenceBegin( HB_COMP_PARAM );
                }
                BlockSeq       /* 3 */
@@ -1870,6 +1890,8 @@ BeginSeq    : BEGINSEQ        /* 1 */
                {
                   if( HB_COMP_PARAM->functions.pLast->wSeqBegCounter )
                      --HB_COMP_PARAM->functions.pLast->wSeqBegCounter;
+                  if( HB_COMP_PARAM->fAst )
+                     hb_compAstBlock( HB_COMP_PARAM, 'q', 'c' );
                }
             ;
 
@@ -2388,6 +2410,23 @@ static void hb_compRTVariableGen( HB_COMP_DECL, const char * szCreateFun )
    PHB_HFUNC pFunc = HB_COMP_PARAM->functions.pLast;
    PHB_RTVAR pVar = pFunc->rtvars;
    PHB_RTVAR pDel;
+
+   /* record PRIVATE/PUBLIC creations for the AST dump: these memvars
+      never reach hb_compVariableFind() on declaration and their initial
+      assignment is popped through the RTVAR expression, so this is the
+      only spot where the compiler still knows the names */
+   if( HB_COMP_PARAM->fAst )
+   {
+      PHB_RTVAR pRec = pFunc->rtvars;
+
+      while( pRec )
+      {
+         if( pRec->pVar->value.asRTVar.szName )
+            hb_compAstUse( HB_COMP_PARAM, pRec->pVar->value.asRTVar.szName,
+                           HB_VS_LOCAL_MEMVAR, pRec->bPopValue ? 'w' : 'u' );
+         pRec = pRec->pNext;
+      }
+   }
 
    /* generate the function call frame */
    hb_compGenPushFunCall( szCreateFun, HB_FN_UDF, HB_COMP_PARAM );

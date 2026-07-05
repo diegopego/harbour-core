@@ -14,6 +14,7 @@ YACC_HEADERS := \
 
 C_SOURCES := \
    cmdcheck.c \
+   compast.c \
    compi18n.c \
    complex.c \
    expropta.c \

@@ -94,6 +94,7 @@ void hb_compPrintUsage( HB_COMP_DECL, const char * szSelf )
       "\n          -undef:<id>      #undef <id>",
       "\n          -v               variables are assumed M->",
       "\n          -w[<level>]      set warning level number (0..3, default 1)",
+      "\n          -x[<file>]       generate AST dump (.ast.json) file",
 #ifdef YYDEBUG
       "\n          -y               trace lex & yacc activity",
 #endif

@@ -511,7 +511,119 @@ static void hb_pp_tokenSetValue( PHB_PP_TOKEN pToken,
    pToken->len = nLen;
 }
 
-static PHB_PP_TOKEN hb_pp_tokenClone( PHB_PP_TOKEN pSource )
+/* source position table for tokens (see hb_pp_trackPos()): open addressing
+   hash keyed by token pointer; every recorded token has an entry, either
+   with its physical source position or with iCol == -1 when the token was
+   synthesized (rule result text, stream buffers, separators) */
+typedef struct
+{
+   const void * pKey;
+   const char * value;        /* token identity check: a recycled token */
+   HB_SIZE      len;          /* pointer with other content must not match */
+   int          iLine;
+   int          iCol;
+   HB_BOOL      fMainFile;
+} HB_PP_POSITEM, * PHB_PP_POSITEM;
+
+typedef struct
+{
+   PHB_PP_POSITEM pItems;
+   HB_SIZE        nSize;       /* power of two */
+   HB_SIZE        nCount;
+} HB_PP_POSTBL, * PHB_PP_POSTBL;
+
+static void hb_pp_posRecord( PHB_PP_STATE pState, PHB_PP_TOKEN pKey,
+                             int iLine, int iCol, HB_BOOL fMainFile )
+{
+   PHB_PP_POSTBL pTbl = ( PHB_PP_POSTBL ) pState->pPosTbl;
+   HB_SIZE nAt;
+
+   if( ! pTbl )
+   {
+      pTbl = ( PHB_PP_POSTBL ) hb_xgrabz( sizeof( HB_PP_POSTBL ) );
+      pTbl->nSize = 1024;
+      pTbl->pItems = ( PHB_PP_POSITEM ) hb_xgrabz( pTbl->nSize * sizeof( HB_PP_POSITEM ) );
+      pState->pPosTbl = pTbl;
+   }
+   else if( ( pTbl->nCount << 1 ) >= pTbl->nSize )
+   {
+      PHB_PP_POSITEM pOld = pTbl->pItems;
+      HB_SIZE nOldSize = pTbl->nSize, n;
+
+      pTbl->nSize <<= 1;
+      pTbl->pItems = ( PHB_PP_POSITEM ) hb_xgrabz( pTbl->nSize * sizeof( HB_PP_POSITEM ) );
+      pTbl->nCount = 0;
+      for( n = 0; n < nOldSize; ++n )
+      {
+         if( pOld[ n ].pKey )
+         {
+            nAt = ( ( HB_PTRUINT ) pOld[ n ].pKey >> 4 ) & ( pTbl->nSize - 1 );
+            while( pTbl->pItems[ nAt ].pKey )
+               nAt = ( nAt + 1 ) & ( pTbl->nSize - 1 );
+            pTbl->pItems[ nAt ] = pOld[ n ];
+            pTbl->nCount++;
+         }
+      }
+      hb_xfree( pOld );
+   }
+
+   nAt = ( ( HB_PTRUINT ) pKey >> 4 ) & ( pTbl->nSize - 1 );
+   while( pTbl->pItems[ nAt ].pKey && pTbl->pItems[ nAt ].pKey != pKey )
+      nAt = ( nAt + 1 ) & ( pTbl->nSize - 1 );
+   if( ! pTbl->pItems[ nAt ].pKey )
+      pTbl->nCount++;
+   pTbl->pItems[ nAt ].pKey = pKey;
+   pTbl->pItems[ nAt ].value = pKey->value;
+   pTbl->pItems[ nAt ].len = pKey->len;
+   pTbl->pItems[ nAt ].iLine = iLine;
+   pTbl->pItems[ nAt ].iCol = iCol;
+   pTbl->pItems[ nAt ].fMainFile = fMainFile;
+}
+
+static PHB_PP_POSITEM hb_pp_posFind( PHB_PP_STATE pState, PHB_PP_TOKEN pKey )
+{
+   PHB_PP_POSTBL pTbl = ( PHB_PP_POSTBL ) pState->pPosTbl;
+
+   if( pTbl )
+   {
+      HB_SIZE nAt = ( ( HB_PTRUINT ) pKey >> 4 ) & ( pTbl->nSize - 1 );
+
+      while( pTbl->pItems[ nAt ].pKey )
+      {
+         if( pTbl->pItems[ nAt ].pKey == pKey )
+         {
+            /* a token created by a path which does not record positions
+               may reuse the memory of a freed one: the entry only counts
+               when the content still matches the one recorded */
+            if( pTbl->pItems[ nAt ].value == pKey->value &&
+                pTbl->pItems[ nAt ].len == pKey->len )
+               return &pTbl->pItems[ nAt ];
+            return NULL;
+         }
+         nAt = ( nAt + 1 ) & ( pTbl->nSize - 1 );
+      }
+   }
+   return NULL;
+}
+
+/* record the position of a token cut from the current physical input
+   line: value still points into the line buffer at this moment */
+static void hb_pp_posTrack( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
+                            const char * value )
+{
+   const char * pLine = hb_membufPtr( pState->pBuffer );
+   HB_SIZE nLineLen = hb_membufLen( pState->pBuffer );
+   int iCol = -1;
+
+   if( value >= pLine && value < pLine + nLineLen )
+      iCol = ( int ) ( value - pLine );
+
+   hb_pp_posRecord( pState, pToken,
+                    pState->pFile ? pState->pFile->iCurrentLine : 0, iCol,
+                    pState->pFile == NULL || pState->pFile->pPrev == NULL );
+}
+
+static PHB_PP_TOKEN hb_pp_tokenClone( PHB_PP_STATE pState, PHB_PP_TOKEN pSource )
 {
    PHB_PP_TOKEN pDest = ( PHB_PP_TOKEN ) hb_xgrab( sizeof( HB_PP_TOKEN ) );
 
@@ -525,22 +637,45 @@ static PHB_PP_TOKEN hb_pp_tokenClone( PHB_PP_TOKEN pSource )
    }
    pDest->pNext  = NULL;
 
+   if( pState->fTrackPos )
+   {
+      /* a match marker clone keeps the position of the original source
+         token even on a line rewritten by a pp rule; a clone of the
+         rule's own result text has no source position */
+      PHB_PP_POSITEM pItem = hb_pp_posFind( pState, pSource );
+
+      if( pItem )
+         hb_pp_posRecord( pState, pDest, pItem->iLine, pItem->iCol,
+                          pItem->fMainFile );
+      else
+         hb_pp_posRecord( pState, pDest,
+                          pState->pFile ? pState->pFile->iCurrentLine : 0,
+                          -1, pState->pFile == NULL || pState->pFile->pPrev == NULL );
+   }
+
    return pDest;
 }
 
-static void hb_pp_tokenAdd( PHB_PP_TOKEN ** pTokenPtr,
-                            const char * value, HB_SIZE nLen,
-                            HB_SIZE nSpaces, HB_USHORT type )
+static PHB_PP_TOKEN hb_pp_tokenAdd( PHB_PP_TOKEN ** pTokenPtr,
+                                    const char * value, HB_SIZE nLen,
+                                    HB_SIZE nSpaces, HB_USHORT type )
 {
    PHB_PP_TOKEN pToken = hb_pp_tokenNew( value, nLen, nSpaces, type );
 
    **pTokenPtr = pToken;
    *pTokenPtr  = &pToken->pNext;
+
+   return pToken;
 }
 
 static void hb_pp_tokenAddCmdSep( PHB_PP_STATE pState )
 {
-   hb_pp_tokenAdd( &pState->pNextTokenPtr, ";", 1, pState->nSpacesNL, HB_PP_TOKEN_EOC | HB_PP_TOKEN_STATIC );
+   PHB_PP_TOKEN pToken = hb_pp_tokenAdd( &pState->pNextTokenPtr, ";", 1, pState->nSpacesNL, HB_PP_TOKEN_EOC | HB_PP_TOKEN_STATIC );
+
+   if( pState->fTrackPos )
+      hb_pp_posRecord( pState, pToken,
+                       pState->pFile ? pState->pFile->iCurrentLine : 0, -1,
+                       pState->pFile == NULL || pState->pFile->pPrev == NULL );
    pState->pFile->iTokens++;
    pState->fNewStatement = HB_TRUE;
    pState->fCanNextLine = HB_FALSE;
@@ -555,6 +690,10 @@ static void hb_pp_tokenAddCmdSep( PHB_PP_STATE pState )
 static void hb_pp_tokenAddNext( PHB_PP_STATE pState, const char * value, HB_SIZE nLen,
                                 HB_USHORT type )
 {
+   const char * pValueOrig = value;   /* for position tracking: value may
+                                         still point into the line buffer */
+   PHB_PP_TOKEN pToken;
+
    if( pState->fCanNextLine )
       hb_pp_tokenAddCmdSep( pState );
 
@@ -603,7 +742,9 @@ static void hb_pp_tokenAddNext( PHB_PP_STATE pState, const char * value, HB_SIZE
        HB_PP_TOKEN_TYPE( type ) == HB_PP_TOKEN_KEYWORD )
       pState->nSpaces = pState->nSpacesMin;
 #endif
-   hb_pp_tokenAdd( &pState->pNextTokenPtr, value, nLen, pState->nSpaces, type );
+   pToken = hb_pp_tokenAdd( &pState->pNextTokenPtr, value, nLen, pState->nSpaces, type );
+   if( pState->fTrackPos )
+      hb_pp_posTrack( pState, pToken, pValueOrig );
    pState->pFile->iTokens++;
    pState->fNewStatement = HB_FALSE;
 
@@ -648,7 +789,7 @@ static void hb_pp_tokenAddStreamFunc( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
       }
       else
       {
-         *pState->pNextTokenPtr = hb_pp_tokenClone( pToken );
+         *pState->pNextTokenPtr = hb_pp_tokenClone( pState, pToken );
          pState->pNextTokenPtr  = &( *pState->pNextTokenPtr )->pNext;
          pState->pFile->iTokens++;
       }
@@ -2172,6 +2313,12 @@ static void hb_pp_stateFree( PHB_PP_STATE pState )
 
    hb_pp_tokenListFree( &pState->pFuncOut );
    hb_pp_tokenListFree( &pState->pFuncEnd );
+
+   if( pState->pPosTbl )
+   {
+      hb_xfree( ( ( PHB_PP_POSTBL ) pState->pPosTbl )->pItems );
+      hb_xfree( pState->pPosTbl );
+   }
 
    hb_xfree( pState );
 }
@@ -4129,7 +4276,7 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
             }
             do
             {
-               *pResultPtr = hb_pp_tokenClone( pToken );
+               *pResultPtr = hb_pp_tokenClone( pState, pToken );
                if( fFirst )
                {
                   ( *pResultPtr )->spaces = spaces;
@@ -4178,7 +4325,7 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
                pToken = pToken->pNext;
             do
             {
-               *pResultPtr = hb_pp_tokenClone( pToken );
+               *pResultPtr = hb_pp_tokenClone( pState, pToken );
                if( fFirst )
                {
                   ( *pResultPtr )->spaces = spaces;
@@ -4220,7 +4367,7 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
       if( fStop )
          break;
       /* clone comma token */
-      *pResultPtr = hb_pp_tokenClone( pToken );
+      *pResultPtr = hb_pp_tokenClone( pState, pToken );
       if( fFirst )
       {
          ( *pResultPtr )->spaces = spaces;
@@ -4251,7 +4398,7 @@ static PHB_PP_TOKEN * hb_pp_matchResultAdd( PHB_PP_STATE pState,
          {
             do
             {
-               *pResultPtr = hb_pp_tokenClone( pToken );
+               *pResultPtr = hb_pp_tokenClone( pState, pToken );
                if( fFirst )
                {
                   ( *pResultPtr )->spaces = pMatch->spaces;
@@ -4283,9 +4430,30 @@ static PHB_PP_TOKEN * hb_pp_matchResultAdd( PHB_PP_STATE pState,
             while( pToken != pStop );
          }
       }
-      hb_pp_tokenAdd( &pResultPtr, hb_membufPtr( pState->pBuffer ),
+      {
+         PHB_PP_TOKEN pStr = hb_pp_tokenAdd( &pResultPtr,
+                      hb_membufPtr( pState->pBuffer ),
                       hb_membufLen( pState->pBuffer ),
                       pMatch->spaces, HB_PP_TOKEN_STRING );
+
+         if( pState->fTrackPos )
+         {
+            /* the stringified text comes from the matched marker tokens:
+               inherit the position of the first of them (overwriting any
+               stale entry a recycled pointer might otherwise hit) */
+            PHB_PP_POSITEM pPos = pMarkerResult ?
+                  hb_pp_posFind( pState, pMarkerResult->pFirstToken ) : NULL;
+
+            if( pPos )
+               hb_pp_posRecord( pState, pStr, pPos->iLine, pPos->iCol,
+                                pPos->fMainFile );
+            else
+               hb_pp_posRecord( pState, pStr,
+                                pState->pFile ? pState->pFile->iCurrentLine : 0,
+                                -1, pState->pFile == NULL ||
+                                    pState->pFile->pPrev == NULL );
+         }
+      }
    }
    else if( HB_PP_TOKEN_TYPE( pMatch->type ) == HB_PP_RMARKER_STRSTD ||
             HB_PP_TOKEN_TYPE( pMatch->type ) == HB_PP_RMARKER_STRSMART ||
@@ -4385,7 +4553,7 @@ static PHB_PP_TOKEN *  hb_pp_patternStuff( PHB_PP_STATE pState,
       }
       else
       {
-         *pResultPtr = hb_pp_tokenClone( pResultPattern );
+         *pResultPtr = hb_pp_tokenClone( pState, pResultPattern );
          pResultPtr = &( *pResultPtr )->pNext;
       }
       pResultPattern = pResultPattern->pNext;
@@ -5497,6 +5665,36 @@ void hb_pp_initRules( PHB_PP_RULE * pRulesPtr, int * piRules,
 /*
  * get preprocessed token
  */
+/* enable/disable source position tracking of tokens: with it on, every
+   token cut from an input file (and every clone made of it during rule
+   application) gets an entry queryable through hb_pp_tokenPos() */
+void hb_pp_trackPos( PHB_PP_STATE pState, HB_BOOL fEnable )
+{
+   pState->fTrackPos = fEnable;
+}
+
+/* source position of a token: returns HB_FALSE when the token has no
+   entry (tracking off or token created outside the tracked paths);
+   *piCol == -1 means "no column": token synthesized by a pp rule or
+   separator - the line number is still meaningful */
+HB_BOOL hb_pp_tokenPos( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
+                        int * piLine, int * piCol, HB_BOOL * pfMainFile )
+{
+   PHB_PP_POSITEM pItem = hb_pp_posFind( pState, pToken );
+
+   if( pItem )
+   {
+      if( piLine )
+         *piLine = pItem->iLine;
+      if( piCol )
+         *piCol = pItem->iCol;
+      if( pfMainFile )
+         *pfMainFile = pItem->fMainFile;
+      return HB_TRUE;
+   }
+   return HB_FALSE;
+}
+
 PHB_PP_TOKEN hb_pp_tokenGet( PHB_PP_STATE pState )
 {
    pState->fError = HB_FALSE;

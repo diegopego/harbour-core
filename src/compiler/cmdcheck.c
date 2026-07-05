@@ -806,6 +806,16 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
             }
             break;
 
+         case 'X':
+            ++szSwPtr;
+            HB_COMP_PARAM->fAst = HB_TRUE;
+            /* token source positions must be recorded from the very first
+               line, before any rule rewrites them */
+            hb_pp_trackPos( HB_COMP_PARAM->pLex->pPP, HB_TRUE );
+            if( *szSwPtr )
+               szSwPtr = hb_compChkOptionFName( szSwPtr, &HB_COMP_PARAM->pAstFileName, fEnv );
+            break;
+
 #ifdef YYDEBUG
          case 'Y':
             ++szSwPtr;

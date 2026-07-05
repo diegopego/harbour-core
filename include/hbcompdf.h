@@ -788,6 +788,10 @@ typedef struct _HB_COMP
    PHB_I18NTABLE     pI18n;
    HB_BOOL           fI18n;
 
+   PHB_FNAME         pAstFileName;        /* output file name for the AST dump (-x) */
+   struct _HB_ASTDUMP * pAst;             /* AST dump collector */
+   HB_BOOL           fAst;                /* generate AST dump */
+
    void              ( * outStdFunc ) ( void *, const char * );
    void              ( * outErrFunc ) ( void *, const char * );
    PHB_PP_MSG_FUNC   outMsgFunc;
@@ -858,6 +862,7 @@ typedef struct
    HB_BOOL  fHideSource;
    HB_BOOL  fAutoMemvarAssume;
    HB_BOOL  fI18n;
+   HB_BOOL  fAst;
    HB_BOOL  fLineNumbers;
    HB_BOOL  fPPO;
    HB_BOOL  fPPT;

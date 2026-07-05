@@ -510,6 +510,18 @@ static int hb_comp_funcStart( HB_COMP_DECL, YYSTYPE * yylval_ptr )
 
 extern int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL );
 
+/* pull the next preprocessed token, recording it (with its source
+   position) in the AST dump when -x is active */
+static PHB_PP_TOKEN hb_comp_tokenGet( PHB_COMP_LEX pLex, HB_COMP_DECL )
+{
+   PHB_PP_TOKEN pToken = hb_pp_tokenGet( pLex->pPP );
+
+   if( HB_COMP_PARAM->fAst && pToken )
+      hb_compAstToken( HB_COMP_PARAM, pToken );
+
+   return pToken;
+}
+
 int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
 {
    PHB_COMP_LEX pLex = HB_COMP_PARAM->pLex;
@@ -539,7 +551,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
       }
    }
 
-   pToken = hb_pp_tokenGet( pLex->pPP );
+   pToken = hb_comp_tokenGet( pLex, HB_COMP_PARAM );
 
    if( pLex->fEol )
    {
@@ -689,7 +701,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                   hb_pp_tokenBlockString( pLex->pPP, pToken,
                                           &yylval_ptr->asCodeblock.flags,
                                           &yylval_ptr->asCodeblock.length ) );
-               hb_pp_tokenGet( pLex->pPP );
+               hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                return CBSTART;
             }
 #if defined( HB_COMPAT_FOXPRO ) || 1
@@ -726,7 +738,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
              HB_PP_TOKEN_TYPE( pToken->pNext->type ) == HB_PP_TOKEN_KEYWORD &&
              hb_stricmp( "LINE", pToken->pNext->value ) == 0 )
          {
-            hb_pp_tokenGet( pLex->pPP );
+            hb_comp_tokenGet( pLex, HB_COMP_PARAM );
             return LINE;
          }
          pLex->iState = OPERATOR;
@@ -818,7 +830,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
          if( HB_SUPPORT_HARBOUR && pToken->pNext && pToken->pNext->spaces == 0 &&
              HB_PP_TOKEN_TYPE( pToken->pNext->type ) == HB_PP_TOKEN_GT )
          {
-            hb_pp_tokenGet( pLex->pPP );
+            hb_comp_tokenGet( pLex, HB_COMP_PARAM );
             pLex->iState = OPERATOR;
             return HASHOP;
          }
@@ -883,7 +895,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                                  ( iType == EXIT ? HB_FS_EXIT : HB_FS_STATIC );
                   pLex->iState = HB_TOUPPER( pToken->pNext->value[ 0 ] ) == 'F' ?
                                  FUNCTION : PROCEDURE;
-                  hb_pp_tokenGet( pLex->pPP );
+                  hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                   return hb_comp_funcStart( HB_COMP_PARAM, yylval_ptr );
                }
                else if( pLex->iState == LOOKUP &&
@@ -904,7 +916,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                    hb_strnicmp( "STATIC", pToken->pNext->value,
                                 pToken->pNext->len ) == 0 )
                {
-                  hb_pp_tokenGet( pLex->pPP );
+                  hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                   pLex->iState = THREAD_STATIC;
                   return THREAD_STATIC;
                }
@@ -918,7 +930,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                   if( pToken->pNext->len >= 4 && pToken->pNext->len <= 8 &&
                       hb_strnicmp( "SEQUENCE", pToken->pNext->value, pToken->pNext->len ) == 0 )
                   {
-                     hb_pp_tokenGet( pLex->pPP );
+                     hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                      pLex->iState = BEGINSEQ;
                      return BEGINSEQ;
                   }
@@ -939,7 +951,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                            pToken->pNext->len >= 4 && pToken->pNext->len <= 5 &&
                            hb_strnicmp( "USING", pToken->pNext->value, pToken->pNext->len ) == 0 )
                   {
-                     hb_pp_tokenGet( pLex->pPP );
+                     hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                      pLex->iState = RECOVERUSING;
                      return RECOVERUSING;
                   }
@@ -959,7 +971,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                            pToken->pNext->len >= 4 && pToken->pNext->len <= 8 &&
                            hb_strnicmp( "SEQUENCE", pToken->pNext->value, pToken->pNext->len ) == 0 )
                   {
-                     hb_pp_tokenGet( pLex->pPP );
+                     hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                      pLex->iState = ENDSEQ;
                      return ENDSEQ;
                   }
@@ -1040,7 +1052,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                       HB_PP_TOKEN_TYPE( pNext->pNext->type ) == HB_PP_TOKEN_KEYWORD &&
                       hb_stricmp( "EACH", pNext->value ) == 0 )
                   {
-                     hb_pp_tokenGet( pLex->pPP );
+                     hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                      pLex->iState = FOREACH;
                      return FOREACH;
                   }
@@ -1148,7 +1160,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                      {
                         if( HB_PP_TOKEN_ISEOC( pToken->pNext->pNext ) )
                         {
-                           hb_pp_tokenGet( pLex->pPP );
+                           hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                            pLex->iState = DOCASE;
                            return DOCASE;
                         }
@@ -1164,12 +1176,12 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                           hb_stricmp( "WITH", pToken->pNext->pNext->value ) != 0 ) )
                      {
                         /* DO WHILE <exp> */
-                        hb_pp_tokenGet( pLex->pPP );
+                        hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                         pLex->iState = WHILE;
                         return WHILE;
                      }
                      /* DO identifier [WITH <args>] */
-                     pToken = hb_pp_tokenGet( pLex->pPP );
+                     pToken = hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                      /* do not upper next token for case sensitive file systems */
                      #if 0
                      hb_pp_tokenUpper( pToken );
@@ -1199,7 +1211,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                       hb_strnicmp( "OBJECT", pToken->pNext->value,
                                    pToken->pNext->len ) == 0 )
                   {
-                     hb_pp_tokenGet( pLex->pPP );
+                     hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                      pLex->iState = WITHOBJECT;
                      return WITHOBJECT;
                   }
@@ -1279,7 +1291,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                if( pLex->iState == LOOKUP && ! HB_PP_TOKEN_ISEOC( pToken->pNext ) &&
                    HB_PP_TOKEN_TYPE( pToken->pNext->type ) == HB_PP_TOKEN_LEFT_PB )
                {
-                  hb_pp_tokenGet( pLex->pPP );
+                  hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                   pLex->iState = LSEPARATOR;
                   return PROCREQ;
                }
@@ -1303,8 +1315,8 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                    HB_PP_TOKEN_TYPE( pToken->pNext->type ) == HB_PP_TOKEN_LEFT_PB &&
                    HB_PP_TOKEN_TYPE( pToken->pNext->pNext->type ) == HB_PP_TOKEN_RIGHT_PB )
                {
-                  hb_pp_tokenGet( pLex->pPP );
-                  hb_pp_tokenGet( pLex->pPP );
+                  hb_comp_tokenGet( pLex, HB_COMP_PARAM );
+                  hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                   pLex->iState = RSEPARATOR;
                   return SELF;
                }
@@ -1317,7 +1329,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                if( iAs )
                {
                   pLex->iState = DECLARE_TYPE;
-                  pToken = hb_pp_tokenGet( pLex->pPP );
+                  pToken = hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                   if( iAs == AS_ARRAY && pToken->pNext &&
                       HB_PP_TOKEN_TYPE( pToken->pNext->type ) == HB_PP_TOKEN_KEYWORD &&
                       hb_stricmp( "OF", pToken->pNext->value ) == 0 )
@@ -1325,8 +1337,8 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
                      int iAsArray = hb_comp_asType( pToken->pNext->pNext, HB_TRUE );
                      if( iAsArray )
                      {
-                        hb_pp_tokenGet( pLex->pPP );
-                        hb_pp_tokenGet( pLex->pPP );
+                        hb_comp_tokenGet( pLex, HB_COMP_PARAM );
+                        hb_comp_tokenGet( pLex, HB_COMP_PARAM );
                         return iAsArray;
                      }
                   }

@@ -630,6 +630,9 @@ typedef struct
    PHB_PP_INC_FUNC    pIncFunc;     /* function to register included files */
    PHB_PP_INLINE_FUNC pInLineFunc;  /* function for hb_inLine(...) {...} blocks */
    PHB_PP_SWITCH_FUNC pSwitchFunc;  /* function for compiler switches with #pragma ... */
+
+   HB_BOOL  fTrackPos;              /* record source positions of tokens (see hb_pp_trackPos()) */
+   void *   pPosTbl;                /* token source position table */
 }
 HB_PP_STATE, * PHB_PP_STATE;
 
@@ -684,6 +687,9 @@ extern HB_EXPORT PHB_PP_STATE hb_pp_lexNew( const char * pString, HB_SIZE nLen )
 extern HB_EXPORT PHB_PP_TOKEN hb_pp_lexGet( PHB_PP_STATE pState );
 extern HB_EXPORT PHB_PP_TOKEN hb_pp_tokenGet( PHB_PP_STATE pState );
 extern HB_EXPORT HB_BOOL hb_pp_tokenNextExp( PHB_PP_TOKEN * pTokenPtr );
+extern HB_EXPORT void    hb_pp_trackPos( PHB_PP_STATE pState, HB_BOOL fEnable );
+extern HB_EXPORT HB_BOOL hb_pp_tokenPos( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
+                                         int * piLine, int * piCol, HB_BOOL * pfMainFile );
 
 /* PP lib helper functions */
 extern PHB_PP_STATE hb_pp_Param( int iParam );

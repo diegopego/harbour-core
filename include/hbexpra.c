@@ -734,6 +734,8 @@ PHB_EXPR hb_compExprGenPush( PHB_EXPR pExpr, HB_COMP_DECL )
 {
    HB_TRACE( HB_TR_DEBUG, ( "hb_compExprGenPush(%i)", pExpr->ExprType ) );
 
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstStatement( HB_COMP_PARAM, pExpr, 'p' );
    pExpr = HB_EXPR_USE( pExpr, HB_EA_REDUCE );
    return HB_EXPR_USE( pExpr, HB_EA_PUSH_PCODE );
 }
@@ -762,6 +764,8 @@ PHB_EXPR hb_compExprGenStatement( PHB_EXPR pExpr, HB_COMP_DECL )
          pExpr->ExprType = HB_EO_ASSIGN;
       }
 
+      if( HB_COMP_PARAM->fAst )
+         hb_compAstStatement( HB_COMP_PARAM, pExpr, 's' );
       pExpr = HB_EXPR_USE( pExpr, HB_EA_REDUCE );
       HB_EXPR_USE( pExpr, HB_EA_STATEMENT );
    }
