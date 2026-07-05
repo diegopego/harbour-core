@@ -806,6 +806,11 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
             }
             break;
 
+         /* -x was a free switch letter when the AST dump was added here: the
+            earlier -x[<prefix>] switch (symbol init function name prefix, for
+            .c output only) had been removed on 2015-02-17 when the whole
+            command-line parser was rewritten (see ChangeLog.txt), so the
+            letter carried no live meaning to collide with. */
          case 'X':
             ++szSwPtr;
             HB_COMP_PARAM->fAst = HB_TRUE;
