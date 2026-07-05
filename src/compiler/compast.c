@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-1"
+#define HB_AST_SCHEMA         "ast-2"
 #define HB_AST_ALLOC_BASE     64
 
 /* one consumed token: position captured by the preprocessor's tracking
@@ -1027,6 +1027,82 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
       fprintf( file, " }" );
    }
    fprintf( file, "%s ],", pAst->nTokenCount ? "\n  " : "" );
+
+   /* preprocessor rules and their applications (tracked by the pp, see
+      hb_pp_trackPos()): the consumed tokens of an application are the
+      words of the source line a rule rewrote - the DSL words among them
+      never reach the parser, so they exist only here */
+   {
+      PHB_PP_STATE pPP = HB_COMP_PARAM->pLex ? HB_COMP_PARAM->pLex->pPP : NULL;
+      int iCount, i;
+
+      fprintf( file, "\n  \"ppRules\": [" );
+      iCount = pPP ? hb_pp_trackRuleCount( pPP ) : 0;
+      for( i = 0; i < iCount; ++i )
+      {
+         const char * szFile, * szHead;
+         int iType, iLine, iMarkers;
+         HB_BOOL fX;
+
+         hb_pp_trackRuleGet( pPP, i, &iType, &fX, &szFile, &iLine,
+                             &szHead, &iMarkers );
+         fprintf( file, "%s\n    { \"id\": %d, \"kind\": \"%s%s\", \"file\": ",
+                  i ? "," : "", i,
+                  iType == 'd' ? "" : ( fX ? "x" : "" ),
+                  iType == 'd' ? "define" :
+                  iType == 't' ? "translate" : "command" );
+         if( szFile )
+            hb_compAstWriteStr( file, szFile );
+         else
+            fprintf( file, "null" );
+         fprintf( file, ", \"line\": %d, \"head\": ", iLine );
+         if( szHead )
+            hb_compAstWriteStr( file, szHead );
+         else
+            fprintf( file, "null" );
+         fprintf( file, ", \"markers\": %d }", iMarkers );
+      }
+      fprintf( file, "%s ],", iCount ? "\n  " : "" );
+
+      fprintf( file, "\n  \"ppApplications\": [" );
+      iCount = pPP ? hb_pp_trackApplyCount( pPP ) : 0;
+      for( i = 0; i < iCount; ++i )
+      {
+         int iRule, iLine, iTokens, iTok;
+
+         hb_pp_trackApplyGet( pPP, i, &iRule, &iLine, &iTokens );
+         fprintf( file, "%s\n    { \"rule\": %d, \"line\": %d, \"tokens\": [",
+                  i ? "," : "", iRule, iLine );
+         for( iTok = 0; iTok < iTokens; ++iTok )
+         {
+            const char * szText;
+            HB_SIZE nLen;
+            int iType, iMarker, iTokLine, iCol;
+            HB_BOOL fMain;
+            char cProv;
+
+            hb_pp_trackApplyToken( pPP, i, iTok, &szText, &nLen, &iType,
+                                   &iMarker, &iTokLine, &iCol, &fMain );
+            /* same provenance/column rules as tokens[]: a column in
+               another physical file is not a column here */
+            cProv = fMain ? ( iCol >= 0 ? 's' : 'n' ) : 'i';
+            if( ! fMain )
+               iCol = -1;
+            fprintf( file, "%s\n      { \"line\": %d, ",
+                     iTok ? "," : "", iTokLine );
+            if( iCol >= 0 )
+               fprintf( file, "\"col\": %d, ", iCol );
+            else
+               fprintf( file, "\"col\": null, " );
+            fprintf( file, "\"len\": %" HB_PFS "u, \"type\": %d, \"prov\": \"%c\", \"marker\": %d, \"text\": ",
+                     nLen, iType, cProv, iMarker );
+            hb_compAstWriteStr( file, szText );
+            fprintf( file, " }" );
+         }
+         fprintf( file, "%s ] }", iTokens ? "\n    " : "" );
+      }
+      fprintf( file, "%s ],", iCount ? "\n  " : "" );
+   }
 
    fprintf( file, "\n  \"functions\": [" );
 

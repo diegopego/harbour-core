@@ -656,6 +656,241 @@ static PHB_PP_TOKEN hb_pp_tokenClone( PHB_PP_STATE pState, PHB_PP_TOKEN pSource 
    return pDest;
 }
 
+/* preprocessor rule tracking (see hb_pp_trackPos()): the registration site
+   of every #define/#[x]translate/#[x]command rule and, for each rule
+   application, the source positions of the tokens the rule consumed -
+   those tokens (the words of a preprocessor DSL) never reach the parser,
+   so this is the only record of where they live in the source.  A rule
+   applied without a registration record (built-in table rules, defines
+   added through the API) gets one lazily, with no file/line */
+typedef struct
+{
+   const void * pRule;        /* rule identity at registration; a recycled
+                                 pointer is resolved newest-first */
+   char *    szFile;          /* directive file, NULL = built-in rule */
+   int       iLine;           /* directive line, 0 = built-in */
+   char      cType;           /* 'd'efine 't'ranslate 'c'ommand */
+   HB_BOOL   fX;              /* #x... variant (non-abbreviable keywords) */
+   char *    szHead;          /* head keyword, NULL when it is a marker */
+   HB_USHORT markers;         /* number of match markers */
+} HB_PP_RULEREC, * PHB_PP_RULEREC;
+
+typedef struct
+{
+   char *    szText;
+   HB_SIZE   nLen;
+   HB_USHORT type;            /* HB_PP_TOKEN_TYPE() value */
+   HB_USHORT marker;          /* 0 = rule keyword/literal, N = match marker N */
+   int       iLine;
+   int       iCol;            /* -1 = no source column */
+   HB_BOOL   fMainFile;
+} HB_PP_APPTOKEN, * PHB_PP_APPTOKEN;
+
+typedef struct
+{
+   int       iRule;           /* index into the rule records */
+   int       iLine;           /* input line at application */
+   HB_SIZE   nTokFirst;       /* first consumed token in the token pool */
+   int       iTokCount;
+} HB_PP_APPREC, * PHB_PP_APPREC;
+
+typedef struct
+{
+   HB_PP_RULEREC *  pRules;
+   HB_SIZE          nRuleCount;
+   HB_SIZE          nRuleAlloc;
+   HB_PP_APPREC *   pApps;
+   HB_SIZE          nAppCount;
+   HB_SIZE          nAppAlloc;
+   HB_PP_APPTOKEN * pToks;
+   HB_SIZE          nTokCount;
+   HB_SIZE          nTokAlloc;
+} HB_PP_RULETBL, * PHB_PP_RULETBL;
+
+/* free the tracking records: called from hb_pp_reset() so each compiled
+   module starts a fresh table (matching the per-module AST dump) and
+   from the state destructor */
+static void hb_pp_ruleTblFree( PHB_PP_STATE pState )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl )
+   {
+      HB_SIZE n;
+
+      for( n = 0; n < pTbl->nRuleCount; ++n )
+      {
+         if( pTbl->pRules[ n ].szFile )
+            hb_xfree( pTbl->pRules[ n ].szFile );
+         if( pTbl->pRules[ n ].szHead )
+            hb_xfree( pTbl->pRules[ n ].szHead );
+      }
+      for( n = 0; n < pTbl->nTokCount; ++n )
+         hb_xfree( pTbl->pToks[ n ].szText );
+      if( pTbl->pRules )
+         hb_xfree( pTbl->pRules );
+      if( pTbl->pApps )
+         hb_xfree( pTbl->pApps );
+      if( pTbl->pToks )
+         hb_xfree( pTbl->pToks );
+      hb_xfree( pTbl );
+      pState->pRuleTbl = NULL;
+   }
+}
+
+static int hb_pp_trackRuleAdd( PHB_PP_STATE pState, PHB_PP_RULE pRule,
+                               char cType, const char * szFile, int iLine )
+{
+   PHB_PP_RULETBL pTbl;
+   PHB_PP_RULEREC pRec;
+
+   if( ! pState->pRuleTbl )
+      pState->pRuleTbl = hb_xgrabz( sizeof( HB_PP_RULETBL ) );
+   pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl->nRuleCount == pTbl->nRuleAlloc )
+   {
+      pTbl->nRuleAlloc += 64;
+      pTbl->pRules = ( HB_PP_RULEREC * ) hb_xrealloc( pTbl->pRules,
+                              pTbl->nRuleAlloc * sizeof( HB_PP_RULEREC ) );
+   }
+   pRec = &pTbl->pRules[ pTbl->nRuleCount ];
+   pRec->pRule   = pRule;
+   pRec->szFile  = szFile ? hb_strdup( szFile ) : NULL;
+   pRec->iLine   = iLine;
+   pRec->cType   = cType;
+   pRec->fX      = HB_PP_CMP_MODE( pRule->mode ) == HB_PP_CMP_STD;
+   pRec->szHead  = HB_PP_TOKEN_ISMATCH( pRule->pMatch ) ? NULL :
+                   hb_strdup( pRule->pMatch->value );
+   pRec->markers = pRule->markers;
+
+   return ( int ) pTbl->nRuleCount++;
+}
+
+/* registration hook: called (gated by fTrackPos) where #define and
+   #[x]translate/#[x]command rules enter the rule tables, while the
+   directive's file and line are still current */
+static void hb_pp_trackRule( PHB_PP_STATE pState, PHB_PP_RULE pRule, char cType )
+{
+   if( pRule )
+      hb_pp_trackRuleAdd( pState, pRule, cType,
+                          pState->pFile ? pState->pFile->szFileName : NULL,
+                          pState->pFile ? pState->pFile->iCurrentLine : 0 );
+}
+
+/* application hook: called (gated by fTrackPos) at the top of
+   hb_pp_patternReplace() - the funnel of every define/translate/command
+   application - while the matched source tokens and the rule's marker
+   results are still alive */
+static void hb_pp_trackApply( PHB_PP_STATE pState, PHB_PP_RULE pRule,
+                              PHB_PP_TOKEN pFirst, const char * szType )
+{
+   PHB_PP_RULETBL pTbl;
+   PHB_PP_APPREC pApp;
+   PHB_PP_TOKEN pTok, * pTokens;
+   HB_USHORT * pMarkers;
+   HB_SIZE nCount = 0, n;
+   HB_USHORT m;
+   int iRule = -1;
+
+   for( pTok = pFirst; pTok && pTok != pRule->pNextExpr; pTok = pTok->pNext )
+      ++nCount;
+   if( nCount == 0 )
+      return;
+
+   if( pState->pRuleTbl )
+   {
+      pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+      n = pTbl->nRuleCount;
+      while( n-- )
+      {
+         if( pTbl->pRules[ n ].pRule == ( const void * ) pRule )
+         {
+            iRule = ( int ) n;
+            break;
+         }
+      }
+   }
+   if( iRule < 0 )
+      iRule = hb_pp_trackRuleAdd( pState, pRule, szType[ 0 ], NULL, 0 );
+   pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   /* which consumed tokens fill which match marker: everything not
+      covered by a marker result is a literal word of the rule itself */
+   pTokens = ( PHB_PP_TOKEN * ) hb_xgrab( nCount * sizeof( PHB_PP_TOKEN ) );
+   pMarkers = ( HB_USHORT * ) hb_xgrabz( nCount * sizeof( HB_USHORT ) );
+   for( pTok = pFirst, n = 0; n < nCount; pTok = pTok->pNext )
+      pTokens[ n++ ] = pTok;
+   for( m = 0; m < pRule->markers && pRule->pMarkers; ++m )
+   {
+      PHB_PP_RESULT pResult = pRule->pMarkers[ m ].pResult;
+
+      while( pResult )
+      {
+         for( pTok = pResult->pFirstToken;
+              pTok && pTok != pResult->pNextExpr; pTok = pTok->pNext )
+         {
+            for( n = 0; n < nCount; ++n )
+            {
+               if( pTokens[ n ] == pTok )
+               {
+                  pMarkers[ n ] = m + 1;
+                  break;
+               }
+            }
+         }
+         pResult = pResult->pNext;
+      }
+   }
+
+   if( pTbl->nAppCount == pTbl->nAppAlloc )
+   {
+      pTbl->nAppAlloc += 64;
+      pTbl->pApps = ( HB_PP_APPREC * ) hb_xrealloc( pTbl->pApps,
+                              pTbl->nAppAlloc * sizeof( HB_PP_APPREC ) );
+   }
+   pApp = &pTbl->pApps[ pTbl->nAppCount++ ];
+   pApp->iRule     = iRule;
+   pApp->iLine     = pState->pFile ? pState->pFile->iCurrentLine : 0;
+   pApp->nTokFirst = pTbl->nTokCount;
+   pApp->iTokCount = ( int ) nCount;
+
+   for( n = 0; n < nCount; ++n )
+   {
+      PHB_PP_APPTOKEN pRec;
+      PHB_PP_POSITEM pPos = hb_pp_posFind( pState, pTokens[ n ] );
+
+      if( pTbl->nTokCount == pTbl->nTokAlloc )
+      {
+         pTbl->nTokAlloc += 256;
+         pTbl->pToks = ( HB_PP_APPTOKEN * ) hb_xrealloc( pTbl->pToks,
+                                 pTbl->nTokAlloc * sizeof( HB_PP_APPTOKEN ) );
+      }
+      pRec = &pTbl->pToks[ pTbl->nTokCount++ ];
+      pRec->szText = ( char * ) memcpy( hb_xgrab( pTokens[ n ]->len + 1 ),
+                                        pTokens[ n ]->value, pTokens[ n ]->len );
+      pRec->szText[ pTokens[ n ]->len ] = '\0';
+      pRec->nLen   = pTokens[ n ]->len;
+      pRec->type   = HB_PP_TOKEN_TYPE( pTokens[ n ]->type );
+      pRec->marker = pMarkers[ n ];
+      if( pPos )
+      {
+         pRec->iLine     = pPos->iLine;
+         pRec->iCol      = pPos->iCol;
+         pRec->fMainFile = pPos->fMainFile;
+      }
+      else
+      {
+         pRec->iLine     = pState->pFile ? pState->pFile->iCurrentLine : 0;
+         pRec->iCol      = -1;
+         pRec->fMainFile = pState->pFile == NULL || pState->pFile->pPrev == NULL;
+      }
+   }
+
+   hb_xfree( pTokens );
+   hb_xfree( pMarkers );
+}
+
 static PHB_PP_TOKEN hb_pp_tokenAdd( PHB_PP_TOKEN ** pTokenPtr,
                                     const char * value, HB_SIZE nLen,
                                     HB_SIZE nSpaces, HB_USHORT type )
@@ -2319,6 +2554,7 @@ static void hb_pp_stateFree( PHB_PP_STATE pState )
       hb_xfree( ( ( PHB_PP_POSTBL ) pState->pPosTbl )->pItems );
       hb_xfree( pState->pPosTbl );
    }
+   hb_pp_ruleTblFree( pState );
 
    hb_xfree( pState );
 }
@@ -3066,6 +3302,8 @@ static void hb_pp_defineNew( PHB_PP_STATE pState, PHB_PP_TOKEN pToken, HB_BOOL f
          }
       }
       hb_pp_defineAdd( pState, HB_PP_CMP_CASE, usPCount, pMarkers, pMatch, pResult );
+      if( pState->fTrackPos )
+         hb_pp_trackRule( pState, hb_pp_defineFind( pState, pMatch ), 'd' );
    }
 }
 
@@ -3758,6 +3996,8 @@ static void hb_pp_directiveNew( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                pState->iTranslations++;
                hb_pp_ruleSetId( pState, pMatch, HB_PP_TRANSLATE );
             }
+            if( pState->fTrackPos )
+               hb_pp_trackRule( pState, pRule, fCommand ? 'c' : 't' );
             pMatch = pResult = NULL;
          }
       }
@@ -4588,6 +4828,9 @@ static void hb_pp_patternReplace( PHB_PP_STATE pState, PHB_PP_RULE pRule,
                                   PHB_PP_TOKEN * pTokenPtr, const char * szType )
 {
    PHB_PP_TOKEN pFinalResult = NULL, * pResultPtr, pSource;
+
+   if( pState->fTrackPos )
+      hb_pp_trackApply( pState, pRule, *pTokenPtr, szType );
 
    pResultPtr = hb_pp_patternStuff( pState, pRule, 0, pRule->pResult, &pFinalResult );
 
@@ -5695,6 +5938,105 @@ HB_BOOL hb_pp_tokenPos( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
    return HB_FALSE;
 }
 
+/* tracked preprocessor rules (see hb_pp_trackApply()): registration facts
+   of each rule seen by the current module - *pszFile == NULL means a
+   built-in or API-created rule with no source directive */
+int hb_pp_trackRuleCount( PHB_PP_STATE pState )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   return pTbl ? ( int ) pTbl->nRuleCount : 0;
+}
+
+HB_BOOL hb_pp_trackRuleGet( PHB_PP_STATE pState, int iRule,
+                            int * piType, HB_BOOL * pfX,
+                            const char ** pszFile, int * piLine,
+                            const char ** pszHead, int * piMarkers )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && iRule >= 0 && ( HB_SIZE ) iRule < pTbl->nRuleCount )
+   {
+      PHB_PP_RULEREC pRec = &pTbl->pRules[ iRule ];
+
+      if( piType )
+         *piType = pRec->cType;
+      if( pfX )
+         *pfX = pRec->fX;
+      if( pszFile )
+         *pszFile = pRec->szFile;
+      if( piLine )
+         *piLine = pRec->iLine;
+      if( pszHead )
+         *pszHead = pRec->szHead;
+      if( piMarkers )
+         *piMarkers = pRec->markers;
+      return HB_TRUE;
+   }
+   return HB_FALSE;
+}
+
+/* tracked rule applications: one entry per hb_pp_patternReplace() call
+   with the source span of the consumed tokens */
+int hb_pp_trackApplyCount( PHB_PP_STATE pState )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   return pTbl ? ( int ) pTbl->nAppCount : 0;
+}
+
+HB_BOOL hb_pp_trackApplyGet( PHB_PP_STATE pState, int iApply,
+                             int * piRule, int * piLine, int * piTokens )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && iApply >= 0 && ( HB_SIZE ) iApply < pTbl->nAppCount )
+   {
+      PHB_PP_APPREC pApp = &pTbl->pApps[ iApply ];
+
+      if( piRule )
+         *piRule = pApp->iRule;
+      if( piLine )
+         *piLine = pApp->iLine;
+      if( piTokens )
+         *piTokens = pApp->iTokCount;
+      return HB_TRUE;
+   }
+   return HB_FALSE;
+}
+
+HB_BOOL hb_pp_trackApplyToken( PHB_PP_STATE pState, int iApply, int iToken,
+                               const char ** pszText, HB_SIZE * pnLen,
+                               int * piType, int * piMarker, int * piLine,
+                               int * piCol, HB_BOOL * pfMainFile )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && iApply >= 0 && ( HB_SIZE ) iApply < pTbl->nAppCount &&
+       iToken >= 0 && iToken < pTbl->pApps[ iApply ].iTokCount )
+   {
+      PHB_PP_APPTOKEN pRec = &pTbl->pToks[ pTbl->pApps[ iApply ].nTokFirst +
+                                           iToken ];
+
+      if( pszText )
+         *pszText = pRec->szText;
+      if( pnLen )
+         *pnLen = pRec->nLen;
+      if( piType )
+         *piType = pRec->type;
+      if( piMarker )
+         *piMarker = pRec->marker;
+      if( piLine )
+         *piLine = pRec->iLine;
+      if( piCol )
+         *piCol = pRec->iCol;
+      if( pfMainFile )
+         *pfMainFile = pRec->fMainFile;
+      return HB_TRUE;
+   }
+   return HB_FALSE;
+}
+
 PHB_PP_TOKEN hb_pp_tokenGet( PHB_PP_STATE pState )
 {
    pState->fError = HB_FALSE;
@@ -5823,6 +6165,10 @@ void hb_pp_reset( PHB_PP_STATE pState )
    hb_pp_ruleListNonStdFree( &pState->pDefinitions );
    hb_pp_ruleListNonStdFree( &pState->pTranslations );
    hb_pp_ruleListNonStdFree( &pState->pCommands );
+
+   /* rule tracking records are per compiled module, like the AST dump
+      which consumes them */
+   hb_pp_ruleTblFree( pState );
 }
 
 /*

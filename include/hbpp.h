@@ -633,6 +633,7 @@ typedef struct
 
    HB_BOOL  fTrackPos;              /* record source positions of tokens (see hb_pp_trackPos()) */
    void *   pPosTbl;                /* token source position table */
+   void *   pRuleTbl;               /* rule registration/application records (see hb_pp_trackPos()) */
 }
 HB_PP_STATE, * PHB_PP_STATE;
 
@@ -690,6 +691,20 @@ extern HB_EXPORT HB_BOOL hb_pp_tokenNextExp( PHB_PP_TOKEN * pTokenPtr );
 extern HB_EXPORT void    hb_pp_trackPos( PHB_PP_STATE pState, HB_BOOL fEnable );
 extern HB_EXPORT HB_BOOL hb_pp_tokenPos( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                                          int * piLine, int * piCol, HB_BOOL * pfMainFile );
+extern HB_EXPORT int     hb_pp_trackRuleCount( PHB_PP_STATE pState );
+extern HB_EXPORT HB_BOOL hb_pp_trackRuleGet( PHB_PP_STATE pState, int iRule,
+                                             int * piType, HB_BOOL * pfX,
+                                             const char ** pszFile, int * piLine,
+                                             const char ** pszHead, int * piMarkers );
+extern HB_EXPORT int     hb_pp_trackApplyCount( PHB_PP_STATE pState );
+extern HB_EXPORT HB_BOOL hb_pp_trackApplyGet( PHB_PP_STATE pState, int iApply,
+                                              int * piRule, int * piLine,
+                                              int * piTokens );
+extern HB_EXPORT HB_BOOL hb_pp_trackApplyToken( PHB_PP_STATE pState, int iApply,
+                                                int iToken, const char ** pszText,
+                                                HB_SIZE * pnLen, int * piType,
+                                                int * piMarker, int * piLine,
+                                                int * piCol, HB_BOOL * pfMainFile );
 
 /* PP lib helper functions */
 extern PHB_PP_STATE hb_pp_Param( int iParam );
