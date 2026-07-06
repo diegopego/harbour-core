@@ -57,8 +57,20 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-2"
+#define HB_AST_SCHEMA         "ast-3"
 #define HB_AST_ALLOC_BASE     64
+
+/* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
+   the byte range [nAt, nAt+nLen) of the token text derives from match
+   marker iMarker of tracked application iApp */
+typedef struct
+{
+   int     iApp;
+   int     iMarker;
+   char    cOp;               /* 'c'lone, 'p'aste, 's'tringify */
+   HB_SIZE nAt;
+   HB_SIZE nLen;
+} HB_ASTFROM, * PHB_ASTFROM;
 
 /* one consumed token: position captured by the preprocessor's tracking
    (see hb_pp_trackPos()) at the moment the compiler pulled it */
@@ -70,6 +82,8 @@ typedef struct
    int       iCol;            /* 0-based byte column, -1 = no source column */
    HB_USHORT type;            /* HB_PP_TOKEN_TYPE() value */
    char      cProv;           /* 's' main source, 'i' include, 'n' synthesized */
+   PHB_ASTFROM pFrom;         /* derivation facts, NULL = none */
+   int       iFromCount;
 } HB_ASTTOKEN, * PHB_ASTTOKEN;
 
 /* birth record of an expression node: the pointer is only ever looked up
@@ -250,6 +264,26 @@ void hb_compAstToken( HB_COMP_DECL, PHB_PP_TOKEN pToken )
    pTok->iCol  = iCol;
    pTok->type  = HB_PP_TOKEN_TYPE( pToken->type );
    pTok->cProv = cProv;
+
+   /* derivation facts must be copied now: the pp entry dies with the
+      token, the dump is written much later */
+   pTok->pFrom = NULL;
+   pTok->iFromCount = hb_pp_tokenFromCount( HB_COMP_PARAM->pLex->pPP, pToken );
+   if( pTok->iFromCount > 0 )
+   {
+      int i;
+
+      pTok->pFrom = ( PHB_ASTFROM ) hb_xgrab( pTok->iFromCount *
+                                              sizeof( HB_ASTFROM ) );
+      for( i = 0; i < pTok->iFromCount; ++i )
+      {
+         PHB_ASTFROM pFrom = &pTok->pFrom[ i ];
+
+         hb_pp_tokenFromGet( HB_COMP_PARAM->pLex->pPP, pToken, i,
+                             &pFrom->iApp, &pFrom->iMarker, &pFrom->cOp,
+                             &pFrom->nAt, &pFrom->nLen );
+      }
+   }
 }
 
 /* --- expression node births -------------------------------------------- */
@@ -926,6 +960,20 @@ static void hb_compAstWriteVars( FILE * file, PHB_HVAR pVar,
    }
 }
 
+/* one derivation fact inside a "from" list (ast-3): which match marker
+   of which application the byte range [at, at+len) of the token text
+   derives from */
+static void hb_compAstWriteFromItem( FILE * file, HB_BOOL fFirst, int iApp,
+                                     int iMarker, char cOp, HB_SIZE nAt,
+                                     HB_SIZE nLen )
+{
+   fprintf( file, "%s{ \"app\": %d, \"marker\": %d, \"op\": \"%s\", "
+            "\"at\": %" HB_PFS "u, \"len\": %" HB_PFS "u }",
+            fFirst ? "" : ", ", iApp, iMarker,
+            cOp == 'c' ? "clone" : cOp == 'p' ? "paste" : "stringify",
+            nAt, nLen );
+}
+
 HB_BOOL hb_compAstSave( HB_COMP_DECL )
 {
    PHB_ASTDUMP pAst;
@@ -1024,6 +1072,19 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
       fprintf( file, "\"len\": %" HB_PFS "u, \"type\": %d, \"prov\": \"%c\", \"text\": ",
                pTok->nLen, ( int ) pTok->type, pTok->cProv );
       hb_compAstWriteStr( file, pTok->szText );
+      if( pTok->iFromCount > 0 )
+      {
+         int i;
+
+         fprintf( file, ", \"from\": [ " );
+         for( i = 0; i < pTok->iFromCount; ++i )
+            hb_compAstWriteFromItem( file, i == 0, pTok->pFrom[ i ].iApp,
+                                     pTok->pFrom[ i ].iMarker,
+                                     pTok->pFrom[ i ].cOp,
+                                     pTok->pFrom[ i ].nAt,
+                                     pTok->pFrom[ i ].nLen );
+         fprintf( file, " ]" );
+      }
       fprintf( file, " }" );
    }
    fprintf( file, "%s ],", pAst->nTokenCount ? "\n  " : "" );
@@ -1097,6 +1158,27 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             fprintf( file, "\"len\": %" HB_PFS "u, \"type\": %d, \"prov\": \"%c\", \"marker\": %d, \"text\": ",
                      nLen, iType, cProv, iMarker );
             hb_compAstWriteStr( file, szText );
+            {
+               int iFromCount = hb_pp_trackApplyTokenFromCount( pPP, i, iTok );
+
+               if( iFromCount > 0 )
+               {
+                  int iFrom, iApp, iMk;
+                  char cOp;
+                  HB_SIZE nAt, nFromLen;
+
+                  fprintf( file, ", \"from\": [ " );
+                  for( iFrom = 0; iFrom < iFromCount; ++iFrom )
+                  {
+                     hb_pp_trackApplyTokenFromGet( pPP, i, iTok, iFrom,
+                                                   &iApp, &iMk, &cOp,
+                                                   &nAt, &nFromLen );
+                     hb_compAstWriteFromItem( file, iFrom == 0, iApp, iMk,
+                                              cOp, nAt, nFromLen );
+                  }
+                  fprintf( file, " ]" );
+               }
+            }
             fprintf( file, " }" );
          }
          fprintf( file, "%s ] }", iTokens ? "\n    " : "" );
@@ -1252,7 +1334,11 @@ void hb_compAstFree( HB_COMP_DECL )
       HB_SIZE n;
 
       for( n = 0; n < pAst->nTokenCount; ++n )
+      {
          hb_xfree( pAst->pTokens[ n ].szText );
+         if( pAst->pTokens[ n ].pFrom )
+            hb_xfree( pAst->pTokens[ n ].pFrom );
+      }
       for( n = 0; n < pAst->nStmtCount; ++n )
       {
          if( pAst->pStmts[ n ].szJson )
