@@ -623,6 +623,198 @@ static void hb_pp_posTrack( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                     pState->pFile == NULL || pState->pFile->pPrev == NULL );
 }
 
+/* token derivation table (see hb_pp_trackPos()): open addressing hash
+   keyed by token pointer; records, for tokens synthesized during rule
+   application, which match marker of which application each byte range
+   of the token text derives from.  The three synthesis operations are
+   'c'lone (marker result copied into the rule result), 'p'aste (keyword
+   concatenation of rule result tokens) and 's'tringify (marker result
+   dumped into a string) - the paste and stringify artifacts are the
+   ones that otherwise lose any connection to the name the programmer
+   wrote.  Identity is checked like in the position table: an entry only
+   counts while the token still holds the recorded value/len */
+typedef struct
+{
+   int       iApp;            /* application record index (hb_pp_trackApply()) */
+   HB_USHORT usMarker;        /* 1-based match marker number */
+   char      cOp;             /* 'c'lone, 'p'aste, 's'tringify */
+   HB_SIZE   nAt;             /* byte offset inside the token text */
+   HB_SIZE   nLen;            /* byte length inside the token text */
+} HB_PP_FROMITEM, * PHB_PP_FROMITEM;
+
+typedef struct
+{
+   const void * pKey;
+   const char * value;        /* token identity check, see hb_pp_posFind() */
+   HB_SIZE      len;
+   PHB_PP_FROMITEM pFrom;
+   int          iFromCount;
+} HB_PP_DRVITEM, * PHB_PP_DRVITEM;
+
+typedef struct
+{
+   PHB_PP_DRVITEM pItems;
+   HB_SIZE        nSize;       /* power of two */
+   HB_SIZE        nCount;
+} HB_PP_DRVTBL, * PHB_PP_DRVTBL;
+
+/* free the derivation table: called from hb_pp_reset() - the entries
+   reference per-module application indices - and from the destructor */
+static void hb_pp_drvTblFree( PHB_PP_STATE pState )
+{
+   PHB_PP_DRVTBL pTbl = ( PHB_PP_DRVTBL ) pState->pDrvTbl;
+
+   if( pTbl )
+   {
+      HB_SIZE n;
+
+      for( n = 0; n < pTbl->nSize; ++n )
+      {
+         if( pTbl->pItems[ n ].pFrom )
+            hb_xfree( pTbl->pItems[ n ].pFrom );
+      }
+      hb_xfree( pTbl->pItems );
+      hb_xfree( pTbl );
+      pState->pDrvTbl = NULL;
+   }
+}
+
+static PHB_PP_DRVITEM hb_pp_drvFind( PHB_PP_STATE pState, PHB_PP_TOKEN pKey )
+{
+   PHB_PP_DRVTBL pTbl = ( PHB_PP_DRVTBL ) pState->pDrvTbl;
+
+   if( pTbl )
+   {
+      HB_SIZE nAt = ( ( HB_PTRUINT ) pKey >> 4 ) & ( pTbl->nSize - 1 );
+
+      while( pTbl->pItems[ nAt ].pKey )
+      {
+         if( pTbl->pItems[ nAt ].pKey == pKey )
+         {
+            if( pTbl->pItems[ nAt ].value == pKey->value &&
+                pTbl->pItems[ nAt ].len == pKey->len )
+               return &pTbl->pItems[ nAt ];
+            return NULL;
+         }
+         nAt = ( nAt + 1 ) & ( pTbl->nSize - 1 );
+      }
+   }
+   return NULL;
+}
+
+/* insert or replace the derivation list of a token: takes ownership of
+   the pFrom array */
+static void hb_pp_drvSet( PHB_PP_STATE pState, PHB_PP_TOKEN pKey,
+                          PHB_PP_FROMITEM pFrom, int iFromCount )
+{
+   PHB_PP_DRVTBL pTbl = ( PHB_PP_DRVTBL ) pState->pDrvTbl;
+   HB_SIZE nAt;
+
+   if( ! pTbl )
+   {
+      pTbl = ( PHB_PP_DRVTBL ) hb_xgrabz( sizeof( HB_PP_DRVTBL ) );
+      pTbl->nSize = 256;
+      pTbl->pItems = ( PHB_PP_DRVITEM ) hb_xgrabz( pTbl->nSize * sizeof( HB_PP_DRVITEM ) );
+      pState->pDrvTbl = pTbl;
+   }
+   else if( ( pTbl->nCount << 1 ) >= pTbl->nSize )
+   {
+      PHB_PP_DRVITEM pOld = pTbl->pItems;
+      HB_SIZE nOldSize = pTbl->nSize, n;
+
+      pTbl->nSize <<= 1;
+      pTbl->pItems = ( PHB_PP_DRVITEM ) hb_xgrabz( pTbl->nSize * sizeof( HB_PP_DRVITEM ) );
+      pTbl->nCount = 0;
+      for( n = 0; n < nOldSize; ++n )
+      {
+         if( pOld[ n ].pKey )
+         {
+            nAt = ( ( HB_PTRUINT ) pOld[ n ].pKey >> 4 ) & ( pTbl->nSize - 1 );
+            while( pTbl->pItems[ nAt ].pKey )
+               nAt = ( nAt + 1 ) & ( pTbl->nSize - 1 );
+            pTbl->pItems[ nAt ] = pOld[ n ];
+            pTbl->nCount++;
+         }
+      }
+      hb_xfree( pOld );
+   }
+
+   nAt = ( ( HB_PTRUINT ) pKey >> 4 ) & ( pTbl->nSize - 1 );
+   while( pTbl->pItems[ nAt ].pKey && pTbl->pItems[ nAt ].pKey != pKey )
+      nAt = ( nAt + 1 ) & ( pTbl->nSize - 1 );
+   if( ! pTbl->pItems[ nAt ].pKey )
+      pTbl->nCount++;
+   else if( pTbl->pItems[ nAt ].pFrom )
+      hb_xfree( pTbl->pItems[ nAt ].pFrom );
+   pTbl->pItems[ nAt ].pKey = pKey;
+   pTbl->pItems[ nAt ].value = pKey->value;
+   pTbl->pItems[ nAt ].len = pKey->len;
+   pTbl->pItems[ nAt ].pFrom = pFrom;
+   pTbl->pItems[ nAt ].iFromCount = iFromCount;
+}
+
+/* record a whole-token derivation: the common case of a marker result
+   clone or a stringified marker.  iDrvApp < 0 means the current
+   application was not recorded (see hb_pp_trackApply()) - no fact to
+   reference then */
+static void hb_pp_drvAdd1( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
+                           HB_USHORT usMarker, char cOp )
+{
+   if( pState->iDrvApp >= 0 && usMarker > 0 )
+   {
+      PHB_PP_FROMITEM pFrom = ( PHB_PP_FROMITEM ) hb_xgrab( sizeof( HB_PP_FROMITEM ) );
+
+      pFrom->iApp     = pState->iDrvApp;
+      pFrom->usMarker = usMarker;
+      pFrom->cOp      = cOp;
+      pFrom->nAt      = 0;
+      pFrom->nLen     = pToken->len;
+      hb_pp_drvSet( pState, pToken, pFrom, 1 );
+   }
+}
+
+/* derivation of a keyword concatenation (see hb_pp_concatenateKeywords()):
+   the merged token inherits the marker origins of both parts as 'paste'
+   ranges - the second part's offsets shifted past the first - while rule
+   literal parts (no derivation record) contribute nothing.  Returns the
+   merged list to be attached after the merge rewrites the token value */
+static PHB_PP_FROMITEM hb_pp_drvMerge( PHB_PP_STATE pState,
+                                       PHB_PP_TOKEN pToken, PHB_PP_TOKEN pNext,
+                                       int * piCount )
+{
+   PHB_PP_DRVITEM pItem1 = hb_pp_drvFind( pState, pToken );
+   PHB_PP_DRVITEM pItem2 = hb_pp_drvFind( pState, pNext );
+   PHB_PP_FROMITEM pFrom = NULL;
+   int iCount = ( pItem1 ? pItem1->iFromCount : 0 ) +
+                ( pItem2 ? pItem2->iFromCount : 0 );
+
+   if( iCount > 0 )
+   {
+      int i, n = 0;
+
+      pFrom = ( PHB_PP_FROMITEM ) hb_xgrab( iCount * sizeof( HB_PP_FROMITEM ) );
+      if( pItem1 )
+      {
+         for( i = 0; i < pItem1->iFromCount; ++i )
+         {
+            pFrom[ n ] = pItem1->pFrom[ i ];
+            pFrom[ n++ ].cOp = 'p';
+         }
+      }
+      if( pItem2 )
+      {
+         for( i = 0; i < pItem2->iFromCount; ++i )
+         {
+            pFrom[ n ] = pItem2->pFrom[ i ];
+            pFrom[ n ].nAt += pToken->len;
+            pFrom[ n++ ].cOp = 'p';
+         }
+      }
+   }
+   *piCount = iCount;
+   return pFrom;
+}
+
 static PHB_PP_TOKEN hb_pp_tokenClone( PHB_PP_STATE pState, PHB_PP_TOKEN pSource )
 {
    PHB_PP_TOKEN pDest = ( PHB_PP_TOKEN ) hb_xgrab( sizeof( HB_PP_TOKEN ) );
@@ -684,6 +876,11 @@ typedef struct
    int       iLine;
    int       iCol;            /* -1 = no source column */
    HB_BOOL   fMainFile;
+   PHB_PP_FROMITEM pFrom;     /* derivation of the consumed token, copied
+                                 here because the token dies with the
+                                 replacement (multi-pass chains resolve
+                                 through these copies) */
+   int       iFromCount;
 } HB_PP_APPTOKEN, * PHB_PP_APPTOKEN;
 
 typedef struct
@@ -726,7 +923,11 @@ static void hb_pp_ruleTblFree( PHB_PP_STATE pState )
             hb_xfree( pTbl->pRules[ n ].szHead );
       }
       for( n = 0; n < pTbl->nTokCount; ++n )
+      {
          hb_xfree( pTbl->pToks[ n ].szText );
+         if( pTbl->pToks[ n ].pFrom )
+            hb_xfree( pTbl->pToks[ n ].pFrom );
+      }
       if( pTbl->pRules )
          hb_xfree( pTbl->pRules );
       if( pTbl->pApps )
@@ -793,6 +994,10 @@ static void hb_pp_trackApply( PHB_PP_STATE pState, PHB_PP_RULE pRule,
    HB_USHORT m;
    int iRule = -1;
 
+   /* until this application is recorded there is nothing the derivation
+      entries of its result tokens could reference */
+   pState->iDrvApp = -1;
+
    for( pTok = pFirst; pTok && pTok != pRule->pNextExpr; pTok = pTok->pNext )
       ++nCount;
    if( nCount == 0 )
@@ -854,11 +1059,13 @@ static void hb_pp_trackApply( PHB_PP_STATE pState, PHB_PP_RULE pRule,
    pApp->iLine     = pState->pFile ? pState->pFile->iCurrentLine : 0;
    pApp->nTokFirst = pTbl->nTokCount;
    pApp->iTokCount = ( int ) nCount;
+   pState->iDrvApp = ( int ) pTbl->nAppCount - 1;
 
    for( n = 0; n < nCount; ++n )
    {
       PHB_PP_APPTOKEN pRec;
       PHB_PP_POSITEM pPos = hb_pp_posFind( pState, pTokens[ n ] );
+      PHB_PP_DRVITEM pDrv = hb_pp_drvFind( pState, pTokens[ n ] );
 
       if( pTbl->nTokCount == pTbl->nTokAlloc )
       {
@@ -884,6 +1091,18 @@ static void hb_pp_trackApply( PHB_PP_STATE pState, PHB_PP_RULE pRule,
          pRec->iLine     = pState->pFile ? pState->pFile->iCurrentLine : 0;
          pRec->iCol      = -1;
          pRec->fMainFile = pState->pFile == NULL || pState->pFile->pPrev == NULL;
+      }
+      if( pDrv && pDrv->iFromCount > 0 )
+      {
+         pRec->pFrom = ( PHB_PP_FROMITEM ) memcpy(
+                     hb_xgrab( pDrv->iFromCount * sizeof( HB_PP_FROMITEM ) ),
+                     pDrv->pFrom, pDrv->iFromCount * sizeof( HB_PP_FROMITEM ) );
+         pRec->iFromCount = pDrv->iFromCount;
+      }
+      else
+      {
+         pRec->pFrom = NULL;
+         pRec->iFromCount = 0;
       }
    }
 
@@ -2555,6 +2774,7 @@ static void hb_pp_stateFree( PHB_PP_STATE pState )
       hb_xfree( pState->pPosTbl );
    }
    hb_pp_ruleTblFree( pState );
+   hb_pp_drvTblFree( pState );
 
    hb_xfree( pState );
 }
@@ -4485,7 +4705,8 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
                                                HB_SIZE spaces, HB_USHORT type,
                                                PHB_PP_TOKEN * pResultPtr,
                                                PHB_PP_TOKEN pToken,
-                                               PHB_PP_TOKEN pStop )
+                                               PHB_PP_TOKEN pStop,
+                                               HB_USHORT usMarker )
 {
    PHB_PP_TOKEN pNext;
    HB_BOOL fFirst = HB_TRUE, fStop = HB_FALSE;
@@ -4517,6 +4738,8 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
             do
             {
                *pResultPtr = hb_pp_tokenClone( pState, pToken );
+               if( pState->fTrackPos )
+                  hb_pp_drvAdd1( pState, *pResultPtr, usMarker, 'c' );
                if( fFirst )
                {
                   ( *pResultPtr )->spaces = spaces;
@@ -4535,20 +4758,27 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
          {
             if( HB_PP_TOKEN_TYPE( pToken->type ) == HB_PP_TOKEN_MACROVAR )
             {
-               hb_pp_tokenAdd( &pResultPtr, pToken->value + 1, pToken->len -
+               PHB_PP_TOKEN pNew = hb_pp_tokenAdd( &pResultPtr, pToken->value + 1, pToken->len -
                                ( pToken->value[ pToken->len - 1 ] == '.' ? 2 : 1 ),
                                fFirst ? spaces : pToken->spaces,
                                HB_PP_TOKEN_KEYWORD );
+
+               if( pState->fTrackPos )
+                  hb_pp_drvAdd1( pState, pNew, usMarker, 'c' );
             }
             else
             {
+               PHB_PP_TOKEN pNew;
+
                hb_membufFlush( pState->pBuffer );
                hb_pp_tokenStr( pToken, pState->pBuffer, HB_FALSE, HB_FALSE, 0 );
-               hb_pp_tokenAdd( &pResultPtr,
+               pNew = hb_pp_tokenAdd( &pResultPtr,
                                hb_membufPtr( pState->pBuffer ),
                                hb_membufLen( pState->pBuffer ),
                                fFirst ? spaces : pToken->spaces,
                                HB_PP_TOKEN_STRING );
+               if( pState->fTrackPos )
+                  hb_pp_drvAdd1( pState, pNew, usMarker, 's' );
             }
             pToken = pToken->pNext;
             fFirst = HB_FALSE;
@@ -4566,6 +4796,8 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
             do
             {
                *pResultPtr = hb_pp_tokenClone( pState, pToken );
+               if( pState->fTrackPos )
+                  hb_pp_drvAdd1( pState, *pResultPtr, usMarker, 'c' );
                if( fFirst )
                {
                   ( *pResultPtr )->spaces = spaces;
@@ -4587,6 +4819,7 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
                I decided to keep original internal spacing except the
                first token */
             HB_BOOL fSpaces = HB_FALSE;
+            PHB_PP_TOKEN pNew;
             if( ! fFirst )
                spaces = pToken->spaces;
             hb_membufFlush( pState->pBuffer );
@@ -4597,10 +4830,12 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
                pToken = pToken->pNext;
             }
             while( ( fStop ? pToken : pToken->pNext ) != pNext );
-            hb_pp_tokenAdd( &pResultPtr,
+            pNew = hb_pp_tokenAdd( &pResultPtr,
                             hb_membufPtr( pState->pBuffer ),
                             hb_membufLen( pState->pBuffer ),
                             spaces, HB_PP_TOKEN_STRING );
+            if( pState->fTrackPos )
+               hb_pp_drvAdd1( pState, pNew, usMarker, 's' );
             fFirst = HB_FALSE;
          }
       }
@@ -4608,6 +4843,8 @@ static PHB_PP_TOKEN * hb_pp_matchResultLstAdd( PHB_PP_STATE pState,
          break;
       /* clone comma token */
       *pResultPtr = hb_pp_tokenClone( pState, pToken );
+      if( pState->fTrackPos )
+         hb_pp_drvAdd1( pState, *pResultPtr, usMarker, 'c' );
       if( fFirst )
       {
          ( *pResultPtr )->spaces = spaces;
@@ -4639,6 +4876,8 @@ static PHB_PP_TOKEN * hb_pp_matchResultAdd( PHB_PP_STATE pState,
             do
             {
                *pResultPtr = hb_pp_tokenClone( pState, pToken );
+               if( pState->fTrackPos )
+                  hb_pp_drvAdd1( pState, *pResultPtr, pMatch->index, 'c' );
                if( fFirst )
                {
                   ( *pResultPtr )->spaces = pMatch->spaces;
@@ -4692,6 +4931,7 @@ static PHB_PP_TOKEN * hb_pp_matchResultAdd( PHB_PP_STATE pState,
                                 pState->pFile ? pState->pFile->iCurrentLine : 0,
                                 -1, pState->pFile == NULL ||
                                     pState->pFile->pPrev == NULL );
+            hb_pp_drvAdd1( pState, pStr, pMatch->index, 's' );
          }
       }
    }
@@ -4707,7 +4947,8 @@ static PHB_PP_TOKEN * hb_pp_matchResultAdd( PHB_PP_STATE pState,
          if( pToken != pStop )
          {
             pResultPtr = hb_pp_matchResultLstAdd( pState, pMatch->spaces,
-                  HB_PP_TOKEN_TYPE( pMatch->type ), pResultPtr, pToken, pStop );
+                  HB_PP_TOKEN_TYPE( pMatch->type ), pResultPtr, pToken, pStop,
+                  pMatch->index );
          }
       }
    }
@@ -5111,6 +5352,16 @@ static HB_BOOL hb_pp_concatenateKeywords( PHB_PP_STATE pState, PHB_PP_TOKEN * pF
           pNext->spaces == 0 &&
           HB_PP_TOKEN_TYPE( pNext->type ) == HB_PP_TOKEN_KEYWORD )
       {
+         PHB_PP_FROMITEM pFrom = NULL;
+         int iFromCount = 0;
+
+         /* this is the paste: the merged token replaces the value of the
+            first part (making its position entry stale by design - the
+            composite has no single source position), so the marker
+            origins of both parts must be captured before the rewrite */
+         if( pState->fTrackPos )
+            pFrom = hb_pp_drvMerge( pState, pToken, pNext, &iFromCount );
+
          hb_membufFlush( pState->pBuffer );
          hb_membufAddData( pState->pBuffer, pToken->value, pToken->len );
          hb_membufAddData( pState->pBuffer, pNext->value, pNext->len );
@@ -5127,6 +5378,8 @@ static HB_BOOL hb_pp_concatenateKeywords( PHB_PP_STATE pState, PHB_PP_TOKEN * pF
 
          hb_pp_tokenSetValue( pToken, hb_membufPtr( pState->pBuffer ),
                                       hb_membufLen( pState->pBuffer ) );
+         if( pFrom )
+            hb_pp_drvSet( pState, pToken, pFrom, iFromCount );
          pToken->pNext = pNext->pNext;
          hb_pp_tokenFree( pNext );
          fChanged = HB_TRUE;
@@ -6037,6 +6290,88 @@ HB_BOOL hb_pp_trackApplyToken( PHB_PP_STATE pState, int iApply, int iToken,
    return HB_FALSE;
 }
 
+/* derivation facts of a token (see hb_pp_trackPos()): from which match
+   marker of which tracked application each byte range of a synthesized
+   token derives - 'c'lone, 'p'aste or 's'tringify.  Zero entries means
+   the token was not synthesized from a match marker */
+int hb_pp_tokenFromCount( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
+{
+   PHB_PP_DRVITEM pItem = hb_pp_drvFind( pState, pToken );
+
+   return pItem ? pItem->iFromCount : 0;
+}
+
+HB_BOOL hb_pp_tokenFromGet( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
+                            int iFrom, int * piApp, int * piMarker,
+                            char * pcOp, HB_SIZE * pnAt, HB_SIZE * pnLen )
+{
+   PHB_PP_DRVITEM pItem = hb_pp_drvFind( pState, pToken );
+
+   if( pItem && iFrom >= 0 && iFrom < pItem->iFromCount )
+   {
+      PHB_PP_FROMITEM pRec = &pItem->pFrom[ iFrom ];
+
+      if( piApp )
+         *piApp = pRec->iApp;
+      if( piMarker )
+         *piMarker = pRec->usMarker;
+      if( pcOp )
+         *pcOp = pRec->cOp;
+      if( pnAt )
+         *pnAt = pRec->nAt;
+      if( pnLen )
+         *pnLen = pRec->nLen;
+      return HB_TRUE;
+   }
+   return HB_FALSE;
+}
+
+/* derivation facts of a consumed application token, copied at
+   application time (the consumed token dies with the replacement):
+   how a multi-pass chain resolves one hop further back */
+int hb_pp_trackApplyTokenFromCount( PHB_PP_STATE pState, int iApply, int iToken )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && iApply >= 0 && ( HB_SIZE ) iApply < pTbl->nAppCount &&
+       iToken >= 0 && iToken < pTbl->pApps[ iApply ].iTokCount )
+      return pTbl->pToks[ pTbl->pApps[ iApply ].nTokFirst + iToken ].iFromCount;
+   return 0;
+}
+
+HB_BOOL hb_pp_trackApplyTokenFromGet( PHB_PP_STATE pState, int iApply,
+                                      int iToken, int iFrom, int * piApp,
+                                      int * piMarker, char * pcOp,
+                                      HB_SIZE * pnAt, HB_SIZE * pnLen )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && iApply >= 0 && ( HB_SIZE ) iApply < pTbl->nAppCount &&
+       iToken >= 0 && iToken < pTbl->pApps[ iApply ].iTokCount )
+   {
+      PHB_PP_APPTOKEN pTok = &pTbl->pToks[ pTbl->pApps[ iApply ].nTokFirst +
+                                           iToken ];
+
+      if( iFrom >= 0 && iFrom < pTok->iFromCount )
+      {
+         PHB_PP_FROMITEM pRec = &pTok->pFrom[ iFrom ];
+
+         if( piApp )
+            *piApp = pRec->iApp;
+         if( piMarker )
+            *piMarker = pRec->usMarker;
+         if( pcOp )
+            *pcOp = pRec->cOp;
+         if( pnAt )
+            *pnAt = pRec->nAt;
+         if( pnLen )
+            *pnLen = pRec->nLen;
+         return HB_TRUE;
+      }
+   }
+   return HB_FALSE;
+}
+
 PHB_PP_TOKEN hb_pp_tokenGet( PHB_PP_STATE pState )
 {
    pState->fError = HB_FALSE;
@@ -6167,8 +6502,11 @@ void hb_pp_reset( PHB_PP_STATE pState )
    hb_pp_ruleListNonStdFree( &pState->pCommands );
 
    /* rule tracking records are per compiled module, like the AST dump
-      which consumes them */
+      which consumes them; the derivation table references application
+      indices of those records, so it resets together */
    hb_pp_ruleTblFree( pState );
+   hb_pp_drvTblFree( pState );
+   pState->iDrvApp = -1;
 }
 
 /*

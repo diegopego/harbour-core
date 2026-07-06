@@ -634,6 +634,8 @@ typedef struct
    HB_BOOL  fTrackPos;              /* record source positions of tokens (see hb_pp_trackPos()) */
    void *   pPosTbl;                /* token source position table */
    void *   pRuleTbl;               /* rule registration/application records (see hb_pp_trackPos()) */
+   void *   pDrvTbl;                /* token derivation records (clone/paste/stringify facts) */
+   int      iDrvApp;                /* application record of the running rule replacement, -1 = none */
 }
 HB_PP_STATE, * PHB_PP_STATE;
 
@@ -705,6 +707,20 @@ extern HB_EXPORT HB_BOOL hb_pp_trackApplyToken( PHB_PP_STATE pState, int iApply,
                                                 HB_SIZE * pnLen, int * piType,
                                                 int * piMarker, int * piLine,
                                                 int * piCol, HB_BOOL * pfMainFile );
+extern HB_EXPORT int     hb_pp_tokenFromCount( PHB_PP_STATE pState,
+                                               PHB_PP_TOKEN pToken );
+extern HB_EXPORT HB_BOOL hb_pp_tokenFromGet( PHB_PP_STATE pState,
+                                             PHB_PP_TOKEN pToken, int iFrom,
+                                             int * piApp, int * piMarker,
+                                             char * pcOp, HB_SIZE * pnAt,
+                                             HB_SIZE * pnLen );
+extern HB_EXPORT int     hb_pp_trackApplyTokenFromCount( PHB_PP_STATE pState,
+                                                         int iApply, int iToken );
+extern HB_EXPORT HB_BOOL hb_pp_trackApplyTokenFromGet( PHB_PP_STATE pState,
+                                                       int iApply, int iToken,
+                                                       int iFrom, int * piApp,
+                                                       int * piMarker, char * pcOp,
+                                                       HB_SIZE * pnAt, HB_SIZE * pnLen );
 
 /* PP lib helper functions */
 extern PHB_PP_STATE hb_pp_Param( int iParam );
