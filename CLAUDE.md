@@ -14,5 +14,14 @@ Fork do Harbour com o mecanismo de dump AST (`-x`, `src/compiler/compast.c`
 - ATENÇÃO ao relink: `make` nem sempre relinca `bin/linux/gcc/harbour`
   quando só `libhbcplr.a`/`libhbpp.a` mudam — confira com
   `strings bin/linux/gcc/harbour | grep ast-` e, se preciso,
-  `rm bin/linux/gcc/harbour && make`.
+  `rm bin/linux/gcc/harbour && make`. **Vale TAMBÉM para `hbmk2`**: ele
+  compila .prg com o compilador EMBUTIDO (linka `libhbcplr`), então um
+  hbmk2 velho emite dumps do schema antigo mesmo com o `harbour` novo —
+  já custou um diagnóstico (dump ast-1 sem ppRules via hbmk2 enquanto o
+  harbour direto emitia ast-2).
 - Commits só com autorização explícita do Diego.
+- Em sessão com o modelo Fable: delegar a subagentes **opus** para
+  economizar tokens do Fable quando realmente compensar (trabalho
+  mecânico bem especificado — varreduras, builds, baterias de teste);
+  raciocínio central e código delicado ficam no Fable, que revisa o
+  que os agentes entregam.
