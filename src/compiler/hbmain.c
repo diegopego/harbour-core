@@ -456,6 +456,9 @@ void hb_compVariableAdd( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarT
 
    hb_compCheckDuplVars( HB_COMP_PARAM, pFunc->pLocals, szVarName );
 
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstDecl( HB_COMP_PARAM, szVarName, pVarType );
+
    pVar = ( PHB_HVAR ) hb_xgrab( sizeof( HB_HVAR ) );
    pVar->szName = szVarName;
    pVar->szAlias = NULL;
@@ -1068,7 +1071,10 @@ PHB_HCLASS hb_compClassFind( HB_COMP_DECL, const char * szClassName )
 {
    PHB_HCLASS pClass = HB_COMP_PARAM->pFirstClass;
 
-   if( HB_COMP_PARAM->iWarnings < 3 )
+   /* the declaration subsystem is a warning helper (-w3), but the AST
+      dump transports its tables, so -x keeps them alive at any -w level;
+      all its warnings stay level-gated in hb_compGenWarning() */
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
       return NULL;
 
    while( pClass )
@@ -1089,7 +1095,7 @@ PHB_HCLASS hb_compClassAdd( HB_COMP_DECL, const char * szClassName, const char *
    printf( "Declaring Class: %s\n", szClassName );
    #endif
 
-   if( HB_COMP_PARAM->iWarnings < 3 )
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
       return NULL;
 
    if( ( pClass = hb_compClassFind( HB_COMP_PARAM, szClassName ) ) != NULL )
@@ -1140,17 +1146,23 @@ PHB_HDECLARED hb_compMethodAdd( HB_COMP_DECL, PHB_HCLASS pClass, const char * sz
 {
    PHB_HDECLARED pMethod;
 
-   if( HB_COMP_PARAM->iWarnings < 3 )
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
       return NULL;
 
    if( ! pClass )
    {
-      char buffer[ 80 ];
-      hb_snprintf( buffer, sizeof( buffer ),
-                   "Class member '%s' declaration without class definition.\n", szMethodName );
-      hb_compOutErr( HB_COMP_PARAM, buffer );
-      HB_COMP_PARAM->iErrorCount++;
-      HB_COMP_PARAM->fError = HB_TRUE;
+      /* below -w3 this path was silent before the AST dump kept the
+         tables alive - raising a new error only under -x would make a
+         building project unbuildable, so keep the old behaviour */
+      if( HB_COMP_PARAM->iWarnings >= 3 )
+      {
+         char buffer[ 80 ];
+         hb_snprintf( buffer, sizeof( buffer ),
+                      "Class member '%s' declaration without class definition.\n", szMethodName );
+         hb_compOutErr( HB_COMP_PARAM, buffer );
+         HB_COMP_PARAM->iErrorCount++;
+         HB_COMP_PARAM->fError = HB_TRUE;
+      }
       return NULL;
    }
 
@@ -1181,6 +1193,7 @@ PHB_HDECLARED hb_compMethodAdd( HB_COMP_DECL, PHB_HCLASS pClass, const char * sz
    pMethod->cParamTypes = NULL;
    pMethod->iParamCount = 0;
    pMethod->pParamClasses = NULL;
+   pMethod->pClass = NULL;
    pMethod->pNext = NULL;
 
    if( pClass->pMethod == NULL )
@@ -1216,7 +1229,7 @@ PHB_HDECLARED hb_compDeclaredAdd( HB_COMP_DECL, const char * szDeclaredName )
 {
    PHB_HDECLARED pDeclared;
 
-   if( HB_COMP_PARAM->iWarnings < 3 )
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
       return NULL;
 
    #if 0
@@ -1247,6 +1260,7 @@ PHB_HDECLARED hb_compDeclaredAdd( HB_COMP_DECL, const char * szDeclaredName )
    pDeclared->cParamTypes = NULL;
    pDeclared->iParamCount = 0;
    pDeclared->pParamClasses = NULL;
+   pDeclared->pClass = NULL;
    pDeclared->pNext = NULL;
 
    if( HB_COMP_PARAM->pFirstDeclared == NULL )
@@ -1262,7 +1276,7 @@ PHB_HDECLARED hb_compDeclaredAdd( HB_COMP_DECL, const char * szDeclaredName )
 void hb_compDeclaredParameterAdd( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType )
 {
    /* Nothing to do since no warnings requested.*/
-   if( HB_COMP_PARAM->iWarnings < 3 )
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
    {
       HB_SYMBOL_UNUSED( szVarName );
       return;
