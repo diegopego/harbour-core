@@ -22,11 +22,9 @@ Fork do Harbour com o mecanismo de dump AST (`-x`, `src/compiler/compast.c`
 - Commits só com autorização explícita do Diego **para AQUELE commit**;
   concluir/aprovar o trabalho não autoriza o commit. Um pedido por commit —
   não encadear. Sem push salvo pedido.
-- Em sessão com o modelo Fable: delegar a subagentes **opus** para
-  economizar tokens do Fable quando realmente compensar (trabalho
-  mecânico bem especificado — varreduras, builds, baterias de teste);
-  raciocínio central e código delicado ficam no Fable, que revisa o
-  que os agentes entregam.
+- **Só Fable** (instrução do Diego, 2026-07-07, revoga a regra anterior de
+  delegação): não usar subagentes opus/sonnet — capacidade de solução vale
+  mais que economia de tokens; todo o trabalho fica no Fable.
 - Regra/preferência durável deste repo vai AQUI (versionado), não na memória
   privada do Claude (que não viaja com o repo); a memória fica para o que não
   pertence a um repo.
