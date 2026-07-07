@@ -340,6 +340,7 @@ extern void hb_compAstToken( HB_COMP_DECL, PHB_PP_TOKEN pToken );
 extern void hb_compAstNodeBorn( HB_COMP_DECL, PHB_EXPR pExpr );
 extern void hb_compAstStatement( HB_COMP_DECL, PHB_EXPR pExpr, int iKind );
 extern void hb_compAstFuncBegin( HB_COMP_DECL );
+extern void hb_compAstDecl( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType );
 extern void hb_compAstUse( HB_COMP_DECL, const char * szVarName, int iScope, int iAccess );
 extern void hb_compAstTag( HB_COMP_DECL, const char * szVarName, int iAccess );
 extern void hb_compAstCallAdd( HB_COMP_DECL, const char * szFunName );

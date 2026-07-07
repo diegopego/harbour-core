@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-3"
+#define HB_AST_SCHEMA         "ast-4"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -101,6 +101,20 @@ typedef struct
    PHB_HFUNC pFunc;
    int       iLine;
 } HB_ASTFUNC, * PHB_ASTFUNC;
+
+/* a variable declaration captured at parse time - BEFORE the pcode
+   optimizer prunes pLocals (it deletes the hbclass Self and unused
+   locals at function end) and independent of the -w3 gate of the
+   declaration subsystem: the written type/class NAMES are the fact */
+typedef struct
+{
+   const char * szSym;        /* interned identifier */
+   PHB_HFUNC    pFunc;        /* resolved owner function */
+   int          iLine;
+   int          iScope;       /* HB_VSCOMP_* value at declaration */
+   HB_BYTE      cType;        /* declared type char, ' ' = none */
+   const char * szClass;      /* AS CLASS name as written, NULL = none */
+} HB_ASTDECL, * PHB_ASTDECL;
 
 typedef struct
 {
@@ -153,6 +167,10 @@ typedef struct _HB_ASTDUMP
    HB_ASTFUNC *  pFuncs;
    HB_SIZE       nFuncCount;
    HB_SIZE       nFuncAlloc;
+
+   HB_ASTDECL *  pDecls;
+   HB_SIZE       nDeclCount;
+   HB_SIZE       nDeclAlloc;
 
    HB_ASTUSE *   pUses;
    HB_SIZE       nUseCount;
@@ -383,6 +401,34 @@ void hb_compAstFuncBegin( HB_COMP_DECL )
    pFuncInfo = &pAst->pFuncs[ pAst->nFuncCount++ ];
    pFuncInfo->pFunc = HB_COMP_PARAM->functions.pLast;
    pFuncInfo->iLine = HB_COMP_PARAM->currLine;
+}
+
+/* a variable declaration accepted by hb_compVariableAdd(); the declared
+   type/class come from the HB_VARTYPE node as WRITTEN (independent of
+   the -w3 class resolution and of the pcode optimizer) */
+void hb_compAstDecl( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType )
+{
+   PHB_ASTDUMP pAst;
+   PHB_ASTDECL pDecl;
+   HB_BOOL fBlock;
+
+   if( ! HB_COMP_PARAM->fAst )
+      return;
+
+   pAst = hb_compAstDump( HB_COMP_PARAM );
+   if( pAst->nDeclCount == pAst->nDeclAlloc )
+   {
+      pAst->nDeclAlloc += HB_AST_ALLOC_BASE;
+      pAst->pDecls = ( HB_ASTDECL * ) hb_xrealloc( pAst->pDecls,
+                              pAst->nDeclAlloc * sizeof( HB_ASTDECL ) );
+   }
+   pDecl = &pAst->pDecls[ pAst->nDeclCount++ ];
+   pDecl->szSym   = szVarName;
+   pDecl->pFunc   = hb_compAstOwner( HB_COMP_PARAM, &fBlock );
+   pDecl->iLine   = HB_COMP_PARAM->currLine;
+   pDecl->iScope  = HB_COMP_PARAM->iVarScope;
+   pDecl->cType   = pVarType ? pVarType->cVarType : ' ';
+   pDecl->szClass = pVarType ? pVarType->szFromClass : NULL;
 }
 
 void hb_compAstUse( HB_COMP_DECL, const char * szVarName, int iScope, int iAccess )
@@ -939,25 +985,84 @@ static int hb_compAstFuncLine( PHB_ASTDUMP pAst, PHB_HFUNC pFunc )
    return 0;
 }
 
-static void hb_compAstWriteVars( FILE * file, PHB_HVAR pVar,
-                                 const char * szScope, int iParamCount,
-                                 HB_BOOL * pfFirst )
+/* declaration scope (HB_VSCOMP_* at declaration time) -> schema string;
+   the strings match the ast-3 vocabulary, "public" is new in ast-4 */
+static const char * hb_compAstDeclScope( int iScope )
 {
-   int iVarPos = 1;
+   if( iScope & HB_VSCOMP_FIELD )
+      return "field";
+   if( iScope & HB_VSCOMP_STATIC )
+      return "static";
+   if( ( iScope & HB_VSCOMP_MEMVAR ) == HB_VSCOMP_MEMVAR )
+      return "memvar";
+   if( iScope & HB_VSCOMP_PRIVATE )
+      return "private";
+   if( iScope & HB_VSCOMP_PUBLIC )
+      return "public";
+   return "local";
+}
 
-   while( pVar )
+/* declared type char + AS CLASS name; nothing emitted for untyped */
+static void hb_compAstWriteType( FILE * file, HB_BYTE cType, const char * szClass )
+{
+   if( cType != ' ' && cType != '\0' )
+      fprintf( file, ", \"type\": \"%c\"", cType );
+   if( szClass )
    {
-      if( ! *pfFirst )
-         fprintf( file, "," );
-      *pfFirst = HB_FALSE;
-      fprintf( file, "\n      { \"sym\": " );
-      hb_compAstWriteStr( file, pVar->szName );
-      fprintf( file, ", \"scope\": \"%s\", \"declLine\": %d, \"used\": %d, \"param\": %s }",
-               szScope, pVar->iDeclLine, pVar->iUsed,
-               iVarPos <= iParamCount ? "true" : "false" );
-      ++iVarPos;
-      pVar = pVar->pNext;
+      fprintf( file, ", \"class\": " );
+      hb_compAstWriteStr( file, szClass );
    }
+}
+
+/* one declared function/method signature (HB_HDECLARED). Parameter type
+   chars may carry the BYREF (+60) / OPTIONAL (+90) offsets of the
+   declaration subsystem - decoded best effort, the ranges overlap */
+static void hb_compAstWriteDeclared( FILE * file, PHB_HDECLARED pDeclared,
+                                     HB_BOOL * pfFirst )
+{
+   HB_USHORT i;
+
+   if( ! *pfFirst )
+      fprintf( file, "," );
+   *pfFirst = HB_FALSE;
+   fprintf( file, "\n      { \"name\": " );
+   hb_compAstWriteStr( file, pDeclared->szName );
+   /* pClass (and pParamClasses[ i ] below) are only WRITTEN by the
+      subsystem when the type char is 'S'/'s' - garbage otherwise */
+   hb_compAstWriteType( file, pDeclared->cType,
+                        ( HB_TOUPPER( pDeclared->cType ) == 'S' &&
+                          pDeclared->pClass ) ?
+                        pDeclared->pClass->szName : NULL );
+   fprintf( file, ", \"params\": [" );
+   for( i = 0; i < pDeclared->iParamCount; ++i )
+   {
+      int iType = pDeclared->cParamTypes ? pDeclared->cParamTypes[ i ] : ' ';
+      HB_BOOL fByRef = HB_FALSE, fOptional = HB_FALSE;
+
+      if( iType > 122 + 60 )
+      {
+         fOptional = HB_TRUE;
+         iType -= 90;
+      }
+      else if( iType > 122 )
+      {
+         fByRef = HB_TRUE;
+         iType -= 60;
+      }
+      fprintf( file, "%s{", i ? ", " : " " );
+      if( iType != ' ' && iType != '\0' )
+         fprintf( file, " \"type\": \"%c\",", iType );
+      if( ( iType == 'S' || iType == 's' ) &&
+          pDeclared->pParamClasses && pDeclared->pParamClasses[ i ] )
+      {
+         fprintf( file, " \"class\": " );
+         hb_compAstWriteStr( file, pDeclared->pParamClasses[ i ]->szName );
+         fprintf( file, "," );
+      }
+      fprintf( file, " \"byref\": %s, \"optional\": %s }",
+               fByRef ? "true" : "false", fOptional ? "true" : "false" );
+   }
+   fprintf( file, "%s] }", pDeclared->iParamCount ? " " : "" );
 }
 
 /* one derivation fact inside a "from" list (ast-3): which match marker
@@ -1186,6 +1291,49 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
       fprintf( file, "%s ],", iCount ? "\n  " : "" );
    }
 
+   /* the DECLARE subsystem tables (language-level type declarations:
+      DECLARE CLASS/_HB_CLASS, DECLARE_MEMBER/_HB_MEMBER, DECLARE fun()),
+      still alive here - hb_compDeclaredReset() only runs when the NEXT
+      module starts; kept populated at any -w level by the fAst gates */
+   fprintf( file, "\n  \"declared\": { \"classes\": [" );
+   {
+      PHB_HCLASS pClass = HB_COMP_PARAM->pFirstClass;
+      HB_BOOL fFirstDecl = HB_TRUE;
+
+      while( pClass )
+      {
+         PHB_HDECLARED pMethod = pClass->pMethod;
+         HB_BOOL fFirstMth = HB_TRUE;
+
+         if( ! fFirstDecl )
+            fprintf( file, "," );
+         fFirstDecl = HB_FALSE;
+         fprintf( file, "\n    { \"name\": " );
+         hb_compAstWriteStr( file, pClass->szName );
+         fprintf( file, ", \"methods\": [" );
+         while( pMethod )
+         {
+            hb_compAstWriteDeclared( file, pMethod, &fFirstMth );
+            pMethod = pMethod->pNext;
+         }
+         fprintf( file, "%s ] }", fFirstMth ? "" : "\n    " );
+         pClass = pClass->pNext;
+      }
+      fprintf( file, "%s ],\n    \"functions\": [", fFirstDecl ? "" : "\n  " );
+
+      fFirstDecl = HB_TRUE;
+      {
+         PHB_HDECLARED pDeclared = HB_COMP_PARAM->pFirstDeclared;
+
+         while( pDeclared )
+         {
+            hb_compAstWriteDeclared( file, pDeclared, &fFirstDecl );
+            pDeclared = pDeclared->pNext;
+         }
+      }
+      fprintf( file, "%s ] },", fFirstDecl ? "" : "\n    " );
+   }
+
    fprintf( file, "\n  \"functions\": [" );
 
    fFirstFunc = HB_TRUE;
@@ -1209,11 +1357,24 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
 
       fprintf( file, "\n    \"declarations\": [" );
       fFirst = HB_TRUE;
-      hb_compAstWriteVars( file, pFunc->pLocals, "local", pFunc->wParamCount, &fFirst );
-      hb_compAstWriteVars( file, pFunc->pStatics, "static", 0, &fFirst );
-      hb_compAstWriteVars( file, pFunc->pFields, "field", 0, &fFirst );
-      hb_compAstWriteVars( file, pFunc->pMemvars, "memvar", 0, &fFirst );
-      hb_compAstWriteVars( file, pFunc->pPrivates, "private", 0, &fFirst );
+      for( n = 0; n < pAst->nDeclCount; ++n )
+      {
+         PHB_ASTDECL pDecl = &pAst->pDecls[ n ];
+
+         if( pDecl->pFunc == pFunc )
+         {
+            if( ! fFirst )
+               fprintf( file, "," );
+            fFirst = HB_FALSE;
+            fprintf( file, "\n      { \"sym\": " );
+            hb_compAstWriteStr( file, pDecl->szSym );
+            fprintf( file, ", \"scope\": \"%s\", \"declLine\": %d, \"param\": %s",
+                     hb_compAstDeclScope( pDecl->iScope ), pDecl->iLine,
+                     ( pDecl->iScope & HB_VSCOMP_PARAMETER ) ? "true" : "false" );
+            hb_compAstWriteType( file, pDecl->cType, pDecl->szClass );
+            fprintf( file, " }" );
+         }
+      }
       fprintf( file, "%s ],", fFirst ? "" : "\n   " );
 
       fprintf( file, "\n    \"occurrences\": [" );
@@ -1350,6 +1511,8 @@ void hb_compAstFree( HB_COMP_DECL )
          hb_xfree( pAst->pNodes );
       if( pAst->pFuncs )
          hb_xfree( pAst->pFuncs );
+      if( pAst->pDecls )
+         hb_xfree( pAst->pDecls );
       if( pAst->pUses )
          hb_xfree( pAst->pUses );
       if( pAst->pCalls )
