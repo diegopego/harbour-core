@@ -855,6 +855,29 @@ static PHB_PP_TOKEN hb_pp_tokenClone( PHB_PP_STATE pState, PHB_PP_TOKEN pSource 
    so this is the only record of where they live in the source.  A rule
    applied without a registration record (built-in table rules, defines
    added through the API) gets one lazily, with no file/line */
+/* one token of a rule's match or result pattern, copied at registration
+   time (like the application records: later token mutations cannot
+   corrupt the copy).  Optional groups are flattened to open/close pseudo
+   entries around their content; the literal alternatives of a restrict
+   marker follow their marker entry carrying its number.  The order is
+   the STORED order of the rule - the one the PP matches with - which for
+   consecutive optional groups may differ from the source order (the
+   registration reorders keyword-less groups); source order is
+   recoverable through the token positions */
+typedef struct
+{
+   char *    szText;          /* NULL for the opt-open/close pseudo entries */
+   HB_SIZE   nLen;
+   HB_USHORT type;            /* HB_PP_TOKEN_TYPE(): the marker kind for
+                                 markers, the raw token type otherwise */
+   HB_USHORT marker;          /* match marker number; 0 = none/unnumbered */
+   char      cRole;           /* 'l'iteral, 'm'arker, 'r'estrict alternative,
+                                 '[' / ']' optional group open/close */
+   int       iLine;           /* 0 = no source position */
+   int       iCol;            /* -1 = no source column */
+   HB_BOOL   fMainFile;
+} HB_PP_RULETOKEN, * PHB_PP_RULETOKEN;
+
 typedef struct
 {
    const void * pRule;        /* rule identity at registration; a recycled
@@ -865,6 +888,10 @@ typedef struct
    HB_BOOL   fX;              /* #x... variant (non-abbreviable keywords) */
    char *    szHead;          /* head keyword, NULL when it is a marker */
    HB_USHORT markers;         /* number of match markers */
+   HB_PP_RULETOKEN * pMatchToks;   /* the rule seen from inside: */
+   int       iMatchCount;          /* one entry per pattern token */
+   HB_PP_RULETOKEN * pResultToks;
+   int       iResultCount;
 } HB_PP_RULEREC, * PHB_PP_RULEREC;
 
 typedef struct
@@ -917,10 +944,26 @@ static void hb_pp_ruleTblFree( PHB_PP_STATE pState )
 
       for( n = 0; n < pTbl->nRuleCount; ++n )
       {
+         int i;
+
          if( pTbl->pRules[ n ].szFile )
             hb_xfree( pTbl->pRules[ n ].szFile );
          if( pTbl->pRules[ n ].szHead )
             hb_xfree( pTbl->pRules[ n ].szHead );
+         for( i = 0; i < pTbl->pRules[ n ].iMatchCount; ++i )
+         {
+            if( pTbl->pRules[ n ].pMatchToks[ i ].szText )
+               hb_xfree( pTbl->pRules[ n ].pMatchToks[ i ].szText );
+         }
+         if( pTbl->pRules[ n ].pMatchToks )
+            hb_xfree( pTbl->pRules[ n ].pMatchToks );
+         for( i = 0; i < pTbl->pRules[ n ].iResultCount; ++i )
+         {
+            if( pTbl->pRules[ n ].pResultToks[ i ].szText )
+               hb_xfree( pTbl->pRules[ n ].pResultToks[ i ].szText );
+         }
+         if( pTbl->pRules[ n ].pResultToks )
+            hb_xfree( pTbl->pRules[ n ].pResultToks );
       }
       for( n = 0; n < pTbl->nTokCount; ++n )
       {
@@ -939,11 +982,97 @@ static void hb_pp_ruleTblFree( PHB_PP_STATE pState )
    }
 }
 
+/* append one entry to a rule pattern snapshot (see HB_PP_RULETOKEN) */
+static void hb_pp_ruleTokAdd( HB_PP_RULETOKEN ** pToksPtr, int * piCount,
+                              int * piAlloc, const char * szText,
+                              HB_SIZE nLen, HB_USHORT type, HB_USHORT marker,
+                              char cRole, PHB_PP_POSITEM pPos )
+{
+   PHB_PP_RULETOKEN pTok;
+
+   if( *piCount == *piAlloc )
+   {
+      *piAlloc += 16;
+      *pToksPtr = ( HB_PP_RULETOKEN * ) hb_xrealloc( *pToksPtr,
+                                 *piAlloc * sizeof( HB_PP_RULETOKEN ) );
+   }
+   pTok = &( *pToksPtr )[ ( *piCount )++ ];
+   pTok->szText    = szText ? hb_strndup( szText, nLen ) : NULL;
+   pTok->nLen      = nLen;
+   pTok->type      = type;
+   pTok->marker    = marker;
+   pTok->cRole     = cRole;
+   pTok->iLine     = pPos ? pPos->iLine : 0;
+   pTok->iCol      = pPos ? pPos->iCol : -1;
+   pTok->fMainFile = pPos ? pPos->fMainFile : HB_FALSE;
+}
+
+/* snapshot a rule's match or result token list at registration time:
+   roles come from the pattern parse the PP itself did (marker types are
+   already set on the surviving name tokens, optional groups hang off
+   their marker token) and positions from the position table, which at
+   this moment still holds a live entry for every token cut from a
+   directive line.  Optional groups recurse (the match side may nest) */
+static void hb_pp_ruleTokWalk( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
+                               HB_BOOL fResult,
+                               HB_PP_RULETOKEN ** pToksPtr,
+                               int * piCount, int * piAlloc )
+{
+   while( pToken )
+   {
+      HB_USHORT type = HB_PP_TOKEN_TYPE( pToken->type );
+      PHB_PP_POSITEM pPos = hb_pp_posFind( pState, pToken );
+
+      if( type == HB_PP_MMARKER_OPTIONAL || type == HB_PP_RMARKER_OPTIONAL )
+      {
+         hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, NULL, 0, type, 0,
+                           '[', NULL );
+         hb_pp_ruleTokWalk( pState, pToken->pMTokens, fResult,
+                            pToksPtr, piCount, piAlloc );
+         hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, NULL, 0, type, 0,
+                           ']', NULL );
+      }
+      else if( ! fResult && type >= HB_PP_MMARKER_REGULAR &&
+               type <= HB_PP_MMARKER_NAME )
+      {
+         hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, pToken->value,
+                           pToken->len, type, pToken->index, 'm', pPos );
+         if( type == HB_PP_MMARKER_RESTRICT )
+         {
+            PHB_PP_TOKEN pAlt = pToken->pMTokens;
+
+            while( pAlt )
+            {
+               hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, pAlt->value,
+                                 pAlt->len, HB_PP_TOKEN_TYPE( pAlt->type ),
+                                 pToken->index, 'r',
+                                 hb_pp_posFind( pState, pAlt ) );
+               pAlt = pAlt->pNext;
+            }
+         }
+      }
+      else if( fResult && type >= HB_PP_RMARKER_REGULAR &&
+               type <= HB_PP_RMARKER_REFERENCE &&
+               type != HB_PP_RMARKER_OPTIONAL )
+      {
+         hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, pToken->value,
+                           pToken->len, type, pToken->index, 'm', pPos );
+      }
+      else
+      {
+         hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, pToken->value,
+                           pToken->len, type, 0, 'l', pPos );
+      }
+      pToken = pToken->pNext;
+   }
+}
+
 static int hb_pp_trackRuleAdd( PHB_PP_STATE pState, PHB_PP_RULE pRule,
                                char cType, const char * szFile, int iLine )
 {
    PHB_PP_RULETBL pTbl;
    PHB_PP_RULEREC pRec;
+   int iAlloc;
 
    if( ! pState->pRuleTbl )
       pState->pRuleTbl = hb_xgrabz( sizeof( HB_PP_RULETBL ) );
@@ -964,6 +1093,15 @@ static int hb_pp_trackRuleAdd( PHB_PP_STATE pState, PHB_PP_RULE pRule,
    pRec->szHead  = HB_PP_TOKEN_ISMATCH( pRule->pMatch ) ? NULL :
                    hb_strdup( pRule->pMatch->value );
    pRec->markers = pRule->markers;
+
+   pRec->pMatchToks = NULL;
+   pRec->iMatchCount = iAlloc = 0;
+   hb_pp_ruleTokWalk( pState, pRule->pMatch, HB_FALSE,
+                      &pRec->pMatchToks, &pRec->iMatchCount, &iAlloc );
+   pRec->pResultToks = NULL;
+   pRec->iResultCount = iAlloc = 0;
+   hb_pp_ruleTokWalk( pState, pRule->pResult, HB_TRUE,
+                      &pRec->pResultToks, &pRec->iResultCount, &iAlloc );
 
    return ( int ) pTbl->nRuleCount++;
 }
@@ -6224,6 +6362,61 @@ HB_BOOL hb_pp_trackRuleGet( PHB_PP_STATE pState, int iRule,
          *pszHead = pRec->szHead;
       if( piMarkers )
          *piMarkers = pRec->markers;
+      return HB_TRUE;
+   }
+   return HB_FALSE;
+}
+
+/* the tracked rule seen from inside (see HB_PP_RULETOKEN): one entry per
+   match/result pattern token, in the rule's STORED order, with the role
+   the PP assigned when it parsed the directive and the source position
+   of the token in the directive's file */
+int hb_pp_trackRuleTokenCount( PHB_PP_STATE pState, int iRule,
+                               HB_BOOL fResult )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && iRule >= 0 && ( HB_SIZE ) iRule < pTbl->nRuleCount )
+      return fResult ? pTbl->pRules[ iRule ].iResultCount :
+                       pTbl->pRules[ iRule ].iMatchCount;
+   return 0;
+}
+
+HB_BOOL hb_pp_trackRuleToken( PHB_PP_STATE pState, int iRule,
+                              HB_BOOL fResult, int iToken,
+                              const char ** pszText, HB_SIZE * pnLen,
+                              int * piType, int * piMarker, char * pcRole,
+                              int * piLine, int * piCol,
+                              HB_BOOL * pfMainFile )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && iRule >= 0 && ( HB_SIZE ) iRule < pTbl->nRuleCount )
+   {
+      PHB_PP_RULEREC pRec = &pTbl->pRules[ iRule ];
+      PHB_PP_RULETOKEN pTok;
+
+      if( iToken < 0 ||
+          iToken >= ( fResult ? pRec->iResultCount : pRec->iMatchCount ) )
+         return HB_FALSE;
+      pTok = fResult ? &pRec->pResultToks[ iToken ] :
+                       &pRec->pMatchToks[ iToken ];
+      if( pszText )
+         *pszText = pTok->szText;
+      if( pnLen )
+         *pnLen = pTok->nLen;
+      if( piType )
+         *piType = pTok->type;
+      if( piMarker )
+         *piMarker = pTok->marker;
+      if( pcRole )
+         *pcRole = pTok->cRole;
+      if( piLine )
+         *piLine = pTok->iLine;
+      if( piCol )
+         *piCol = pTok->iCol;
+      if( pfMainFile )
+         *pfMainFile = pTok->fMainFile;
       return HB_TRUE;
    }
    return HB_FALSE;

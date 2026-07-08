@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-4"
+#define HB_AST_SCHEMA         "ast-5"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -1079,6 +1079,92 @@ static void hb_compAstWriteFromItem( FILE * file, HB_BOOL fFirst, int iApp,
             nAt, nLen );
 }
 
+/* marker kind vocabulary of the PP pattern parse (hbpp.h): the match
+   side and the result side use disjoint constant ranges */
+static const char * hb_compAstRuleMkind( int iType )
+{
+   switch( iType )
+   {
+      case HB_PP_MMARKER_REGULAR:   return "regular";
+      case HB_PP_MMARKER_LIST:      return "list";
+      case HB_PP_MMARKER_RESTRICT:  return "restrict";
+      case HB_PP_MMARKER_WILD:      return "wild";
+      case HB_PP_MMARKER_EXTEXP:    return "extexp";
+      case HB_PP_MMARKER_NAME:      return "name";
+      case HB_PP_RMARKER_REGULAR:   return "regular";
+      case HB_PP_RMARKER_STRDUMP:   return "strdump";
+      case HB_PP_RMARKER_STRSTD:    return "strstd";
+      case HB_PP_RMARKER_STRSMART:  return "strsmart";
+      case HB_PP_RMARKER_BLOCK:     return "block";
+      case HB_PP_RMARKER_LOGICAL:   return "logical";
+      case HB_PP_RMARKER_NUL:       return "nul";
+      case HB_PP_RMARKER_DYNVAL:    return "dynval";
+      case HB_PP_RMARKER_REFERENCE: return "reference";
+   }
+   return "unknown";
+}
+
+/* one side (match or result) of a tracked rule, seen from inside: the
+   token roles the PP assigned parsing the directive, in the rule's
+   STORED order (consecutive keyword-less optional groups are reordered
+   by the PP at registration - source order is recoverable through the
+   positions).  Unlike tokens[], the column IS emitted for include-file
+   tokens: the rule record names the directive's file, and rules live in
+   .ch files - a position outside that file (a rule defined inside
+   another rule's expansion) simply fails the consumer's byte-exact check
+   against it */
+static void hb_compAstWriteRuleToks( FILE * file, PHB_PP_STATE pPP,
+                                     int iRule, HB_BOOL fResult )
+{
+   int iCount = hb_pp_trackRuleTokenCount( pPP, iRule, fResult );
+   int i;
+
+   fprintf( file, "[" );
+   for( i = 0; i < iCount; ++i )
+   {
+      const char * szText;
+      HB_SIZE nLen;
+      int iType, iMarker, iLine, iCol;
+      char cRole;
+      HB_BOOL fMain;
+
+      hb_pp_trackRuleToken( pPP, iRule, fResult, i, &szText, &nLen, &iType,
+                            &iMarker, &cRole, &iLine, &iCol, &fMain );
+      fprintf( file, "%s\n        ", i ? "," : "" );
+      if( cRole == '[' || cRole == ']' )
+      {
+         fprintf( file, "{ \"role\": \"opt-%s\" }",
+                  cRole == '[' ? "open" : "close" );
+         continue;
+      }
+      fprintf( file, "{ \"role\": \"%s\", ",
+               cRole == 'm' ? "marker" :
+               cRole == 'r' ? "restrict" : "literal" );
+      if( cRole == 'm' )
+         fprintf( file, "\"marker\": %d, \"mkind\": \"%s\", ", iMarker,
+                  hb_compAstRuleMkind( iType ) );
+      else
+      {
+         if( cRole == 'r' )
+            fprintf( file, "\"marker\": %d, ", iMarker );
+         fprintf( file, "\"type\": %d, ", iType );
+      }
+      if( iLine > 0 )
+         fprintf( file, "\"line\": %d, ", iLine );
+      else
+         fprintf( file, "\"line\": null, " );
+      if( iCol >= 0 )
+         fprintf( file, "\"col\": %d, ", iCol );
+      else
+         fprintf( file, "\"col\": null, " );
+      fprintf( file, "\"len\": %" HB_PFS "u, \"prov\": \"%c\", \"text\": ",
+               nLen, iLine > 0 ? ( fMain ? 's' : 'i' ) : 'n' );
+      hb_compAstWriteStr( file, szText );
+      fprintf( file, " }" );
+   }
+   fprintf( file, "%s]", iCount ? "\n      " : "" );
+}
+
 HB_BOOL hb_compAstSave( HB_COMP_DECL )
 {
    PHB_ASTDUMP pAst;
@@ -1226,7 +1312,11 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             hb_compAstWriteStr( file, szHead );
          else
             fprintf( file, "null" );
-         fprintf( file, ", \"markers\": %d }", iMarkers );
+         fprintf( file, ", \"markers\": %d,\n      \"match\": ", iMarkers );
+         hb_compAstWriteRuleToks( file, pPP, i, HB_FALSE );
+         fprintf( file, ",\n      \"result\": " );
+         hb_compAstWriteRuleToks( file, pPP, i, HB_TRUE );
+         fprintf( file, " }" );
       }
       fprintf( file, "%s ],", iCount ? "\n  " : "" );
 

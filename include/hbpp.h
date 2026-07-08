@@ -698,6 +698,15 @@ extern HB_EXPORT HB_BOOL hb_pp_trackRuleGet( PHB_PP_STATE pState, int iRule,
                                              int * piType, HB_BOOL * pfX,
                                              const char ** pszFile, int * piLine,
                                              const char ** pszHead, int * piMarkers );
+extern HB_EXPORT int     hb_pp_trackRuleTokenCount( PHB_PP_STATE pState,
+                                                    int iRule, HB_BOOL fResult );
+extern HB_EXPORT HB_BOOL hb_pp_trackRuleToken( PHB_PP_STATE pState, int iRule,
+                                               HB_BOOL fResult, int iToken,
+                                               const char ** pszText,
+                                               HB_SIZE * pnLen, int * piType,
+                                               int * piMarker, char * pcRole,
+                                               int * piLine, int * piCol,
+                                               HB_BOOL * pfMainFile );
 extern HB_EXPORT int     hb_pp_trackApplyCount( PHB_PP_STATE pState );
 extern HB_EXPORT HB_BOOL hb_pp_trackApplyGet( PHB_PP_STATE pState, int iApply,
                                               int * piRule, int * piLine,
