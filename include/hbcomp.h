@@ -346,6 +346,7 @@ extern void hb_compAstTag( HB_COMP_DECL, const char * szVarName, int iAccess );
 extern void hb_compAstCallAdd( HB_COMP_DECL, const char * szFunName );
 extern void hb_compAstSendAdd( HB_COMP_DECL, const char * szMsgName );
 extern void hb_compAstBlock( HB_COMP_DECL, int iKind, int iEvent );
+extern void hb_compAstReturn( HB_COMP_DECL );
 
 #if defined( HB_MACRO_SUPPORT )
    #define HB_COMP_AST_STATEMENT( pExpr )   do {} while( 0 )

@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-5"
+#define HB_AST_SCHEMA         "ast-6"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -152,6 +152,7 @@ typedef struct
    char *    szJson;          /* serialized expression tree */
    char      cKind;           /* 's' statement, 'p' pushed expression */
    HB_BOOL   fBlock;
+   HB_BOOL   fRet;            /* pushed expression is a RETURN value */
 } HB_ASTSTMT, * PHB_ASTSTMT;
 
 typedef struct _HB_ASTDUMP
@@ -191,6 +192,8 @@ typedef struct _HB_ASTDUMP
    HB_ASTSTMT *  pStmts;
    HB_SIZE       nStmtCount;
    HB_SIZE       nStmtAlloc;
+
+   HB_BOOL       fRetPending; /* next pushed expression is a RETURN value */
 
    char *        szModule;    /* source module name captured at parse time */
 } HB_ASTDUMP, * PHB_ASTDUMP;
@@ -860,9 +863,21 @@ void hb_compAstStatement( HB_COMP_DECL, PHB_EXPR pExpr, int iKind )
    pStmt->szJson = buf.pData;
    pStmt->cKind  = ( char ) iKind;
    pStmt->fBlock = fBlock;
+   pStmt->fRet   = pAst->fRetPending && iKind == 'p';
+   pAst->fRetPending = HB_FALSE;
 
    HB_SYMBOL_UNUSED( nTokMin );
    HB_SYMBOL_UNUSED( nTokMax );
+}
+
+/* arm the RETURN flag for the push that immediately follows: called from
+   the RETURN Expression grammar action right before hb_compExprGenPush(),
+   whose hb_compAstStatement() record consumes the flag - this is the only
+   spot where the compiler still knows the push carries the RETURN value */
+void hb_compAstReturn( HB_COMP_DECL )
+{
+   if( HB_COMP_PARAM->fAst )
+      hb_compAstDump( HB_COMP_PARAM )->fRetPending = HB_TRUE;
 }
 
 /* --- JSON output --------------------------------------------------------- */
@@ -1559,9 +1574,10 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             if( ! fFirst )
                fprintf( file, "," );
             fFirst = HB_FALSE;
-            fprintf( file, "\n      { \"kind\": \"%s\", \"line\": %d, \"block\": %s, \"expr\": %s }",
+            fprintf( file, "\n      { \"kind\": \"%s\", \"line\": %d, \"block\": %s,%s \"expr\": %s }",
                      pStmt->cKind == 's' ? "stmt" : "push",
                      pStmt->iLine, pStmt->fBlock ? "true" : "false",
+                     pStmt->fRet ? " \"ret\": true," : "",
                      pStmt->szJson ? pStmt->szJson : "null" );
          }
       }
