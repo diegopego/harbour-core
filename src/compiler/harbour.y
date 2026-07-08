@@ -426,6 +426,8 @@ Statement  : ExecFlow CrlfStmnt
                            hb_compGenError( HB_COMP_PARAM, hb_comp_szErrors, 'E', HB_COMP_ERR_EXIT_IN_SEQUENCE, "RETURN", NULL );
                         }
                         /* TODO: check if return value agree with declared value */
+                        if( HB_COMP_PARAM->fAst )
+                           hb_compAstReturn( HB_COMP_PARAM );
                         HB_COMP_EXPR_FREE( hb_compExprGenPush( $3, HB_COMP_PARAM ) );
                         if( HB_COMP_PARAM->functions.pLast->funFlags & HB_FUNF_EXTBLOCK )
                            /* extended clodeblock, use HB_P_ENDBLOCK to return value and stop execution */
