@@ -606,6 +606,22 @@ static PHB_PP_POSITEM hb_pp_posFind( PHB_PP_STATE pState, PHB_PP_TOKEN pKey )
    return NULL;
 }
 
+/* free the position table: called from hb_pp_reset() - the entries key
+   token pointers of the module just compiled, and a recycled pointer
+   with matching value/len in the next module would inherit a stale
+   position (ghost provenance) - and from the destructor */
+static void hb_pp_posTblFree( PHB_PP_STATE pState )
+{
+   PHB_PP_POSTBL pTbl = ( PHB_PP_POSTBL ) pState->pPosTbl;
+
+   if( pTbl )
+   {
+      hb_xfree( pTbl->pItems );
+      hb_xfree( pTbl );
+      pState->pPosTbl = NULL;
+   }
+}
+
 /* record the position of a token cut from the current physical input
    line: value still points into the line buffer at this moment */
 static void hb_pp_posTrack( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
@@ -2906,11 +2922,7 @@ static void hb_pp_stateFree( PHB_PP_STATE pState )
    hb_pp_tokenListFree( &pState->pFuncOut );
    hb_pp_tokenListFree( &pState->pFuncEnd );
 
-   if( pState->pPosTbl )
-   {
-      hb_xfree( ( ( PHB_PP_POSTBL ) pState->pPosTbl )->pItems );
-      hb_xfree( pState->pPosTbl );
-   }
+   hb_pp_posTblFree( pState );
    hb_pp_ruleTblFree( pState );
    hb_pp_drvTblFree( pState );
 
@@ -6696,9 +6708,12 @@ void hb_pp_reset( PHB_PP_STATE pState )
 
    /* rule tracking records are per compiled module, like the AST dump
       which consumes them; the derivation table references application
-      indices of those records, so it resets together */
+      indices of those records, so it resets together; the position
+      table keys token pointers of the module just compiled - stale
+      entries could ghost-match recycled pointers in the next module */
    hb_pp_ruleTblFree( pState );
    hb_pp_drvTblFree( pState );
+   hb_pp_posTblFree( pState );
    pState->iDrvApp = -1;
 }
 
