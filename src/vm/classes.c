@@ -4259,6 +4259,87 @@ HB_FUNC( __CLSPARENT )
             hb_clsIsParent( ( HB_USHORT ) hb_parni( 1 ), szParentName ) );
 }
 
+/* __hb_ChkType( <xValue>, <cSpec>, <cSite> ) --> <xValue>
+ * -kt runtime helper: imposes the language's declared type annotations
+ * (AS <type>/AS CLASS). <cSpec> is the declaration's type letter as the
+ * compiler stores it ('N','C','D','L','B','O','A'; lowercase = array-of;
+ * 'S'/'s' followed by ":<ClassName>"); <cSite> names "<func>:<symbol>"
+ * for the error. Annotated means REQUIRED and of the type: NIL fails.
+ * Class check is is-a on the LIVE object (subclass passes; classes built
+ * at runtime pass by name). Returns the value unchanged, so RETURN
+ * expressions can be wrapped. Violation raises a regular catchable
+ * runtime error naming site, declared and received types.
+ */
+HB_FUNC( __HB_CHKTYPE )
+{
+   HB_STACK_TLS_PRELOAD
+   PHB_ITEM pVal = hb_param( 1, HB_IT_ANY );
+   const char * szSpec = hb_parc( 2 );
+   const char * szSite = hb_parc( 3 );
+   HB_BOOL fOk = HB_FALSE;
+
+   if( pVal && szSpec && szSpec[ 0 ] )
+   {
+      char cType = szSpec[ 0 ];
+
+      switch( cType )
+      {
+         case 'N':
+            fOk = HB_IS_NUMERIC( pVal );
+            break;
+         case 'C':
+            fOk = HB_IS_STRING( pVal );
+            break;
+         case 'D':
+            fOk = HB_IS_DATETIME( pVal );
+            break;
+         case 'L':
+            fOk = HB_IS_LOGICAL( pVal );
+            break;
+         case 'B':
+            fOk = HB_IS_BLOCK( pVal );
+            break;
+         case 'O':
+            fOk = HB_IS_OBJECT( pVal );
+            break;
+         case 'S':
+            if( HB_IS_OBJECT( pVal ) && szSpec[ 1 ] == ':' )
+            {
+               HB_USHORT uiClass = hb_objGetClass( pVal );
+
+               fOk = uiClass != 0 &&
+                     ( hb_stricmp( hb_clsName( uiClass ), szSpec + 2 ) == 0 ||
+                       hb_clsIsParent( uiClass, szSpec + 2 ) );
+            }
+            break;
+         default:
+            /* lowercase letters: array-of declarations - the slice
+             * imposes the container kind (elements stay unchecked) */
+            fOk = cType >= 'a' && cType <= 's' &&
+                  HB_IS_ARRAY( pVal ) && ! HB_IS_OBJECT( pVal );
+            break;
+      }
+   }
+
+   if( fOk )
+      hb_itemReturn( pVal );
+   else
+   {
+      char szDesc[ 128 + HB_SYMBOL_NAME_LEN ];
+
+      hb_snprintf( szDesc, sizeof( szDesc ),
+                   "declared type check failed: expected %s, got %s",
+                   szSpec ? szSpec : "?",
+                   pVal ? ( HB_IS_OBJECT( pVal ) ? hb_objGetClsName( pVal )
+                                                 : hb_itemTypeStr( pVal ) )
+                        : "NIL" );
+      pVal = hb_errRT_BASE_Subst( EG_ARG, 3012, szDesc,
+                                  szSite ? szSite : "__hb_ChkType", 1, pVal );
+      if( pVal )
+         hb_itemReturn( pVal );
+   }
+}
+
 /* __Sender() --> <obj> | NIL
  * returns sender object
  */

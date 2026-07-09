@@ -127,6 +127,7 @@ void hb_compPrintModes( HB_COMP_DECL )
       "\n          x[-]            extended Xbase++ mode",
       "\n          u[-]            strings in user encoding",
       "\n          d[-]            accept macros with declared symbols",
+      "\n          t[-]            runtime checks for AS type annotations",
       "\n          m[+]            turn off macrotext substitution",
       "\n          j[+]            turn off jump optimization in pcode",
       "\n          ?               this info",
@@ -143,6 +144,7 @@ void hb_compPrintModes( HB_COMP_DECL )
       HB_COMPFLAG_XBASE,
       HB_COMPFLAG_USERCP,
       HB_COMPFLAG_MACRODECL,
+      HB_COMPFLAG_CHKTYPE,
       ~HB_COMPFLAG_MACROTEXT,
       ~HB_COMPFLAG_OPTJUMP,
    };

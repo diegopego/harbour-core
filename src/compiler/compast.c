@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-6"
+#define HB_AST_SCHEMA         "ast-7"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -114,6 +114,9 @@ typedef struct
    int          iScope;       /* HB_VSCOMP_* value at declaration */
    HB_BYTE      cType;        /* declared type char, ' ' = none */
    const char * szClass;      /* AS CLASS name as written, NULL = none */
+   HB_BOOL      fDim;         /* dimensioned form (LOCAL a[ n ]): the 'A'
+                                 is the array form's internal mark, not a
+                                 written AS annotation (ast-7) */
 } HB_ASTDECL, * PHB_ASTDECL;
 
 typedef struct
@@ -432,6 +435,18 @@ void hb_compAstDecl( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType 
    pDecl->iScope  = HB_COMP_PARAM->iVarScope;
    pDecl->cType   = pVarType ? pVarType->cVarType : ' ';
    pDecl->szClass = pVarType ? pVarType->szFromClass : NULL;
+   pDecl->fDim    = HB_FALSE;
+}
+
+/* retro-tags the declaration just recorded as the DIMENSIONED form
+   (same pattern as hb_compAstTag): hb_compVariableDim() only knows it
+   right after hb_compVariableAdd() already fired the capture */
+void hb_compAstDeclDim( HB_COMP_DECL )
+{
+   PHB_ASTDUMP pAst = HB_COMP_PARAM->pAst;
+
+   if( pAst && pAst->nDeclCount )
+      pAst->pDecls[ pAst->nDeclCount - 1 ].fDim = HB_TRUE;
 }
 
 void hb_compAstUse( HB_COMP_DECL, const char * szVarName, int iScope, int iAccess )
@@ -1263,6 +1278,12 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
    fprintf( file, ",\n  \"hasCDump\": %s,",
             HB_COMP_PARAM->inlines.iCount > 0 ? "true" : "false" );
 
+   /* ast-7: was the module compiled with -kt (runtime checks for the
+      declared type annotations)? an annotated symbol in a -kt module is
+      an imposed invariant - the consumer's "guaranteed" layer keys on it */
+   fprintf( file, "\n  \"kt\": %s,",
+            HB_SUPPORT_CHKTYPE ? "true" : "false" );
+
    /* the consumed token stream: index in this array is the id that the
       statement nodes reference through their "tok" field */
    fprintf( file, "\n  \"tokens\": [" );
@@ -1476,6 +1497,8 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             fprintf( file, ", \"scope\": \"%s\", \"declLine\": %d, \"param\": %s",
                      hb_compAstDeclScope( pDecl->iScope ), pDecl->iLine,
                      ( pDecl->iScope & HB_VSCOMP_PARAMETER ) ? "true" : "false" );
+            if( pDecl->fDim )
+               fprintf( file, ", \"dim\": true" );
             hb_compAstWriteType( file, pDecl->cType, pDecl->szClass );
             fprintf( file, " }" );
          }

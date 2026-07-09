@@ -1072,9 +1072,10 @@ PHB_HCLASS hb_compClassFind( HB_COMP_DECL, const char * szClassName )
    PHB_HCLASS pClass = HB_COMP_PARAM->pFirstClass;
 
    /* the declaration subsystem is a warning helper (-w3), but the AST
-      dump transports its tables, so -x keeps them alive at any -w level;
-      all its warnings stay level-gated in hb_compGenWarning() */
-   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
+      dump transports its tables (-x) and the -kt runtime type checks
+      consume the DECLAREd return types, so both keep them alive at any
+      -w level; all warnings stay level-gated in hb_compGenWarning() */
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst && ! HB_SUPPORT_CHKTYPE )
       return NULL;
 
    while( pClass )
@@ -1095,7 +1096,7 @@ PHB_HCLASS hb_compClassAdd( HB_COMP_DECL, const char * szClassName, const char *
    printf( "Declaring Class: %s\n", szClassName );
    #endif
 
-   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst && ! HB_SUPPORT_CHKTYPE )
       return NULL;
 
    if( ( pClass = hb_compClassFind( HB_COMP_PARAM, szClassName ) ) != NULL )
@@ -1146,7 +1147,7 @@ PHB_HDECLARED hb_compMethodAdd( HB_COMP_DECL, PHB_HCLASS pClass, const char * sz
 {
    PHB_HDECLARED pMethod;
 
-   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst && ! HB_SUPPORT_CHKTYPE )
       return NULL;
 
    if( ! pClass )
@@ -1229,7 +1230,7 @@ PHB_HDECLARED hb_compDeclaredAdd( HB_COMP_DECL, const char * szDeclaredName )
 {
    PHB_HDECLARED pDeclared;
 
-   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst && ! HB_SUPPORT_CHKTYPE )
       return NULL;
 
    #if 0
@@ -1276,7 +1277,7 @@ PHB_HDECLARED hb_compDeclaredAdd( HB_COMP_DECL, const char * szDeclaredName )
 void hb_compDeclaredParameterAdd( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType )
 {
    /* Nothing to do since no warnings requested.*/
-   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst )
+   if( HB_COMP_PARAM->iWarnings < 3 && ! HB_COMP_PARAM->fAst && ! HB_SUPPORT_CHKTYPE )
    {
       HB_SYMBOL_UNUSED( szVarName );
       return;
@@ -2743,6 +2744,92 @@ static void hb_compCheckEarlyMacroEval( HB_COMP_DECL, const char * szVarName, in
    }
 }
 
+/* -kt (HB_COMPFLAG_CHKTYPE): runtime checks for the language's declared
+ * type annotations (AS <type>/AS CLASS). The compiler emits calls to the
+ * runtime helper __HB_CHKTYPE( xValue, cSpec, cSite ); the sequence
+ * (PUSHFUNCSYM + value + 2 strings + DOSHORT) is stack neutral, so it is
+ * legal at any opcode boundary. cSpec is the declaration's type letter
+ * ('S'/'s' followed by ":<ClassName>"); cSite names "<func>:<symbol>".
+ */
+static void hb_compChkTypeGenCall( HB_COMP_DECL, PHB_HVAR pVar, int iVar )
+{
+   char szSpec[ HB_SYMBOL_NAME_LEN + 3 ];
+   char szSite[ ( HB_SYMBOL_NAME_LEN + 1 ) * 2 + 1 ];
+
+   /* only WRITTEN annotations are imposed: the dimensioned form
+      (LOCAL a[ n ]) carries an internal 'A' mark that is not a promise
+      by the programmer */
+   if( pVar->cType == ' ' || ( pVar->uiFlags & HB_VSCOMP_DIMMED ) != 0 )
+      return;
+   if( ( pVar->cType == 'S' || pVar->cType == 's' ) && pVar->pClass )
+      hb_snprintf( szSpec, sizeof( szSpec ), "%c:%s", pVar->cType,
+                   pVar->pClass->szName );
+   else
+      hb_snprintf( szSpec, sizeof( szSpec ), "%c", pVar->cType );
+   hb_snprintf( szSite, sizeof( szSite ), "%s:%s",
+                HB_COMP_PARAM->functions.pLast->szName ?
+                HB_COMP_PARAM->functions.pLast->szName : "", pVar->szName );
+
+   hb_compGenPushFunCall( "__HB_CHKTYPE", HB_FN_UDF, HB_COMP_PARAM );
+   hb_compGenPCode3( HB_P_PUSHLOCAL, HB_LOBYTE( iVar ), HB_HIBYTE( iVar ), HB_COMP_PARAM );
+   hb_compGenPushString( szSpec, strlen( szSpec ) + 1, HB_COMP_PARAM );
+   hb_compGenPushString( szSite, strlen( szSite ) + 1, HB_COMP_PARAM );
+   hb_compGenPCode2( HB_P_DOSHORT, 3, HB_COMP_PARAM );
+}
+
+/* -kt: prologue checks for the declared parameters of the function just
+ * parsed - called at the end of the FUNCTION/PROCEDURE( Params ) rule,
+ * when pLocals holds exactly the formal parameters (locals come later),
+ * right after the FRAME/SFRAME opcodes and before any body statement */
+void hb_compChkTypeParams( HB_COMP_DECL )
+{
+   PHB_HVAR pVar = HB_COMP_PARAM->functions.pLast->pLocals;
+   int iVar = 0;
+
+   while( pVar )
+   {
+      ++iVar;
+      hb_compChkTypeGenCall( HB_COMP_PARAM, pVar, iVar );
+      pVar = pVar->pNext;
+   }
+}
+
+/* -kt: wraps a RETURN expression with __HB_CHKTYPE( <expr>, spec, site )
+ * (the helper returns its first argument) when the function's return type
+ * is DECLAREd - the language's only return type channel. Codeblocks and
+ * extended blocks are not functions: left untouched */
+PHB_EXPR hb_compChkTypeRetWrap( HB_COMP_DECL, PHB_EXPR pExpr )
+{
+   PHB_HFUNC pFunc = HB_COMP_PARAM->functions.pLast;
+   PHB_HDECLARED pDeclared;
+   PHB_EXPR pArgs;
+   char szSpec[ HB_SYMBOL_NAME_LEN + 3 ];
+   char szSite[ HB_SYMBOL_NAME_LEN + 8 ];
+   char * szDup;
+
+   if( ! pFunc->szName || ( pFunc->funFlags & HB_FUNF_EXTBLOCK ) )
+      return pExpr;
+   pDeclared = hb_compDeclaredFind( HB_COMP_PARAM, pFunc->szName );
+   if( ! pDeclared || pDeclared->cType == ' ' )
+      return pExpr;
+   if( ( pDeclared->cType == 'S' || pDeclared->cType == 's' ) && pDeclared->pClass )
+      hb_snprintf( szSpec, sizeof( szSpec ), "%c:%s", pDeclared->cType,
+                   pDeclared->pClass->szName );
+   else
+      hb_snprintf( szSpec, sizeof( szSpec ), "%c", pDeclared->cType );
+   hb_snprintf( szSite, sizeof( szSite ), "%s:return", pFunc->szName );
+
+   pArgs = hb_compExprNewArgList( pExpr, HB_COMP_PARAM );
+   szDup = hb_strdup( szSpec );
+   hb_compExprAddListExpr( pArgs, hb_compExprNewString( szDup, strlen( szDup ), HB_TRUE, HB_COMP_PARAM ) );
+   szDup = hb_strdup( szSite );
+   hb_compExprAddListExpr( pArgs, hb_compExprNewString( szDup, strlen( szDup ), HB_TRUE, HB_COMP_PARAM ) );
+
+   return hb_compExprNewFunCall(
+      hb_compExprNewFunName( hb_compIdentifierNew( HB_COMP_PARAM, "__HB_CHKTYPE", HB_IDENT_COPY ), HB_COMP_PARAM ),
+      pArgs, HB_COMP_PARAM );
+}
+
 /* Check variable in the following order:
  * LOCAL variable
  *    local STATIC variable
@@ -2780,6 +2867,12 @@ void hb_compGenPopVar( const char * szVarName, HB_COMP_DECL ) /* generates the p
                hb_compGenPCode2( HB_P_POPLOCALNEAR, ( HB_BYTE ) iVar, HB_COMP_PARAM );
             else
                hb_compGenPCode3( HB_P_POPLOCAL, HB_LOBYTE( iVar ), HB_HIBYTE( iVar ), HB_COMP_PARAM );
+            /* -kt: check the declared type after the store (assignments
+             * inside codeblock bodies stay out of this slice - the local
+             * index there is block-relative) */
+            if( HB_SUPPORT_CHKTYPE && iScope == HB_VS_LOCAL_VAR &&
+                HB_COMP_PARAM->functions.pLast->szName )
+               hb_compChkTypeGenCall( HB_COMP_PARAM, pVar, iVar );
             break;
 
          case HB_VS_STATIC_VAR:

@@ -580,6 +580,16 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
                         HB_COMP_PARAM->supported |= HB_COMPFLAG_EXTOPT;
                      break;
 
+                  case 'T':
+                     if( *szSwPtr == '-' )
+                     {
+                        HB_COMP_PARAM->supported &= ~HB_COMPFLAG_CHKTYPE;
+                        ++szSwPtr;
+                     }
+                     else
+                        HB_COMP_PARAM->supported |= HB_COMPFLAG_CHKTYPE;
+                     break;
+
                   case 'U':
                      if( *szSwPtr == '-' )
                      {
