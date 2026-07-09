@@ -78,6 +78,8 @@ extern void hb_compParserRun( HB_COMP_DECL );
 #define HB_VSCOMP_FIELD      4
 #define HB_VSCOMP_PARAMETER  8
 #define HB_VSCOMP_THREAD     16
+#define HB_VSCOMP_DIMMED     32   /* dimensioned declaration (LOCAL a[ n ]) - the internal
+                                     'A' mark of the array form, NOT a written AS annotation */
 #define HB_VSCOMP_PRIVATE    64
 #define HB_VSCOMP_PUBLIC     128
 #define HB_VSCOMP_MEMVAR     ( HB_VSCOMP_PUBLIC | HB_VSCOMP_PRIVATE )
@@ -174,6 +176,8 @@ extern void hb_compStatmentStart( HB_COMP_DECL );        /* Check if we can star
 extern void hb_compGenMessage( const char * szMsgName, HB_BOOL bIsObject, HB_COMP_DECL );    /* sends a message to an object */
 extern void hb_compGenMessageData( const char * szMsg, HB_BOOL bIsObject, HB_COMP_DECL );    /* generates an underscore-symbol name for a data assignment */
 extern void hb_compGenPopVar( const char * szVarName, HB_COMP_DECL );                        /* generates the pcode to pop a value from the virtual machine stack onto a variable */
+extern void hb_compChkTypeParams( HB_COMP_DECL );                                            /* -kt: emits runtime type checks for the declared (AS <type>) parameters */
+extern PHB_EXPR hb_compChkTypeRetWrap( HB_COMP_DECL, PHB_EXPR pExpr );                       /* -kt: wraps a RETURN value with the runtime type check of the DECLAREd return */
 extern void hb_compGenPopMemvar( const char * szVarName, HB_COMP_DECL );                     /* generates the pcode to pop a value from the virtual machine stack onto a memvar variable */
 extern void hb_compGenPushDouble( double dNumber, HB_BYTE bWidth, HB_BYTE bDec, HB_COMP_DECL );    /* Pushes a number on the virtual machine stack */
 extern void hb_compGenPushFunCall( const char *, int, HB_COMP_DECL );                             /* generates the pcode to push function's call */
@@ -341,6 +345,7 @@ extern void hb_compAstNodeBorn( HB_COMP_DECL, PHB_EXPR pExpr );
 extern void hb_compAstStatement( HB_COMP_DECL, PHB_EXPR pExpr, int iKind );
 extern void hb_compAstFuncBegin( HB_COMP_DECL );
 extern void hb_compAstDecl( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType );
+extern void hb_compAstDeclDim( HB_COMP_DECL );
 extern void hb_compAstUse( HB_COMP_DECL, const char * szVarName, int iScope, int iAccess );
 extern void hb_compAstTag( HB_COMP_DECL, const char * szVarName, int iAccess );
 extern void hb_compAstCallAdd( HB_COMP_DECL, const char * szFunName );
@@ -395,6 +400,7 @@ extern const HB_BYTE hb_comp_pcode_len[];
 #define HB_COMPFLAG_MACROTEXT    0x0400            /* -kM turn off macrotext substitution */
 #define HB_COMPFLAG_USERCP       0x0800            /* -ku strings in user encoding */
 #define HB_COMPFLAG_MACRODECL    0x1000            /* -kd accept macros with declared symbols */
+#define HB_COMPFLAG_CHKTYPE      0x2000            /* -kt runtime checks for AS type annotations */
 
 #define HB_COMP_ISSUPPORTED(flag)   ( HB_COMP_PARAM->supported & (flag) )
 
@@ -405,6 +411,7 @@ extern const HB_BYTE hb_comp_pcode_len[];
 #define HB_SUPPORT_MACROTEXT        ( HB_COMP_ISSUPPORTED(HB_COMPFLAG_MACROTEXT) )
 #define HB_SUPPORT_USERCP           ( HB_COMP_ISSUPPORTED(HB_COMPFLAG_USERCP) )
 #define HB_SUPPORT_MACRODECL        ( HB_COMP_ISSUPPORTED(HB_COMPFLAG_MACRODECL) )
+#define HB_SUPPORT_CHKTYPE          ( HB_COMP_ISSUPPORTED(HB_COMPFLAG_CHKTYPE) )
 
 #if defined( HB_MACRO_SUPPORT )
 #  define HB_MACRO_GENFLAGS   HB_COMPFLAG_RT_MACRO

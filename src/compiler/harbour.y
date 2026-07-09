@@ -329,7 +329,9 @@ Line       : LINE NUM_LONG Crlf
 Function   : FUNCTION  IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, 0 ); } Crlf
            | PROCEDURE IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, HB_FUNF_PROCEDURE ); } Crlf
            | FUNCTION  IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, 0 ); HB_COMP_PARAM->iVarScope = HB_VSCOMP_PARAMETER; } '(' Params ')' Crlf
+                     { if( HB_SUPPORT_CHKTYPE ) hb_compChkTypeParams( HB_COMP_PARAM ); }
            | PROCEDURE IdentName { hb_compFunctionAdd( HB_COMP_PARAM, $2, ( HB_SYMBOLSCOPE ) $1, HB_FUNF_PROCEDURE ); HB_COMP_PARAM->iVarScope = HB_VSCOMP_PARAMETER;} '(' Params ')' Crlf
+                     { if( HB_SUPPORT_CHKTYPE ) hb_compChkTypeParams( HB_COMP_PARAM ); }
            ;
 
 Params     : /*no parameters */ { $$ = 0; }
@@ -425,7 +427,10 @@ Statement  : ExecFlow CrlfStmnt
                         {
                            hb_compGenError( HB_COMP_PARAM, hb_comp_szErrors, 'E', HB_COMP_ERR_EXIT_IN_SEQUENCE, "RETURN", NULL );
                         }
-                        /* TODO: check if return value agree with declared value */
+                        /* -kt: the DECLAREd return type is imposed by
+                           wrapping the value in the runtime check call */
+                        if( HB_SUPPORT_CHKTYPE )
+                           $3 = hb_compChkTypeRetWrap( HB_COMP_PARAM, $3 );
                         if( HB_COMP_PARAM->fAst )
                            hb_compAstReturn( HB_COMP_PARAM );
                         HB_COMP_EXPR_FREE( hb_compExprGenPush( $3, HB_COMP_PARAM ) );
@@ -2500,6 +2505,8 @@ static void hb_compVariableDim( const char * szName, PHB_EXPR pInitValue, HB_COM
    if( HB_COMP_PARAM->iVarScope == HB_VSCOMP_PUBLIC || HB_COMP_PARAM->iVarScope == HB_VSCOMP_PRIVATE )
    {
       hb_compVariableAdd( HB_COMP_PARAM, szName, hb_compVarTypeNew( HB_COMP_PARAM, 'A', NULL ) );
+      if( HB_COMP_PARAM->fAst )
+         hb_compAstDeclDim( HB_COMP_PARAM );
       HB_COMP_EXPR_FREE( hb_compArrayDimPush( pInitValue, HB_COMP_PARAM ) );
       hb_compRTVariableAdd( HB_COMP_PARAM, hb_compExprNewRTVar( szName, NULL, HB_COMP_PARAM ), HB_TRUE );
    }
@@ -2510,6 +2517,8 @@ static void hb_compVariableDim( const char * szName, PHB_EXPR pInitValue, HB_COM
 
       /* create a static variable */
       hb_compVariableAdd( HB_COMP_PARAM, szName, hb_compVarTypeNew( HB_COMP_PARAM, 'A', NULL ) );
+      if( HB_COMP_PARAM->fAst )
+         hb_compAstDeclDim( HB_COMP_PARAM );
 
       hb_compStaticDefStart( HB_COMP_PARAM );   /* switch to statics pcode buffer */
       /* create an array */
@@ -2525,6 +2534,18 @@ static void hb_compVariableDim( const char * szName, PHB_EXPR pInitValue, HB_COM
    else
    {
       hb_compVariableAdd( HB_COMP_PARAM, szName, hb_compVarTypeNew( HB_COMP_PARAM, 'A', NULL ) );
+      /* the 'A' above is the dimensioned form's internal mark, not a
+         written AS annotation - flag it so -kt does not impose it
+         (legacy code may re-assign a dimensioned local at will) */
+      if( HB_COMP_PARAM->functions.pLast->pLocals )
+      {
+         PHB_HVAR pDimVar = HB_COMP_PARAM->functions.pLast->pLocals;
+         while( pDimVar->pNext )
+            pDimVar = pDimVar->pNext;
+         pDimVar->uiFlags |= HB_VSCOMP_DIMMED;
+      }
+      if( HB_COMP_PARAM->fAst )
+         hb_compAstDeclDim( HB_COMP_PARAM );
       HB_COMP_EXPR_FREE( hb_compArrayDimPush( pInitValue, HB_COMP_PARAM ) );
       if( HB_COMP_PARAM->iVarScope != HB_VSCOMP_LOCAL ||
           !( HB_COMP_PARAM->functions.pLast->funFlags & HB_FUNF_EXTBLOCK ) )
