@@ -4534,6 +4534,8 @@ static HB_BOOL hb_compExprCodeblockPush( PHB_EXPR pSelf, int iEarlyEvalPass, HB_
       while( pVar )
       {
          hb_compVariableAdd( HB_COMP_PARAM, pVar->szName, hb_compVarTypeNew( HB_COMP_PARAM, pVar->bType, pVar->szFromClass ) );
+         if( HB_COMP_PARAM->fAst )
+            hb_compAstDeclPos( HB_COMP_PARAM, pVar->iPosLine, pVar->iPosCol );
          pVar = pVar->pNext;
       }
    }

@@ -1427,6 +1427,8 @@ static PHB_CBVAR hb_compExprCBVarNew( const char * szVarName, HB_BYTE bType,
    pVar->pNext  = NULL;
    pVar->bUsed  = HB_FALSE;
    pVar->szFromClass = szFromClass;
+   pVar->iPosLine = 0;
+   pVar->iPosCol  = -1;
 
    return pVar;
 }

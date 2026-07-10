@@ -346,6 +346,8 @@ extern void hb_compAstStatement( HB_COMP_DECL, PHB_EXPR pExpr, int iKind );
 extern void hb_compAstFuncBegin( HB_COMP_DECL );
 extern void hb_compAstDecl( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType );
 extern void hb_compAstDeclDim( HB_COMP_DECL );
+extern void hb_compAstDeclPos( HB_COMP_DECL, int iNameLine, int iNameCol );                  /* ast-9: retro-tag with the written name token position (block parameters) */
+extern void hb_compAstCBVarPos( HB_COMP_DECL, PHB_EXPR pCB );                                /* ast-9: stamp the last block parameter with its written position at parse */
 extern void hb_compAstUse( HB_COMP_DECL, const char * szVarName, int iScope, int iAccess );
 extern void hb_compAstTag( HB_COMP_DECL, const char * szVarName, int iAccess );
 extern void hb_compAstUseChk( HB_COMP_DECL, const char * szVarName );                        /* ast-8: write imposed by an emitted -kt post-store check */
