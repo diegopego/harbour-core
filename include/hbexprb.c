@@ -4533,10 +4533,16 @@ static HB_BOOL hb_compExprCodeblockPush( PHB_EXPR pSelf, int iEarlyEvalPass, HB_
       pVar = pSelf->value.asCodeblock.pLocals;
       while( pVar )
       {
-         hb_compVariableAdd( HB_COMP_PARAM, pVar->szName, hb_compVarTypeNew( HB_COMP_PARAM, pVar->bType, NULL ) );
+         hb_compVariableAdd( HB_COMP_PARAM, pVar->szName, hb_compVarTypeNew( HB_COMP_PARAM, pVar->bType, pVar->szFromClass ) );
          pVar = pVar->pNext;
       }
    }
+
+   /* -kt (RE.5 K2): block-prologue checks for the declared parameters -
+      pLocals holds exactly the formal parameters here, same precondition
+      as the function-signature prologue; runs on every Eval() */
+   if( HB_SUPPORT_CHKTYPE )
+      hb_compChkTypeParams( HB_COMP_PARAM );
 
    hb_compLinePushIfDebugger( HB_COMP_PARAM );
 #endif

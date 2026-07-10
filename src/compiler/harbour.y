@@ -1021,8 +1021,8 @@ BlockVars  : /* empty list */          { $$ = NULL; }
            | BlockVarList ',' EPSILON  { $$ = $1;   $<asExpr>0->value.asCodeblock.flags |= HB_BLOCK_VPARAMS; }
            ;
 
-BlockVarList : IdentName AsType                    { HB_COMP_PARAM->iVarScope = HB_VSCOMP_LOCAL; $$ = hb_compExprCBVarAdd( $<asExpr>0, $1, $2->cVarType, HB_COMP_PARAM ); }
-             | BlockVarList ',' IdentName AsType   { HB_COMP_PARAM->iVarScope = HB_VSCOMP_LOCAL; $$ = hb_compExprCBVarAdd( $<asExpr>0, $3, $4->cVarType, HB_COMP_PARAM ); }
+BlockVarList : IdentName AsType                    { HB_COMP_PARAM->iVarScope = HB_VSCOMP_LOCAL; $$ = hb_compExprCBVarAdd( $<asExpr>0, $1, $2->cVarType, $2->szFromClass, HB_COMP_PARAM ); }
+             | BlockVarList ',' IdentName AsType   { HB_COMP_PARAM->iVarScope = HB_VSCOMP_LOCAL; $$ = hb_compExprCBVarAdd( $<asExpr>0, $3, $4->cVarType, $4->szFromClass, HB_COMP_PARAM ); }
              ;
 
 BlockExpList : Expression                    { $$ = hb_compExprAddCodeblockExpr( $<asExpr>-1, $1 ); }
@@ -1057,9 +1057,13 @@ CodeBlock   : BlockHead
                pVar = $1->value.asCodeblock.pLocals;
                while( pVar )
                {
-                  hb_compVariableAdd( HB_COMP_PARAM, pVar->szName, hb_compVarTypeNew( HB_COMP_PARAM, pVar->bType, NULL ) );
+                  hb_compVariableAdd( HB_COMP_PARAM, pVar->szName, hb_compVarTypeNew( HB_COMP_PARAM, pVar->bType, pVar->szFromClass ) );
                   pVar =pVar->pNext;
                }
+               /* -kt (RE.5 K2): extended-block prologue checks for the
+                  declared parameters, mirror of the inline-block path */
+               if( HB_SUPPORT_CHKTYPE )
+                  hb_compChkTypeParams( HB_COMP_PARAM );
             }
             EmptyStats BlockEnd
             {  /* 6 */

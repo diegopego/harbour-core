@@ -1413,7 +1413,8 @@ HB_SIZE hb_compExprParamListCheck( HB_COMP_DECL, PHB_EXPR pExpr )
 
 /* Create a new declaration for codeblock local variable
  */
-static PHB_CBVAR hb_compExprCBVarNew( const char * szVarName, HB_BYTE bType )
+static PHB_CBVAR hb_compExprCBVarNew( const char * szVarName, HB_BYTE bType,
+                                      const char * szFromClass )
 {
    PHB_CBVAR pVar;
 
@@ -1425,6 +1426,7 @@ static PHB_CBVAR hb_compExprCBVarNew( const char * szVarName, HB_BYTE bType )
    pVar->bType  = bType;
    pVar->pNext  = NULL;
    pVar->bUsed  = HB_FALSE;
+   pVar->szFromClass = szFromClass;
 
    return pVar;
 }
@@ -1432,7 +1434,7 @@ static PHB_CBVAR hb_compExprCBVarNew( const char * szVarName, HB_BYTE bType )
 /* Add a new local variable declaration
  */
 PHB_EXPR hb_compExprCBVarAdd( PHB_EXPR pCB, const char * szVarName, HB_BYTE bType,
-                              HB_COMP_DECL )
+                              const char * szFromClass, HB_COMP_DECL )
 {
    PHB_CBVAR pVar;
 
@@ -1452,13 +1454,13 @@ PHB_EXPR hb_compExprCBVarAdd( PHB_EXPR pCB, const char * szVarName, HB_BYTE bTyp
             pVar = pVar->pNext;
          else
          {
-            pVar->pNext = hb_compExprCBVarNew( szVarName, bType );
+            pVar->pNext = hb_compExprCBVarNew( szVarName, bType, szFromClass );
             break;
          }
       }
    }
    else
-      pCB->value.asCodeblock.pLocals = hb_compExprCBVarNew( szVarName, bType );
+      pCB->value.asCodeblock.pLocals = hb_compExprCBVarNew( szVarName, bType, szFromClass );
 
    return pCB;
 }
@@ -1492,5 +1494,5 @@ PHB_EXPR hb_compExprSetGetBlock( PHB_EXPR pExpr, HB_COMP_DECL )
    /* create a codeblock */
    return hb_compExprAddCodeblockExpr( hb_compExprCBVarAdd(
                                           hb_compExprNewCodeBlock( NULL, 0, 0, HB_COMP_PARAM ),
-                                          "~1", ' ', HB_COMP_PARAM ), pSet );
+                                          "~1", ' ', NULL, HB_COMP_PARAM ), pSet );
 }

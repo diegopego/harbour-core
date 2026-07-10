@@ -111,6 +111,9 @@ typedef struct HB_CBVAR_
    const char * szName;
    HB_BYTE bType;
    HB_BOOL bUsed;
+   const char * szFromClass;  /* AS CLASS <name> of a block parameter -
+                                 kept so the annotation survives into
+                                 hb_compVariableAdd() (NULL otherwise) */
    struct HB_CBVAR_ * pNext;
 } HB_CBVAR, * PHB_CBVAR;
 

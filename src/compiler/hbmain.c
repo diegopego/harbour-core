@@ -762,6 +762,8 @@ PHB_HVAR hb_compVariableFind( HB_COMP_DECL, const char * szVarName, int * piPos,
                *piPos = - hb_compVariableGetPos( pOutBlock->pDetached, szVarName );
                if( *piPos == 0 )
                {
+                  PHB_HVAR pOwnerVar = pVar;
+
                   /* szVarName may point to dynamic buffer,
                    * make sure it's static one.
                    */
@@ -772,7 +774,13 @@ PHB_HVAR hb_compVariableFind( HB_COMP_DECL, const char * szVarName, int * piPos,
 
                   pVar->szName = szVarName;
                   pVar->szAlias = NULL;
-                  pVar->cType = ' ';
+                  /* the detached record describes the SAME variable as the
+                   * owner's declaration - carry its declared type so the
+                   * -kt post-store check inside codeblocks sees the
+                   * annotation (RE.5 K3; was hardwired to ' ') */
+                  pVar->cType = pOwnerVar->cType;
+                  pVar->pClass = pOwnerVar->pClass;
+                  pVar->uiFlags = pOwnerVar->uiFlags;
                   pVar->iUsed = HB_VU_NOT_USED;
                   pVar->pNext  = NULL;
                   pVar->iDeclLine = HB_COMP_PARAM->currLine;
@@ -1070,6 +1078,11 @@ static void hb_compDeclaredReset( HB_COMP_DECL )
 PHB_HCLASS hb_compClassFind( HB_COMP_DECL, const char * szClassName )
 {
    PHB_HCLASS pClass = HB_COMP_PARAM->pFirstClass;
+
+   /* callers may hold an 'S' type whose class name was lost on the way
+      (historically: codeblock parameters) - never crash on it */
+   if( szClassName == NULL )
+      return NULL;
 
    /* the declaration subsystem is a warning helper (-w3), but the AST
       dump transports its tables (-x) and the -kt runtime type checks
@@ -2755,8 +2768,10 @@ static void hb_compCheckEarlyMacroEval( HB_COMP_DECL, const char * szVarName, in
  * legal at any opcode boundary. cSpec is the declaration's type letter
  * ('S'/'s' followed by ":<ClassName>"); cSite names "<func>:<symbol>".
  */
-static void hb_compChkTypeGenCall( HB_COMP_DECL, PHB_HVAR pVar, int iVar )
+static HB_BOOL hb_compChkTypeGenCall( HB_COMP_DECL, PHB_HVAR pVar, int iVar )
 {
+   PHB_HFUNC pFunc = HB_COMP_PARAM->functions.pLast;
+   const char * szFunc;
    char szSpec[ HB_SYMBOL_NAME_LEN + 3 ];
    char szSite[ ( HB_SYMBOL_NAME_LEN + 1 ) * 2 + 1 ];
 
@@ -2764,21 +2779,30 @@ static void hb_compChkTypeGenCall( HB_COMP_DECL, PHB_HVAR pVar, int iVar )
       (LOCAL a[ n ]) carries an internal 'A' mark that is not a promise
       by the programmer */
    if( pVar->cType == ' ' || ( pVar->uiFlags & HB_VSCOMP_DIMMED ) != 0 )
-      return;
+      return HB_FALSE;
    if( ( pVar->cType == 'S' || pVar->cType == 's' ) && pVar->pClass )
       hb_snprintf( szSpec, sizeof( szSpec ), "%c:%s", pVar->cType,
                    pVar->pClass->szName );
    else
       hb_snprintf( szSpec, sizeof( szSpec ), "%c", pVar->cType );
+   /* codeblocks are anonymous pseudo-functions: name the site after the
+      owning function (same walk as hb_compCodeBlockEnd) */
+   szFunc = pFunc->szName;
+   while( ( szFunc == NULL || *szFunc == 0 ) && pFunc->pOwner )
+   {
+      pFunc = pFunc->pOwner;
+      szFunc = pFunc->szName;
+   }
    hb_snprintf( szSite, sizeof( szSite ), "%s:%s",
-                HB_COMP_PARAM->functions.pLast->szName ?
-                HB_COMP_PARAM->functions.pLast->szName : "", pVar->szName );
+                szFunc ? szFunc : "", pVar->szName );
 
    hb_compGenPushFunCall( "__HB_CHKTYPE", HB_FN_UDF, HB_COMP_PARAM );
    hb_compGenPCode3( HB_P_PUSHLOCAL, HB_LOBYTE( iVar ), HB_HIBYTE( iVar ), HB_COMP_PARAM );
    hb_compGenPushString( szSpec, strlen( szSpec ) + 1, HB_COMP_PARAM );
    hb_compGenPushString( szSite, strlen( szSite ) + 1, HB_COMP_PARAM );
    hb_compGenPCode2( HB_P_DOSHORT, 3, HB_COMP_PARAM );
+
+   return HB_TRUE;
 }
 
 /* -kt: prologue checks for the declared parameters of the function just
@@ -2793,7 +2817,9 @@ void hb_compChkTypeParams( HB_COMP_DECL )
    while( pVar )
    {
       ++iVar;
-      hb_compChkTypeGenCall( HB_COMP_PARAM, pVar, iVar );
+      if( hb_compChkTypeGenCall( HB_COMP_PARAM, pVar, iVar ) &&
+          HB_COMP_PARAM->fAst )
+         hb_compAstDeclChk( HB_COMP_PARAM, pVar->szName );
       pVar = pVar->pNext;
    }
 }
@@ -2871,12 +2897,18 @@ void hb_compGenPopVar( const char * szVarName, HB_COMP_DECL ) /* generates the p
                hb_compGenPCode2( HB_P_POPLOCALNEAR, ( HB_BYTE ) iVar, HB_COMP_PARAM );
             else
                hb_compGenPCode3( HB_P_POPLOCAL, HB_LOBYTE( iVar ), HB_HIBYTE( iVar ), HB_COMP_PARAM );
-            /* -kt: check the declared type after the store (assignments
-             * inside codeblock bodies stay out of this slice - the local
-             * index there is block-relative) */
-            if( HB_SUPPORT_CHKTYPE && iScope == HB_VS_LOCAL_VAR &&
-                HB_COMP_PARAM->functions.pLast->szName )
-               hb_compChkTypeGenCall( HB_COMP_PARAM, pVar, iVar );
+            /* -kt: check the declared type after the store. Inside a
+             * codeblock both scopes are legal store targets: the block's
+             * own locals/params (HB_VS_LOCAL_VAR, block-relative index)
+             * and the detached locals of the owner (HB_VS_CBLOCAL_VAR -
+             * pVar is the OWNER's declaration record, so the annotation
+             * travels; the same block-relative index re-reads the value
+             * just stored through the same detached reference) - RE.5 K3
+             * closed the fatia-1 carve-out */
+            if( HB_SUPPORT_CHKTYPE &&
+                hb_compChkTypeGenCall( HB_COMP_PARAM, pVar, iVar ) &&
+                HB_COMP_PARAM->fAst )
+               hb_compAstUseChk( HB_COMP_PARAM, szVarName );
             break;
 
          case HB_VS_STATIC_VAR:

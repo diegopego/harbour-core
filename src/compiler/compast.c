@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-7"
+#define HB_AST_SCHEMA         "ast-8"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -117,6 +117,8 @@ typedef struct
    HB_BOOL      fDim;         /* dimensioned form (LOCAL a[ n ]): the 'A'
                                  is the array form's internal mark, not a
                                  written AS annotation (ast-7) */
+   HB_BOOL      fChk;         /* -kt PROLOGUE check emitted for this
+                                 parameter declaration (ast-8) */
 } HB_ASTDECL, * PHB_ASTDECL;
 
 typedef struct
@@ -127,6 +129,8 @@ typedef struct
    int          iScope;       /* HB_VS_* value */
    int          iAccess;      /* 'r' read, 'w' write, 'x' by ref, 'u' use */
    HB_BOOL      fBlock;       /* reference made inside a codeblock body */
+   HB_BOOL      fChk;         /* -kt post-store check emitted right after
+                                 this write (ast-8) */
 } HB_ASTUSE, * PHB_ASTUSE;
 
 typedef struct
@@ -436,6 +440,7 @@ void hb_compAstDecl( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType 
    pDecl->cType   = pVarType ? pVarType->cVarType : ' ';
    pDecl->szClass = pVarType ? pVarType->szFromClass : NULL;
    pDecl->fDim    = HB_FALSE;
+   pDecl->fChk    = HB_FALSE;
 }
 
 /* retro-tags the declaration just recorded as the DIMENSIONED form
@@ -472,6 +477,7 @@ void hb_compAstUse( HB_COMP_DECL, const char * szVarName, int iScope, int iAcces
    pUse->iScope  = iScope;
    pUse->iAccess = iAccess;
    pUse->fBlock  = fBlock;
+   pUse->fChk    = HB_FALSE;
 }
 
 /* refine the access mode of the reference just recorded by
@@ -487,6 +493,48 @@ void hb_compAstTag( HB_COMP_DECL, const char * szVarName, int iAccess )
 
       if( pUse->szSym == szVarName && pUse->iLine == HB_COMP_PARAM->currLine )
          pUse->iAccess = iAccess;
+   }
+}
+
+/* retro-tags the write just recorded as IMPOSED: the -kt post-store
+   check was emitted right after it (ast-8; only the emitter knows -
+   same pattern as hb_compAstTag) */
+void hb_compAstUseChk( HB_COMP_DECL, const char * szVarName )
+{
+   PHB_ASTDUMP pAst = HB_COMP_PARAM->pAst;
+
+   if( pAst && pAst->nUseCount )
+   {
+      PHB_ASTUSE pUse = &pAst->pUses[ pAst->nUseCount - 1 ];
+
+      if( pUse->szSym == szVarName && pUse->iLine == HB_COMP_PARAM->currLine )
+         pUse->fChk = HB_TRUE;
+   }
+}
+
+/* marks the LATEST declaration of <szVarName> in the current owner as
+   covered by an emitted -kt PROLOGUE check (function and codeblock
+   parameters; ast-8). Latest = the parameter list just materialized */
+void hb_compAstDeclChk( HB_COMP_DECL, const char * szVarName )
+{
+   PHB_ASTDUMP pAst = HB_COMP_PARAM->pAst;
+
+   if( pAst )
+   {
+      HB_BOOL fBlock;
+      PHB_HFUNC pOwner = hb_compAstOwner( HB_COMP_PARAM, &fBlock );
+      HB_SIZE n = pAst->nDeclCount;
+
+      while( n-- )
+      {
+         PHB_ASTDECL pDecl = &pAst->pDecls[ n ];
+
+         if( pDecl->pFunc == pOwner && pDecl->szSym == szVarName )
+         {
+            pDecl->fChk = HB_TRUE;
+            break;
+         }
+      }
    }
 }
 
@@ -1499,6 +1547,8 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
                      ( pDecl->iScope & HB_VSCOMP_PARAMETER ) ? "true" : "false" );
             if( pDecl->fDim )
                fprintf( file, ", \"dim\": true" );
+            if( pDecl->fChk )
+               fprintf( file, ", \"chk\": true" );
             hb_compAstWriteType( file, pDecl->cType, pDecl->szClass );
             fprintf( file, " }" );
          }
@@ -1518,12 +1568,13 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             fFirst = HB_FALSE;
             fprintf( file, "\n      { \"sym\": " );
             hb_compAstWriteStr( file, pUse->szSym );
-            fprintf( file, ", \"scope\": \"%s\", \"line\": %d, \"access\": \"%s\", \"block\": %s%s }",
+            fprintf( file, ", \"scope\": \"%s\", \"line\": %d, \"access\": \"%s\", \"block\": %s%s%s }",
                      hb_compAstScopeName( pUse->iScope ),
                      pUse->iLine,
                      hb_compAstAccessName( pUse->iAccess ),
                      pUse->fBlock ? "true" : "false",
-                     ( pUse->iScope & HB_VS_FILEWIDE ) ? ", \"filewide\": true" : "" );
+                     ( pUse->iScope & HB_VS_FILEWIDE ) ? ", \"filewide\": true" : "",
+                     pUse->fChk ? ", \"chk\": true" : "" );
          }
       }
       fprintf( file, "%s ],", fFirst ? "" : "\n   " );
