@@ -157,6 +157,7 @@ static const HB_LEX_KEY s_keytable[] =
    { "_FIELD",      4,  6, FIELD          },
    { "_HB_CLASS",   9,  9, DECLARE_CLASS  },
    { "_HB_MEMBER", 10, 10, DECLARE_MEMBER },
+   { "_HB_SUPER",   9,  9, DECLARE_SUPER  },
    { "_PROCREQ_",   9,  9, PROCREQ        }
 };
 

@@ -138,6 +138,7 @@
    #xcommand _HB_CLASS  <name>        =>
    #xcommand _HB_CLASS  <name> <name> =>
    #xcommand _HB_MEMBER <name>        =>
+   #xcommand _HB_SUPER  <name> [, <nameN>] =>
    #xcommand DECLARE    <*decl*>      =>
    #xtranslate AS <!type!>            =>
    #xtranslate AS CLASS <!name!>      =>
@@ -234,7 +235,7 @@ DECLARE HBClass ;
              [ <frm: FROM, INHERIT> <!SuperClass1!> [,<!SuperClassN!>] ] ;
              [ <modulfriend: MODULE FRIENDLY> ] ;
              [ <static: STATIC> ] [ FUNCTION <FuncName> ] => ;
-   _HB_CLASS <ClassName> <FuncName> ;;
+   _HB_CLASS <ClassName> <FuncName> [; _HB_SUPER <SuperClass1>] [, <SuperClassN>] ;;
    <static> function __HB_CLS_OPT( [<FuncName>,] <ClassName> ) ( HB_CLS_PARAM_LIST ) ;;
       STATIC s_oClass ;;
       LOCAL nScope, oClass, oInstance ;;

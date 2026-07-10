@@ -183,7 +183,7 @@ extern void yyerror( HB_COMP_DECL, const char * );     /* parsing error manageme
 %token MACROVAR MACROTEXT
 %token AS_ARRAY AS_BLOCK AS_CHARACTER AS_CLASS AS_DATE AS_LOGICAL AS_NUMERIC AS_OBJECT AS_VARIANT
 %token AS_ARRAY_ARRAY AS_BLOCK_ARRAY AS_CHARACTER_ARRAY AS_CLASS_ARRAY AS_DATE_ARRAY AS_LOGICAL_ARRAY AS_NUMERIC_ARRAY AS_OBJECT_ARRAY
-%token DECLARE OPTIONAL DECLARE_CLASS DECLARE_MEMBER
+%token DECLARE OPTIONAL DECLARE_CLASS DECLARE_MEMBER DECLARE_SUPER
 %token PROCREQ
 %token CBSTART DOIDENT
 %token FOREACH DESCEND
@@ -1260,6 +1260,16 @@ Declaration: DECLARE IdentName '(' { hb_compDeclaredAdd( HB_COMP_PARAM, $2 ); HB
            | DECLARE_CLASS IdentName IdentName Crlf { HB_COMP_PARAM->pLastClass = hb_compClassAdd( HB_COMP_PARAM, $2, $3 ); HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE; }
            | DECLARE_MEMBER DecMethod Crlf { HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE; }
            | DECLARE_MEMBER '{' AsType { HB_COMP_PARAM->cDataListType = $3->cVarType; } DecDataList '}' Crlf { HB_COMP_PARAM->cDataListType = 0; HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE; }
+           | DECLARE_SUPER SuperList Crlf { HB_COMP_PARAM->iVarScope = HB_VSCOMP_NONE; }
+           ;
+
+/* _HB_SUPER declares a class's parent(s) as a positioned FACT in the AST
+   dump; the parser only needs to accept it inertly (no pcode, like
+   _HB_CLASS/_HB_MEMBER) - the refactoring tool reads the parent names
+   from the token stream (hb_compAstToken records them before this rule
+   reduces). Kept structurally silent per RE.6/D2 "read from the stream". */
+SuperList  : IdentName
+           | SuperList ',' IdentName
            ;
 
 DecDataList: DecData
