@@ -1173,7 +1173,11 @@ PHB_HDECLARED hb_compMethodAdd( HB_COMP_DECL, PHB_HCLASS pClass, const char * sz
 
    if( ( pMethod = hb_compMethodFind( pClass, szMethodName ) ) != NULL )
    {
-      hb_compGenWarning( HB_COMP_PARAM, hb_comp_szWarnings, 'W', HB_COMP_WARN_DUP_DECLARATION, "method", szMethodName );
+      /* re-declaring a method whose type was never known completes the
+         declaration (the override below is the designed merge); warn
+         only when a known type could be overridden */
+      if( pMethod->cType != ' ' )
+         hb_compGenWarning( HB_COMP_PARAM, hb_comp_szWarnings, 'W', HB_COMP_WARN_DUP_DECLARATION, "method", szMethodName );
 
       /* Last Declaration override previous declarations */
       pMethod->iParamCount = 0;
