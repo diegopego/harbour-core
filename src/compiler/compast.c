@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-8"
+#define HB_AST_SCHEMA         "ast-9"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -119,6 +119,12 @@ typedef struct
                                  written AS annotation (ast-7) */
    HB_BOOL      fChk;         /* -kt PROLOGUE check emitted for this
                                  parameter declaration (ast-8) */
+   int          iNameLine;    /* position of the WRITTEN name token
+                                 (ast-9 anchor fact); iNameCol -1 = the
+                                 name has no plain-source token to
+                                 anchor to (directive result, include,
+                                 synthesized) - the fact stays absent */
+   int          iNameCol;
 } HB_ASTDECL, * PHB_ASTDECL;
 
 typedef struct
@@ -413,6 +419,50 @@ void hb_compAstFuncBegin( HB_COMP_DECL )
    pFuncInfo->iLine = HB_COMP_PARAM->currLine;
 }
 
+/* anchor fact (ast-9): position of the WRITTEN name token of a
+   declaration captured right after the parser consumed it - the
+   nearest preceding token whose text is the name. The scan stops at
+   the FIRST text match: when that token is not plain source (an
+   include, a synthesized directive result) there is no writable
+   position and the fact stays absent - never a guess. The window
+   covers the declaration tail the parser may have consumed after the
+   name (AS CLASS <name>, ',', ':=' lookahead). When the variable is
+   named after its own AS CLASS class the nearest match is the class
+   name token - szSkipClass skips exactly that one */
+#define HB_AST_NAMEPOS_WINDOW  16
+
+static void hb_compAstNamePos( PHB_ASTDUMP pAst, const char * szName,
+                               const char * szSkipClass,
+                               int * piLine, int * piCol )
+{
+   HB_SIZE n = pAst->nTokenCount;
+   HB_SIZE nStop = n > HB_AST_NAMEPOS_WINDOW ? n - HB_AST_NAMEPOS_WINDOW : 0;
+   HB_BOOL fSkip = szSkipClass && hb_stricmp( szName, szSkipClass ) == 0;
+
+   *piLine = 0;
+   *piCol  = -1;
+   while( n-- > nStop )
+   {
+      PHB_ASTTOKEN pTok = &pAst->pTokens[ n ];
+
+      if( pTok->type == HB_PP_TOKEN_KEYWORD &&
+          hb_stricmp( pTok->szText, szName ) == 0 )
+      {
+         if( fSkip )
+         {
+            fSkip = HB_FALSE;
+            continue;
+         }
+         if( pTok->cProv == 's' && pTok->iCol >= 0 )
+         {
+            *piLine = pTok->iLine;
+            *piCol  = pTok->iCol;
+         }
+         return;
+      }
+   }
+}
+
 /* a variable declaration accepted by hb_compVariableAdd(); the declared
    type/class come from the HB_VARTYPE node as WRITTEN (independent of
    the -w3 class resolution and of the pcode optimizer) */
@@ -441,6 +491,54 @@ void hb_compAstDecl( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType 
    pDecl->szClass = pVarType ? pVarType->szFromClass : NULL;
    pDecl->fDim    = HB_FALSE;
    pDecl->fChk    = HB_FALSE;
+   /* block-scope declarations materialize at the END of the block, when
+      the token stream is already past the body - their position was
+      captured at parse and arrives by the hb_compAstDeclPos() retro-tag
+      (inline and extended materialization loops) */
+   if( fBlock )
+   {
+      pDecl->iNameLine = 0;
+      pDecl->iNameCol  = -1;
+   }
+   else
+      hb_compAstNamePos( pAst, szVarName, pDecl->szClass,
+                         &pDecl->iNameLine, &pDecl->iNameCol );
+}
+
+/* retro-tags the declaration just recorded with the written name token
+   position carried from parse time (block parameters: HB_CBVAR fields,
+   same pattern as hb_compAstDeclDim) */
+void hb_compAstDeclPos( HB_COMP_DECL, int iNameLine, int iNameCol )
+{
+   PHB_ASTDUMP pAst = HB_COMP_PARAM->pAst;
+
+   if( pAst && pAst->nDeclCount && iNameCol >= 0 )
+   {
+      pAst->pDecls[ pAst->nDeclCount - 1 ].iNameLine = iNameLine;
+      pAst->pDecls[ pAst->nDeclCount - 1 ].iNameCol  = iNameCol;
+   }
+}
+
+/* stamps the LAST codeblock parameter of pCB with the position of its
+   written name token - called from the BlockVarList grammar action,
+   where the body is not parsed yet so the nearest match IS the written
+   parameter (the position then travels inside HB_CBVAR until the block
+   materializes its locals) */
+void hb_compAstCBVarPos( HB_COMP_DECL, PHB_EXPR pCB )
+{
+   PHB_CBVAR pVar;
+
+   if( ! HB_COMP_PARAM->fAst || pCB == NULL )
+      return;
+
+   pVar = pCB->value.asCodeblock.pLocals;
+   if( pVar )
+   {
+      while( pVar->pNext )
+         pVar = pVar->pNext;
+      hb_compAstNamePos( hb_compAstDump( HB_COMP_PARAM ), pVar->szName,
+                         pVar->szFromClass, &pVar->iPosLine, &pVar->iPosCol );
+   }
 }
 
 /* retro-tags the declaration just recorded as the DIMENSIONED form
@@ -1549,6 +1647,9 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
                fprintf( file, ", \"dim\": true" );
             if( pDecl->fChk )
                fprintf( file, ", \"chk\": true" );
+            if( pDecl->iNameCol >= 0 )
+               fprintf( file, ", \"nameLine\": %d, \"nameCol\": %d",
+                        pDecl->iNameLine, pDecl->iNameCol );
             hb_compAstWriteType( file, pDecl->cType, pDecl->szClass );
             fprintf( file, " }" );
          }

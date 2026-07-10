@@ -114,6 +114,10 @@ typedef struct HB_CBVAR_
    const char * szFromClass;  /* AS CLASS <name> of a block parameter -
                                  kept so the annotation survives into
                                  hb_compVariableAdd() (NULL otherwise) */
+   int          iPosLine;     /* position of the WRITTEN name token,
+                                 captured at parse (compast anchor fact,
+                                 ast-9); iPosCol -1 = unknown/synthesized */
+   int          iPosCol;
    struct HB_CBVAR_ * pNext;
 } HB_CBVAR, * PHB_CBVAR;
 
