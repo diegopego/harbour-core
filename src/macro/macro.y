@@ -697,8 +697,8 @@ BlockVars   : /* empty list */            { $$ = NULL; }
             | BlockVarList ',' EPSILON    { $$ = $1;   $<asExpr>0->value.asCodeblock.flags |= HB_BLOCK_VPARAMS; }
             ;
 
-BlockVarList: IDENTIFIER                  { $$ = hb_compExprCBVarAdd( $<asExpr>0, $1, ' ', HB_COMP_PARAM ); }
-            | BlockVarList ',' IDENTIFIER { $$ = hb_compExprCBVarAdd( $<asExpr>0, $3, ' ', HB_COMP_PARAM ); HB_MACRO_CHECK( $$ ); }
+BlockVarList: IDENTIFIER                  { $$ = hb_compExprCBVarAdd( $<asExpr>0, $1, ' ', NULL, HB_COMP_PARAM ); }
+            | BlockVarList ',' IDENTIFIER { $$ = hb_compExprCBVarAdd( $<asExpr>0, $3, ' ', NULL, HB_COMP_PARAM ); HB_MACRO_CHECK( $$ ); }
             ;
 
 ExpList     : '(' EmptyExpression          { $$ = hb_compExprNewList( $2, HB_COMP_PARAM ); }

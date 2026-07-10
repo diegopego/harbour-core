@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -33,6 +34,10 @@
 /* C LALR(1) parser skeleton written by Richard Stallman, by
    simplifying the original so-called "semantic" parser.  */
 
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
+
 /* All symbols defined below should begin with yy or YY, to avoid
    infringing on user name space.  This should be done even for local
    variables, as they might otherwise be expanded by user macros.
@@ -40,11 +45,11 @@
    define necessary library symbols; they are noted "INFRINGES ON
    USER NAME SPACE" below.  */
 
-/* Identify Bison output.  */
-#define YYBISON 1
+/* Identify Bison output, and Bison version.  */
+#define YYBISON 30802
 
-/* Bison version.  */
-#define YYBISON_VERSION "3.0.2"
+/* Bison version string.  */
+#define YYBISON_VERSION "3.8.2"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -67,9 +72,8 @@
 #define yydebug         hb_macro_yydebug
 #define yynerrs         hb_macro_yynerrs
 
-
-/* Copy the first part of user declarations.  */
-#line 6 "macro.y" /* yacc.c:339  */
+/* First part of user prologue.  */
+#line 6 "../../../macro.y"
 
 /*
  * Macro compiler YACC rules and actions
@@ -202,142 +206,171 @@
 #endif
 
 
-#line 206 "macroy.c" /* yacc.c:339  */
+#line 210 "macroy.c"
 
-# ifndef YY_NULLPTR
-#  if defined __cplusplus && 201103L <= __cplusplus
-#   define YY_NULLPTR nullptr
+# ifndef YY_CAST
+#  ifdef __cplusplus
+#   define YY_CAST(Type, Val) static_cast<Type> (Val)
+#   define YY_REINTERPRET_CAST(Type, Val) reinterpret_cast<Type> (Val)
 #  else
-#   define YY_NULLPTR 0
+#   define YY_CAST(Type, Val) ((Type) (Val))
+#   define YY_REINTERPRET_CAST(Type, Val) ((Type) (Val))
+#  endif
+# endif
+# ifndef YY_NULLPTR
+#  if defined __cplusplus
+#   if 201103L <= __cplusplus
+#    define YY_NULLPTR nullptr
+#   else
+#    define YY_NULLPTR 0
+#   endif
+#  else
+#   define YY_NULLPTR ((void*)0)
 #  endif
 # endif
 
-/* Enabling verbose error messages.  */
-#ifdef YYERROR_VERBOSE
-# undef YYERROR_VERBOSE
-# define YYERROR_VERBOSE 1
-#else
-# define YYERROR_VERBOSE 0
-#endif
-
-/* In a future release of Bison, this section will be replaced
-   by #include "macroy.h".  */
-#ifndef YY_HB_MACRO_YY_MACROY_H_INCLUDED
-# define YY_HB_MACRO_YY_MACROY_H_INCLUDED
-/* Debug traces.  */
-#ifndef HB_MACRO_YYDEBUG
-# if defined YYDEBUG
-#if YYDEBUG
-#   define HB_MACRO_YYDEBUG 1
-#  else
-#   define HB_MACRO_YYDEBUG 0
-#  endif
-# else /* ! defined YYDEBUG */
-#  define HB_MACRO_YYDEBUG 0
-# endif /* ! defined YYDEBUG */
-#endif  /* ! defined HB_MACRO_YYDEBUG */
-#if HB_MACRO_YYDEBUG
-extern int hb_macro_yydebug;
-#endif
-
-/* Token type.  */
-#ifndef HB_MACRO_YYTOKENTYPE
-# define HB_MACRO_YYTOKENTYPE
-  enum hb_macro_yytokentype
-  {
-    IDENTIFIER = 258,
-    NIL = 259,
-    NUM_DOUBLE = 260,
-    INASSIGN = 261,
-    NUM_LONG = 262,
-    NUM_DATE = 263,
-    TIMESTAMP = 264,
-    IIF = 265,
-    LITERAL = 266,
-    TRUEVALUE = 267,
-    FALSEVALUE = 268,
-    AND = 269,
-    OR = 270,
-    NOT = 271,
-    EQ = 272,
-    NE1 = 273,
-    NE2 = 274,
-    INC = 275,
-    DEC = 276,
-    ALIASOP = 277,
-    HASHOP = 278,
-    SELF = 279,
-    LE = 280,
-    GE = 281,
-    FIELD = 282,
-    MACROVAR = 283,
-    MACROTEXT = 284,
-    PLUSEQ = 285,
-    MINUSEQ = 286,
-    MULTEQ = 287,
-    DIVEQ = 288,
-    POWER = 289,
-    EXPEQ = 290,
-    MODEQ = 291,
-    EPSILON = 292,
-    POST = 293,
-    UNARY = 294,
-    PRE = 295
-  };
-#endif
-
-/* Value type.  */
-#if ! defined HB_MACRO_YYSTYPE && ! defined HB_MACRO_YYSTYPE_IS_DECLARED
-typedef union HB_MACRO_YYSTYPE HB_MACRO_YYSTYPE;
-union HB_MACRO_YYSTYPE
+#include "macroy.h"
+/* Symbol kind.  */
+enum yysymbol_kind_t
 {
-#line 140 "macro.y" /* yacc.c:355  */
-
-   const char * string; /* to hold a string returned by lex */
-   int       iNumber;   /* to hold a temporary integer number */
-   HB_MAXINT lNumber;   /* to hold a temporary long number */
-   void *    pVoid;     /* to hold any memory structure we may need */
-   PHB_EXPR  asExpr;
-   struct
-   {
-      const char * string;
-      HB_SIZE      length;
-   } valChar;
-   struct
-   {
-      int      iNumber; /* to hold a number returned by lex */
-   } valInteger;
-   struct
-   {
-      HB_MAXINT lNumber; /* to hold a long number returned by lex */
-      HB_UCHAR  bWidth;  /* to hold the width of the value */
-   } valLong;
-   struct
-   {
-      double   dNumber; /* to hold a double number returned by lex */
-      HB_UCHAR bWidth;  /* to hold the width of the value */
-      HB_UCHAR bDec;    /* to hold the number of decimal points in the value */
-   } valDouble;
-   struct
-   {
-      long     date;    /* to hold Julian date */
-      long     time;    /* to hold milliseconds */
-   } valTimeStamp;
-
-#line 328 "macroy.c" /* yacc.c:355  */
+  YYSYMBOL_YYEMPTY = -2,
+  YYSYMBOL_YYEOF = 0,                      /* "end of file"  */
+  YYSYMBOL_YYerror = 1,                    /* error  */
+  YYSYMBOL_YYUNDEF = 2,                    /* "invalid token"  */
+  YYSYMBOL_IDENTIFIER = 3,                 /* IDENTIFIER  */
+  YYSYMBOL_NIL = 4,                        /* NIL  */
+  YYSYMBOL_NUM_DOUBLE = 5,                 /* NUM_DOUBLE  */
+  YYSYMBOL_INASSIGN = 6,                   /* INASSIGN  */
+  YYSYMBOL_NUM_LONG = 7,                   /* NUM_LONG  */
+  YYSYMBOL_NUM_DATE = 8,                   /* NUM_DATE  */
+  YYSYMBOL_TIMESTAMP = 9,                  /* TIMESTAMP  */
+  YYSYMBOL_IIF = 10,                       /* IIF  */
+  YYSYMBOL_LITERAL = 11,                   /* LITERAL  */
+  YYSYMBOL_TRUEVALUE = 12,                 /* TRUEVALUE  */
+  YYSYMBOL_FALSEVALUE = 13,                /* FALSEVALUE  */
+  YYSYMBOL_AND = 14,                       /* AND  */
+  YYSYMBOL_OR = 15,                        /* OR  */
+  YYSYMBOL_NOT = 16,                       /* NOT  */
+  YYSYMBOL_EQ = 17,                        /* EQ  */
+  YYSYMBOL_NE1 = 18,                       /* NE1  */
+  YYSYMBOL_NE2 = 19,                       /* NE2  */
+  YYSYMBOL_INC = 20,                       /* INC  */
+  YYSYMBOL_DEC = 21,                       /* DEC  */
+  YYSYMBOL_ALIASOP = 22,                   /* ALIASOP  */
+  YYSYMBOL_HASHOP = 23,                    /* HASHOP  */
+  YYSYMBOL_SELF = 24,                      /* SELF  */
+  YYSYMBOL_LE = 25,                        /* LE  */
+  YYSYMBOL_GE = 26,                        /* GE  */
+  YYSYMBOL_FIELD = 27,                     /* FIELD  */
+  YYSYMBOL_MACROVAR = 28,                  /* MACROVAR  */
+  YYSYMBOL_MACROTEXT = 29,                 /* MACROTEXT  */
+  YYSYMBOL_PLUSEQ = 30,                    /* PLUSEQ  */
+  YYSYMBOL_MINUSEQ = 31,                   /* MINUSEQ  */
+  YYSYMBOL_MULTEQ = 32,                    /* MULTEQ  */
+  YYSYMBOL_DIVEQ = 33,                     /* DIVEQ  */
+  YYSYMBOL_POWER = 34,                     /* POWER  */
+  YYSYMBOL_EXPEQ = 35,                     /* EXPEQ  */
+  YYSYMBOL_MODEQ = 36,                     /* MODEQ  */
+  YYSYMBOL_EPSILON = 37,                   /* EPSILON  */
+  YYSYMBOL_POST = 38,                      /* POST  */
+  YYSYMBOL_39_ = 39,                       /* '='  */
+  YYSYMBOL_40_ = 40,                       /* '<'  */
+  YYSYMBOL_41_ = 41,                       /* '>'  */
+  YYSYMBOL_42_ = 42,                       /* '$'  */
+  YYSYMBOL_43_ = 43,                       /* '+'  */
+  YYSYMBOL_44_ = 44,                       /* '-'  */
+  YYSYMBOL_45_ = 45,                       /* '*'  */
+  YYSYMBOL_46_ = 46,                       /* '/'  */
+  YYSYMBOL_47_ = 47,                       /* '%'  */
+  YYSYMBOL_UNARY = 48,                     /* UNARY  */
+  YYSYMBOL_PRE = 49,                       /* PRE  */
+  YYSYMBOL_50_ = 50,                       /* '&'  */
+  YYSYMBOL_51_ = 51,                       /* '@'  */
+  YYSYMBOL_52_ = 52,                       /* ','  */
+  YYSYMBOL_53_ = 53,                       /* '{'  */
+  YYSYMBOL_54_ = 54,                       /* '}'  */
+  YYSYMBOL_55_ = 55,                       /* '('  */
+  YYSYMBOL_56_ = 56,                       /* ')'  */
+  YYSYMBOL_57_ = 57,                       /* ':'  */
+  YYSYMBOL_58_ = 58,                       /* ']'  */
+  YYSYMBOL_59_ = 59,                       /* '['  */
+  YYSYMBOL_60_ = 60,                       /* '|'  */
+  YYSYMBOL_YYACCEPT = 61,                  /* $accept  */
+  YYSYMBOL_Main = 62,                      /* Main  */
+  YYSYMBOL_NumValue = 63,                  /* NumValue  */
+  YYSYMBOL_DateValue = 64,                 /* DateValue  */
+  YYSYMBOL_TimeStampValue = 65,            /* TimeStampValue  */
+  YYSYMBOL_NumAlias = 66,                  /* NumAlias  */
+  YYSYMBOL_NilValue = 67,                  /* NilValue  */
+  YYSYMBOL_LiteralValue = 68,              /* LiteralValue  */
+  YYSYMBOL_Logical = 69,                   /* Logical  */
+  YYSYMBOL_SelfValue = 70,                 /* SelfValue  */
+  YYSYMBOL_Array = 71,                     /* Array  */
+  YYSYMBOL_ArrayAt = 72,                   /* ArrayAt  */
+  YYSYMBOL_Hash = 73,                      /* Hash  */
+  YYSYMBOL_HashList = 74,                  /* HashList  */
+  YYSYMBOL_Variable = 75,                  /* Variable  */
+  YYSYMBOL_VarAlias = 76,                  /* VarAlias  */
+  YYSYMBOL_MacroVar = 77,                  /* MacroVar  */
+  YYSYMBOL_MacroVarAlias = 78,             /* MacroVarAlias  */
+  YYSYMBOL_MacroExpr = 79,                 /* MacroExpr  */
+  YYSYMBOL_MacroExprAlias = 80,            /* MacroExprAlias  */
+  YYSYMBOL_FieldAlias = 81,                /* FieldAlias  */
+  YYSYMBOL_FieldVarAlias = 82,             /* FieldVarAlias  */
+  YYSYMBOL_AliasId = 83,                   /* AliasId  */
+  YYSYMBOL_AliasVar = 84,                  /* AliasVar  */
+  YYSYMBOL_AliasExpr = 85,                 /* AliasExpr  */
+  YYSYMBOL_VariableAt = 86,                /* VariableAt  */
+  YYSYMBOL_FunCall = 87,                   /* FunCall  */
+  YYSYMBOL_FunRef = 88,                    /* FunRef  */
+  YYSYMBOL_ArgList = 89,                   /* ArgList  */
+  YYSYMBOL_Argument = 90,                  /* Argument  */
+  YYSYMBOL_RefArgument = 91,               /* RefArgument  */
+  YYSYMBOL_ExtArgument = 92,               /* ExtArgument  */
+  YYSYMBOL_ObjectData = 93,                /* ObjectData  */
+  YYSYMBOL_SendId = 94,                    /* SendId  */
+  YYSYMBOL_ObjectMethod = 95,              /* ObjectMethod  */
+  YYSYMBOL_SimpleExpression = 96,          /* SimpleExpression  */
+  YYSYMBOL_Expression = 97,                /* Expression  */
+  YYSYMBOL_ExtExpression = 98,             /* ExtExpression  */
+  YYSYMBOL_RootParamList = 99,             /* RootParamList  */
+  YYSYMBOL_100_1 = 100,                    /* $@1  */
+  YYSYMBOL_AsParamList = 101,              /* AsParamList  */
+  YYSYMBOL_EmptyExpression = 102,          /* EmptyExpression  */
+  YYSYMBOL_LeftExpression = 103,           /* LeftExpression  */
+  YYSYMBOL_PostOp = 104,                   /* PostOp  */
+  YYSYMBOL_ExprPostOp = 105,               /* ExprPostOp  */
+  YYSYMBOL_ExprPreOp = 106,                /* ExprPreOp  */
+  YYSYMBOL_ExprUnary = 107,                /* ExprUnary  */
+  YYSYMBOL_ExprAssign = 108,               /* ExprAssign  */
+  YYSYMBOL_ExprPlusEq = 109,               /* ExprPlusEq  */
+  YYSYMBOL_ExprMinusEq = 110,              /* ExprMinusEq  */
+  YYSYMBOL_ExprMultEq = 111,               /* ExprMultEq  */
+  YYSYMBOL_ExprDivEq = 112,                /* ExprDivEq  */
+  YYSYMBOL_ExprModEq = 113,                /* ExprModEq  */
+  YYSYMBOL_ExprExpEq = 114,                /* ExprExpEq  */
+  YYSYMBOL_ExprOperEq = 115,               /* ExprOperEq  */
+  YYSYMBOL_ExprMath = 116,                 /* ExprMath  */
+  YYSYMBOL_ExprBool = 117,                 /* ExprBool  */
+  YYSYMBOL_ExprRelation = 118,             /* ExprRelation  */
+  YYSYMBOL_ArrayIndex = 119,               /* ArrayIndex  */
+  YYSYMBOL_IndexList = 120,                /* IndexList  */
+  YYSYMBOL_ElemList = 121,                 /* ElemList  */
+  YYSYMBOL_CodeBlock = 122,                /* CodeBlock  */
+  YYSYMBOL_123_2 = 123,                    /* @2  */
+  YYSYMBOL_BlockExpList = 124,             /* BlockExpList  */
+  YYSYMBOL_BlockVars = 125,                /* BlockVars  */
+  YYSYMBOL_BlockVarList = 126,             /* BlockVarList  */
+  YYSYMBOL_ExpList = 127,                  /* ExpList  */
+  YYSYMBOL_PareExpList = 128,              /* PareExpList  */
+  YYSYMBOL_PareExpListAlias = 129,         /* PareExpListAlias  */
+  YYSYMBOL_IfInline = 130                  /* IfInline  */
 };
-# define HB_MACRO_YYSTYPE_IS_TRIVIAL 1
-# define HB_MACRO_YYSTYPE_IS_DECLARED 1
-#endif
+typedef enum yysymbol_kind_t yysymbol_kind_t;
 
 
-
-int hb_macro_yyparse (PHB_MACRO pMacro);
-
-#endif /* !YY_HB_MACRO_YY_MACROY_H_INCLUDED  */
-
-/* Copy the second part of user declarations.  */
-#line 173 "macro.y" /* yacc.c:358  */
+/* Second part of user prologue.  */
+#line 173 "../../../macro.y"
 
 /* This must be placed after the above union - the union is
  * typedef-ined to YYSTYPE
@@ -347,34 +380,94 @@ extern int  yyparse( PHB_MACRO );            /* main yacc parsing function */
 extern void yyerror( PHB_MACRO, const char * );    /* parsing error management function */
 
 
-#line 351 "macroy.c" /* yacc.c:358  */
+#line 384 "macroy.c"
+
 
 #ifdef short
 # undef short
 #endif
 
-#ifdef YYTYPE_UINT8
-typedef YYTYPE_UINT8 yytype_uint8;
-#else
-typedef unsigned char yytype_uint8;
+/* On compilers that do not define __PTRDIFF_MAX__ etc., make sure
+   <limits.h> and (if available) <stdint.h> are included
+   so that the code can choose integer types of a good width.  */
+
+#ifndef __PTRDIFF_MAX__
+# include <limits.h> /* INFRINGES ON USER NAME SPACE */
+# if defined __STDC_VERSION__ && 199901 <= __STDC_VERSION__
+#  include <stdint.h> /* INFRINGES ON USER NAME SPACE */
+#  define YY_STDINT_H
+# endif
 #endif
 
-#ifdef YYTYPE_INT8
-typedef YYTYPE_INT8 yytype_int8;
+/* Narrow types that promote to a signed type and that can represent a
+   signed or unsigned integer of at least N bits.  In tables they can
+   save space and decrease cache pressure.  Promoting to a signed type
+   helps avoid bugs in integer arithmetic.  */
+
+#ifdef __INT_LEAST8_MAX__
+typedef __INT_LEAST8_TYPE__ yytype_int8;
+#elif defined YY_STDINT_H
+typedef int_least8_t yytype_int8;
 #else
 typedef signed char yytype_int8;
 #endif
 
-#ifdef YYTYPE_UINT16
-typedef YYTYPE_UINT16 yytype_uint16;
+#ifdef __INT_LEAST16_MAX__
+typedef __INT_LEAST16_TYPE__ yytype_int16;
+#elif defined YY_STDINT_H
+typedef int_least16_t yytype_int16;
 #else
-typedef unsigned short int yytype_uint16;
+typedef short yytype_int16;
 #endif
 
-#ifdef YYTYPE_INT16
-typedef YYTYPE_INT16 yytype_int16;
+/* Work around bug in HP-UX 11.23, which defines these macros
+   incorrectly for preprocessor constants.  This workaround can likely
+   be removed in 2023, as HPE has promised support for HP-UX 11.23
+   (aka HP-UX 11i v2) only through the end of 2022; see Table 2 of
+   <https://h20195.www2.hpe.com/V2/getpdf.aspx/4AA4-7673ENW.pdf>.  */
+#ifdef __hpux
+# undef UINT_LEAST8_MAX
+# undef UINT_LEAST16_MAX
+# define UINT_LEAST8_MAX 255
+# define UINT_LEAST16_MAX 65535
+#endif
+
+#if defined __UINT_LEAST8_MAX__ && __UINT_LEAST8_MAX__ <= __INT_MAX__
+typedef __UINT_LEAST8_TYPE__ yytype_uint8;
+#elif (!defined __UINT_LEAST8_MAX__ && defined YY_STDINT_H \
+       && UINT_LEAST8_MAX <= INT_MAX)
+typedef uint_least8_t yytype_uint8;
+#elif !defined __UINT_LEAST8_MAX__ && UCHAR_MAX <= INT_MAX
+typedef unsigned char yytype_uint8;
 #else
-typedef short int yytype_int16;
+typedef short yytype_uint8;
+#endif
+
+#if defined __UINT_LEAST16_MAX__ && __UINT_LEAST16_MAX__ <= __INT_MAX__
+typedef __UINT_LEAST16_TYPE__ yytype_uint16;
+#elif (!defined __UINT_LEAST16_MAX__ && defined YY_STDINT_H \
+       && UINT_LEAST16_MAX <= INT_MAX)
+typedef uint_least16_t yytype_uint16;
+#elif !defined __UINT_LEAST16_MAX__ && USHRT_MAX <= INT_MAX
+typedef unsigned short yytype_uint16;
+#else
+typedef int yytype_uint16;
+#endif
+
+#ifndef YYPTRDIFF_T
+# if defined __PTRDIFF_TYPE__ && defined __PTRDIFF_MAX__
+#  define YYPTRDIFF_T __PTRDIFF_TYPE__
+#  define YYPTRDIFF_MAXIMUM __PTRDIFF_MAX__
+# elif defined PTRDIFF_MAX
+#  ifndef ptrdiff_t
+#   include <stddef.h> /* INFRINGES ON USER NAME SPACE */
+#  endif
+#  define YYPTRDIFF_T ptrdiff_t
+#  define YYPTRDIFF_MAXIMUM PTRDIFF_MAX
+# else
+#  define YYPTRDIFF_T long
+#  define YYPTRDIFF_MAXIMUM LONG_MAX
+# endif
 #endif
 
 #ifndef YYSIZE_T
@@ -382,15 +475,28 @@ typedef short int yytype_int16;
 #  define YYSIZE_T __SIZE_TYPE__
 # elif defined size_t
 #  define YYSIZE_T size_t
-# elif ! defined YYSIZE_T
+# elif defined __STDC_VERSION__ && 199901 <= __STDC_VERSION__
 #  include <stddef.h> /* INFRINGES ON USER NAME SPACE */
 #  define YYSIZE_T size_t
 # else
-#  define YYSIZE_T unsigned int
+#  define YYSIZE_T unsigned
 # endif
 #endif
 
-#define YYSIZE_MAXIMUM ((YYSIZE_T) -1)
+#define YYSIZE_MAXIMUM                                  \
+  YY_CAST (YYPTRDIFF_T,                                 \
+           (YYPTRDIFF_MAXIMUM < YY_CAST (YYSIZE_T, -1)  \
+            ? YYPTRDIFF_MAXIMUM                         \
+            : YY_CAST (YYSIZE_T, -1)))
+
+#define YYSIZEOF(X) YY_CAST (YYPTRDIFF_T, sizeof (X))
+
+
+/* Stored state numbers (used for stacks). */
+typedef yytype_int16 yy_state_t;
+
+/* State numbers in computations.  */
+typedef int yy_state_fast_t;
 
 #ifndef YY_
 # if defined YYENABLE_NLS && YYENABLE_NLS
@@ -404,47 +510,43 @@ typedef short int yytype_int16;
 # endif
 #endif
 
-#ifndef YY_ATTRIBUTE
-# if (defined __GNUC__                                               \
-      && (2 < __GNUC__ || (__GNUC__ == 2 && 96 <= __GNUC_MINOR__)))  \
-     || defined __SUNPRO_C && 0x5110 <= __SUNPRO_C
-#  define YY_ATTRIBUTE(Spec) __attribute__(Spec)
+
+#ifndef YY_ATTRIBUTE_PURE
+# if defined __GNUC__ && 2 < __GNUC__ + (96 <= __GNUC_MINOR__)
+#  define YY_ATTRIBUTE_PURE __attribute__ ((__pure__))
 # else
-#  define YY_ATTRIBUTE(Spec) /* empty */
+#  define YY_ATTRIBUTE_PURE
 # endif
 #endif
 
-#ifndef YY_ATTRIBUTE_PURE
-# define YY_ATTRIBUTE_PURE   YY_ATTRIBUTE ((__pure__))
-#endif
-
 #ifndef YY_ATTRIBUTE_UNUSED
-# define YY_ATTRIBUTE_UNUSED YY_ATTRIBUTE ((__unused__))
-#endif
-
-#if !defined _Noreturn \
-     && (!defined __STDC_VERSION__ || __STDC_VERSION__ < 201112)
-# if defined _MSC_VER && 1200 <= _MSC_VER
-#  define _Noreturn __declspec (noreturn)
+# if defined __GNUC__ && 2 < __GNUC__ + (7 <= __GNUC_MINOR__)
+#  define YY_ATTRIBUTE_UNUSED __attribute__ ((__unused__))
 # else
-#  define _Noreturn YY_ATTRIBUTE ((__noreturn__))
+#  define YY_ATTRIBUTE_UNUSED
 # endif
 #endif
 
 /* Suppress unused-variable warnings by "using" E.  */
 #if ! defined lint || defined __GNUC__
-# define YYUSE(E) ((void) (E))
+# define YY_USE(E) ((void) (E))
 #else
-# define YYUSE(E) /* empty */
+# define YY_USE(E) /* empty */
 #endif
 
-#if defined __GNUC__ && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
 /* Suppress an incorrect diagnostic about yylval being uninitialized.  */
-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN \
-    _Pragma ("GCC diagnostic push") \
-    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")\
+#if defined __GNUC__ && ! defined __ICC && 406 <= __GNUC__ * 100 + __GNUC_MINOR__
+# if __GNUC__ * 100 + __GNUC_MINOR__ < 407
+#  define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                           \
+    _Pragma ("GCC diagnostic push")                                     \
+    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")
+# else
+#  define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                           \
+    _Pragma ("GCC diagnostic push")                                     \
+    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")              \
     _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
-# define YY_IGNORE_MAYBE_UNINITIALIZED_END \
+# endif
+# define YY_IGNORE_MAYBE_UNINITIALIZED_END      \
     _Pragma ("GCC diagnostic pop")
 #else
 # define YY_INITIAL_VALUE(Value) Value
@@ -457,8 +559,22 @@ typedef short int yytype_int16;
 # define YY_INITIAL_VALUE(Value) /* Nothing. */
 #endif
 
+#if defined __cplusplus && defined __GNUC__ && ! defined __ICC && 6 <= __GNUC__
+# define YY_IGNORE_USELESS_CAST_BEGIN                          \
+    _Pragma ("GCC diagnostic push")                            \
+    _Pragma ("GCC diagnostic ignored \"-Wuseless-cast\"")
+# define YY_IGNORE_USELESS_CAST_END            \
+    _Pragma ("GCC diagnostic pop")
+#endif
+#ifndef YY_IGNORE_USELESS_CAST_BEGIN
+# define YY_IGNORE_USELESS_CAST_BEGIN
+# define YY_IGNORE_USELESS_CAST_END
+#endif
 
-#if ! defined yyoverflow || YYERROR_VERBOSE
+
+#define YY_ASSERT(E) ((void) (0 && (E)))
+
+#if !defined yyoverflow
 
 /* The parser invokes alloca or malloc; define the necessary symbols.  */
 
@@ -523,8 +639,7 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 #   endif
 #  endif
 # endif
-#endif /* ! defined yyoverflow || YYERROR_VERBOSE */
-
+#endif /* !defined yyoverflow */
 
 #if (! defined yyoverflow \
      && (! defined __cplusplus \
@@ -533,17 +648,17 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 /* A type that is properly aligned for any stack member.  */
 union yyalloc
 {
-  yytype_int16 yyss_alloc;
+  yy_state_t yyss_alloc;
   YYSTYPE yyvs_alloc;
 };
 
 /* The size of the maximum gap between one aligned stack and the next.  */
-# define YYSTACK_GAP_MAXIMUM (sizeof (union yyalloc) - 1)
+# define YYSTACK_GAP_MAXIMUM (YYSIZEOF (union yyalloc) - 1)
 
 /* The size of an array large to enough to hold all stacks, each with
    N elements.  */
 # define YYSTACK_BYTES(N) \
-     ((N) * (sizeof (yytype_int16) + sizeof (YYSTYPE)) \
+     ((N) * (YYSIZEOF (yy_state_t) + YYSIZEOF (YYSTYPE)) \
       + YYSTACK_GAP_MAXIMUM)
 
 # define YYCOPY_NEEDED 1
@@ -556,11 +671,11 @@ union yyalloc
 # define YYSTACK_RELOCATE(Stack_alloc, Stack)                           \
     do                                                                  \
       {                                                                 \
-        YYSIZE_T yynewbytes;                                            \
+        YYPTRDIFF_T yynewbytes;                                         \
         YYCOPY (&yyptr->Stack_alloc, Stack, yysize);                    \
         Stack = &yyptr->Stack_alloc;                                    \
-        yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
-        yyptr += yynewbytes / sizeof (*yyptr);                          \
+        yynewbytes = yystacksize * YYSIZEOF (*Stack) + YYSTACK_GAP_MAXIMUM; \
+        yyptr += yynewbytes / YYSIZEOF (*yyptr);                        \
       }                                                                 \
     while (0)
 
@@ -572,12 +687,12 @@ union yyalloc
 # ifndef YYCOPY
 #  if defined __GNUC__ && 1 < __GNUC__
 #   define YYCOPY(Dst, Src, Count) \
-      __builtin_memcpy (Dst, Src, (Count) * sizeof (*(Src)))
+      __builtin_memcpy (Dst, Src, YY_CAST (YYSIZE_T, (Count)) * sizeof (*(Src)))
 #  else
 #   define YYCOPY(Dst, Src, Count)              \
       do                                        \
         {                                       \
-          YYSIZE_T yyi;                         \
+          YYPTRDIFF_T yyi;                      \
           for (yyi = 0; yyi < (Count); yyi++)   \
             (Dst)[yyi] = (Src)[yyi];            \
         }                                       \
@@ -600,17 +715,20 @@ union yyalloc
 /* YYNSTATES -- Number of states.  */
 #define YYNSTATES  298
 
-/* YYTRANSLATE[YYX] -- Symbol number corresponding to YYX as returned
-   by yylex, with out-of-bounds checking.  */
-#define YYUNDEFTOK  2
+/* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK   295
 
-#define YYTRANSLATE(YYX)                                                \
-  ((unsigned int) (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+
+/* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
+   as returned by yylex, with out-of-bounds checking.  */
+#define YYTRANSLATE(YYX)                                \
+  (0 <= (YYX) && (YYX) <= YYMAXUTOK                     \
+   ? YY_CAST (yysymbol_kind_t, yytranslate[YYX])        \
+   : YYSYMBOL_YYUNDEF)
 
 /* YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to TOKEN-NUM
-   as returned by yylex, without out-of-bounds checking.  */
-static const yytype_uint8 yytranslate[] =
+   as returned by yylex.  */
+static const yytype_int8 yytranslate[] =
 {
        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -645,8 +763,8 @@ static const yytype_uint8 yytranslate[] =
 };
 
 #if HB_MACRO_YYDEBUG
-  /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
-static const yytype_uint16 yyrline[] =
+/* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
+static const yytype_int16 yyrline[] =
 {
        0,   257,   257,   267,   275,   284,   285,   288,   291,   294,
      299,   304,   309,   310,   315,   320,   325,   330,   331,   334,
@@ -672,62 +790,61 @@ static const yytype_uint16 yyrline[] =
 };
 #endif
 
-#if HB_MACRO_YYDEBUG || YYERROR_VERBOSE || 0
+/** Accessing symbol of state STATE.  */
+#define YY_ACCESSING_SYMBOL(State) YY_CAST (yysymbol_kind_t, yystos[State])
+
+#if HB_MACRO_YYDEBUG || 0
+/* The user-facing name of the symbol whose (internal) number is
+   YYSYMBOL.  No bounds checking.  */
+static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
+
 /* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
-  "$end", "error", "$undefined", "IDENTIFIER", "NIL", "NUM_DOUBLE",
-  "INASSIGN", "NUM_LONG", "NUM_DATE", "TIMESTAMP", "IIF", "LITERAL",
-  "TRUEVALUE", "FALSEVALUE", "AND", "OR", "NOT", "EQ", "NE1", "NE2", "INC",
-  "DEC", "ALIASOP", "HASHOP", "SELF", "LE", "GE", "FIELD", "MACROVAR",
-  "MACROTEXT", "PLUSEQ", "MINUSEQ", "MULTEQ", "DIVEQ", "POWER", "EXPEQ",
-  "MODEQ", "EPSILON", "POST", "'='", "'<'", "'>'", "'$'", "'+'", "'-'",
-  "'*'", "'/'", "'%'", "UNARY", "PRE", "'&'", "'@'", "','", "'{'", "'}'",
-  "'('", "')'", "':'", "']'", "'['", "'|'", "$accept", "Main", "NumValue",
-  "DateValue", "TimeStampValue", "NumAlias", "NilValue", "LiteralValue",
-  "Logical", "SelfValue", "Array", "ArrayAt", "Hash", "HashList",
-  "Variable", "VarAlias", "MacroVar", "MacroVarAlias", "MacroExpr",
-  "MacroExprAlias", "FieldAlias", "FieldVarAlias", "AliasId", "AliasVar",
-  "AliasExpr", "VariableAt", "FunCall", "FunRef", "ArgList", "Argument",
-  "RefArgument", "ExtArgument", "ObjectData", "SendId", "ObjectMethod",
-  "SimpleExpression", "Expression", "ExtExpression", "RootParamList",
-  "$@1", "AsParamList", "EmptyExpression", "LeftExpression", "PostOp",
-  "ExprPostOp", "ExprPreOp", "ExprUnary", "ExprAssign", "ExprPlusEq",
-  "ExprMinusEq", "ExprMultEq", "ExprDivEq", "ExprModEq", "ExprExpEq",
-  "ExprOperEq", "ExprMath", "ExprBool", "ExprRelation", "ArrayIndex",
-  "IndexList", "ElemList", "CodeBlock", "@2", "BlockExpList", "BlockVars",
-  "BlockVarList", "ExpList", "PareExpList", "PareExpListAlias", "IfInline", YY_NULLPTR
+  "\"end of file\"", "error", "\"invalid token\"", "IDENTIFIER", "NIL",
+  "NUM_DOUBLE", "INASSIGN", "NUM_LONG", "NUM_DATE", "TIMESTAMP", "IIF",
+  "LITERAL", "TRUEVALUE", "FALSEVALUE", "AND", "OR", "NOT", "EQ", "NE1",
+  "NE2", "INC", "DEC", "ALIASOP", "HASHOP", "SELF", "LE", "GE", "FIELD",
+  "MACROVAR", "MACROTEXT", "PLUSEQ", "MINUSEQ", "MULTEQ", "DIVEQ", "POWER",
+  "EXPEQ", "MODEQ", "EPSILON", "POST", "'='", "'<'", "'>'", "'$'", "'+'",
+  "'-'", "'*'", "'/'", "'%'", "UNARY", "PRE", "'&'", "'@'", "','", "'{'",
+  "'}'", "'('", "')'", "':'", "']'", "'['", "'|'", "$accept", "Main",
+  "NumValue", "DateValue", "TimeStampValue", "NumAlias", "NilValue",
+  "LiteralValue", "Logical", "SelfValue", "Array", "ArrayAt", "Hash",
+  "HashList", "Variable", "VarAlias", "MacroVar", "MacroVarAlias",
+  "MacroExpr", "MacroExprAlias", "FieldAlias", "FieldVarAlias", "AliasId",
+  "AliasVar", "AliasExpr", "VariableAt", "FunCall", "FunRef", "ArgList",
+  "Argument", "RefArgument", "ExtArgument", "ObjectData", "SendId",
+  "ObjectMethod", "SimpleExpression", "Expression", "ExtExpression",
+  "RootParamList", "$@1", "AsParamList", "EmptyExpression",
+  "LeftExpression", "PostOp", "ExprPostOp", "ExprPreOp", "ExprUnary",
+  "ExprAssign", "ExprPlusEq", "ExprMinusEq", "ExprMultEq", "ExprDivEq",
+  "ExprModEq", "ExprExpEq", "ExprOperEq", "ExprMath", "ExprBool",
+  "ExprRelation", "ArrayIndex", "IndexList", "ElemList", "CodeBlock", "@2",
+  "BlockExpList", "BlockVars", "BlockVarList", "ExpList", "PareExpList",
+  "PareExpListAlias", "IfInline", YY_NULLPTR
 };
+
+static const char *
+yysymbol_name (yysymbol_kind_t yysymbol)
+{
+  return yytname[yysymbol];
+}
 #endif
 
-# ifdef YYPRINT
-/* YYTOKNUM[NUM] -- (External) token number corresponding to the
-   (internal) symbol number NUM (which must be that of a token).  */
-static const yytype_uint16 yytoknum[] =
-{
-       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
-     265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
-     275,   276,   277,   278,   279,   280,   281,   282,   283,   284,
-     285,   286,   287,   288,   289,   290,   291,   292,   293,    61,
-      60,    62,    36,    43,    45,    42,    47,    37,   294,   295,
-      38,    64,    44,   123,   125,    40,    41,    58,    93,    91,
-     124
-};
-# endif
+#define YYPACT_NINF (-260)
 
-#define YYPACT_NINF -260
+#define yypact_value_is_default(Yyn) \
+  ((Yyn) == YYPACT_NINF)
 
-#define yypact_value_is_default(Yystate) \
-  (!!((Yystate) == (-260)))
+#define YYTABLE_NINF (-150)
 
-#define YYTABLE_NINF -150
-
-#define yytable_value_is_error(Yytable_value) \
+#define yytable_value_is_error(Yyn) \
   0
 
-  /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
-     STATE-NUM.  */
+/* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+   STATE-NUM.  */
 static const yytype_int16 yypact[] =
 {
      346,  -260,   -15,  -260,  -260,   -12,  -260,  -260,   -38,  -260,
@@ -762,9 +879,9 @@ static const yytype_int16 yypact[] =
     -260,  -260,  -260,   126,   843,  -260,  -260,  1160
 };
 
-  /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
-     Performed when YYTABLE does not specify something else to do.  Zero
-     means the default is an error.  */
+/* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
+   Performed when YYTABLE does not specify something else to do.  Zero
+   means the default is an error.  */
 static const yytype_uint8 yydefact[] =
 {
        0,     4,    21,    10,     5,     6,     7,     8,     0,    11,
@@ -799,7 +916,7 @@ static const yytype_uint8 yydefact[] =
      203,   201,    20,     0,     0,   195,   208,   197
 };
 
-  /* YYPGOTO[NTERM-NUM].  */
+/* YYPGOTO[NTERM-NUM].  */
 static const yytype_int16 yypgoto[] =
 {
     -260,  -260,    96,    99,   105,   148,   115,   119,   121,   122,
@@ -811,10 +928,10 @@ static const yytype_int16 yypgoto[] =
     -260,   147,  -260,  -260,  -260,  -260,  -260,    95,   181,   150
 };
 
-  /* YYDEFGOTO[NTERM-NUM].  */
+/* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_int16 yydefgoto[] =
 {
-      -1,    25,    26,    27,    28,    29,    30,    31,    32,    33,
+       0,    25,    26,    27,    28,    29,    30,    31,    32,    33,
       34,    35,    36,    93,    37,    38,    39,    40,    41,    42,
       43,    44,   111,    45,    46,    47,    48,    49,   187,    94,
       95,   188,    50,   259,    51,    52,   100,   225,    54,   248,
@@ -823,9 +940,9 @@ static const yytype_int16 yydefgoto[] =
       99,    72,   217,   289,   268,   269,    73,    74,    75,    76
 };
 
-  /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
-     positive, shift that token.  If negative, reduce the rule whose
-     number is the opposite.  If YYTABLE_NINF, syntax error.  */
+/* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
+   positive, shift that token.  If negative, reduce the rule whose
+   number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int16 yytable[] =
 {
       53,    56,    96,   228,   279,   131,   273,    77,   108,   132,
@@ -1090,8 +1207,8 @@ static const yytype_int16 yycheck[] =
       45,    46,    47
 };
 
-  /* YYSTOS[STATE-NUM] -- The (internal number of the) accessing
-     symbol of state STATE-NUM.  */
+/* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
+   state STATE-NUM.  */
 static const yytype_uint8 yystos[] =
 {
        0,     1,     3,     4,     5,     7,     8,     9,    10,    11,
@@ -1126,7 +1243,7 @@ static const yytype_uint8 yystos[] =
        3,    37,   102,    90,    52,    54,    56,    97
 };
 
-  /* YYR1[YYN] -- Symbol number of symbol that rule YYN derives.  */
+/* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
 static const yytype_uint8 yyr1[] =
 {
        0,    61,    62,    62,    62,    63,    63,    64,    65,    66,
@@ -1152,8 +1269,8 @@ static const yytype_uint8 yyr1[] =
      125,   125,   126,   126,   127,   127,   128,   129,   130
 };
 
-  /* YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.  */
-static const yytype_uint8 yyr2[] =
+/* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
+static const yytype_int8 yyr2[] =
 {
        0,     2,     1,     1,     1,     1,     1,     1,     1,     2,
        1,     1,     1,     1,     1,     3,     2,     3,     3,     3,
@@ -1179,39 +1296,39 @@ static const yytype_uint8 yyr2[] =
 };
 
 
+enum { YYENOMEM = -2 };
+
 #define yyerrok         (yyerrstatus = 0)
-#define yyclearin       (yychar = YYEMPTY)
-#define YYEMPTY         (-2)
-#define YYEOF           0
+#define yyclearin       (yychar = HB_MACRO_YYEMPTY)
 
 #define YYACCEPT        goto yyacceptlab
 #define YYABORT         goto yyabortlab
 #define YYERROR         goto yyerrorlab
+#define YYNOMEM         goto yyexhaustedlab
 
 
 #define YYRECOVERING()  (!!yyerrstatus)
 
-#define YYBACKUP(Token, Value)                                  \
-do                                                              \
-  if (yychar == YYEMPTY)                                        \
-    {                                                           \
-      yychar = (Token);                                         \
-      yylval = (Value);                                         \
-      YYPOPSTACK (yylen);                                       \
-      yystate = *yyssp;                                         \
-      goto yybackup;                                            \
-    }                                                           \
-  else                                                          \
-    {                                                           \
-      yyerror (pMacro, YY_("syntax error: cannot back up")); \
-      YYERROR;                                                  \
-    }                                                           \
-while (0)
+#define YYBACKUP(Token, Value)                                    \
+  do                                                              \
+    if (yychar == HB_MACRO_YYEMPTY)                                        \
+      {                                                           \
+        yychar = (Token);                                         \
+        yylval = (Value);                                         \
+        YYPOPSTACK (yylen);                                       \
+        yystate = *yyssp;                                         \
+        goto yybackup;                                            \
+      }                                                           \
+    else                                                          \
+      {                                                           \
+        yyerror (pMacro, YY_("syntax error: cannot back up")); \
+        YYERROR;                                                  \
+      }                                                           \
+  while (0)
 
-/* Error token number */
-#define YYTERROR        1
-#define YYERRCODE       256
-
+/* Backward compatibility with an undocumented macro.
+   Use HB_MACRO_YYerror or HB_MACRO_YYUNDEF. */
+#define YYERRCODE HB_MACRO_YYUNDEF
 
 
 /* Enable debugging if requested.  */
@@ -1228,56 +1345,53 @@ do {                                            \
     YYFPRINTF Args;                             \
 } while (0)
 
-/* This macro is provided for backward compatibility. */
-#ifndef YY_LOCATION_PRINT
-# define YY_LOCATION_PRINT(File, Loc) ((void) 0)
-#endif
 
 
-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)                    \
+
+# define YY_SYMBOL_PRINT(Title, Kind, Value, Location)                    \
 do {                                                                      \
   if (yydebug)                                                            \
     {                                                                     \
       YYFPRINTF (stderr, "%s ", Title);                                   \
       yy_symbol_print (stderr,                                            \
-                  Type, Value, pMacro); \
+                  Kind, Value, pMacro); \
       YYFPRINTF (stderr, "\n");                                           \
     }                                                                     \
 } while (0)
 
 
-/*----------------------------------------.
-| Print this symbol's value on YYOUTPUT.  |
-`----------------------------------------*/
+/*-----------------------------------.
+| Print this symbol's value on YYO.  |
+`-----------------------------------*/
 
 static void
-yy_symbol_value_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, PHB_MACRO pMacro)
+yy_symbol_value_print (FILE *yyo,
+                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, PHB_MACRO pMacro)
 {
-  FILE *yyo = yyoutput;
-  YYUSE (yyo);
-  YYUSE (pMacro);
+  FILE *yyoutput = yyo;
+  YY_USE (yyoutput);
+  YY_USE (pMacro);
   if (!yyvaluep)
     return;
-# ifdef YYPRINT
-  if (yytype < YYNTOKENS)
-    YYPRINT (yyoutput, yytoknum[yytype], *yyvaluep);
-# endif
-  YYUSE (yytype);
+  YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
+  YY_USE (yykind);
+  YY_IGNORE_MAYBE_UNINITIALIZED_END
 }
 
 
-/*--------------------------------.
-| Print this symbol on YYOUTPUT.  |
-`--------------------------------*/
+/*---------------------------.
+| Print this symbol on YYO.  |
+`---------------------------*/
 
 static void
-yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, PHB_MACRO pMacro)
+yy_symbol_print (FILE *yyo,
+                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, PHB_MACRO pMacro)
 {
-  YYFPRINTF (yyoutput, "%s %s (",
-             yytype < YYNTOKENS ? "token" : "nterm", yytname[yytype]);
+  YYFPRINTF (yyo, "%s %s (",
+             yykind < YYNTOKENS ? "token" : "nterm", yysymbol_name (yykind));
 
-  yy_symbol_value_print (yyoutput, yytype, yyvaluep, pMacro);
-  YYFPRINTF (yyoutput, ")");
+  yy_symbol_value_print (yyo, yykind, yyvaluep, pMacro);
+  YYFPRINTF (yyo, ")");
 }
 
 /*------------------------------------------------------------------.
@@ -1286,7 +1400,7 @@ yy_symbol_print (FILE *yyoutput, int yytype, YYSTYPE const * const yyvaluep, PHB
 `------------------------------------------------------------------*/
 
 static void
-yy_stack_print (yytype_int16 *yybottom, yytype_int16 *yytop)
+yy_stack_print (yy_state_t *yybottom, yy_state_t *yytop)
 {
   YYFPRINTF (stderr, "Stack now");
   for (; yybottom <= yytop; yybottom++)
@@ -1309,21 +1423,21 @@ do {                                                            \
 `------------------------------------------------*/
 
 static void
-yy_reduce_print (yytype_int16 *yyssp, YYSTYPE *yyvsp, int yyrule, PHB_MACRO pMacro)
+yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp,
+                 int yyrule, PHB_MACRO pMacro)
 {
-  unsigned long int yylno = yyrline[yyrule];
+  int yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
   int yyi;
-  YYFPRINTF (stderr, "Reducing stack by rule %d (line %lu):\n",
+  YYFPRINTF (stderr, "Reducing stack by rule %d (line %d):\n",
              yyrule - 1, yylno);
   /* The symbols being reduced.  */
   for (yyi = 0; yyi < yynrhs; yyi++)
     {
       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr,
-                       yystos[yyssp[yyi + 1 - yynrhs]],
-                       &(yyvsp[(yyi + 1) - (yynrhs)])
-                                              , pMacro);
+                       YY_ACCESSING_SYMBOL (+yyssp[yyi + 1 - yynrhs]),
+                       &yyvsp[(yyi + 1) - (yynrhs)], pMacro);
       YYFPRINTF (stderr, "\n");
     }
 }
@@ -1338,8 +1452,8 @@ do {                                    \
    multiple parsers can coexist.  */
 int yydebug;
 #else /* !HB_MACRO_YYDEBUG */
-# define YYDPRINTF(Args)
-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)
+# define YYDPRINTF(Args) ((void) 0)
+# define YY_SYMBOL_PRINT(Title, Kind, Value, Location)
 # define YY_STACK_PRINT(Bottom, Top)
 # define YY_REDUCE_PRINT(Rule)
 #endif /* !HB_MACRO_YYDEBUG */
@@ -1362,245 +1476,30 @@ int yydebug;
 #endif
 
 
-#if YYERROR_VERBOSE
 
-# ifndef yystrlen
-#  if defined __GLIBC__ && defined _STRING_H
-#   define yystrlen strlen
-#  else
-/* Return the length of YYSTR.  */
-static YYSIZE_T
-yystrlen (const char *yystr)
-{
-  YYSIZE_T yylen;
-  for (yylen = 0; yystr[yylen]; yylen++)
-    continue;
-  return yylen;
-}
-#  endif
-# endif
 
-# ifndef yystpcpy
-#  if defined __GLIBC__ && defined _STRING_H && defined _GNU_SOURCE
-#   define yystpcpy stpcpy
-#  else
-/* Copy YYSRC to YYDEST, returning the address of the terminating '\0' in
-   YYDEST.  */
-static char *
-yystpcpy (char *yydest, const char *yysrc)
-{
-  char *yyd = yydest;
-  const char *yys = yysrc;
 
-  while ((*yyd++ = *yys++) != '\0')
-    continue;
-
-  return yyd - 1;
-}
-#  endif
-# endif
-
-# ifndef yytnamerr
-/* Copy to YYRES the contents of YYSTR after stripping away unnecessary
-   quotes and backslashes, so that it's suitable for yyerror.  The
-   heuristic is that double-quoting is unnecessary unless the string
-   contains an apostrophe, a comma, or backslash (other than
-   backslash-backslash).  YYSTR is taken from yytname.  If YYRES is
-   null, do not copy; instead, return the length of what the result
-   would have been.  */
-static YYSIZE_T
-yytnamerr (char *yyres, const char *yystr)
-{
-  if (*yystr == '"')
-    {
-      YYSIZE_T yyn = 0;
-      char const *yyp = yystr;
-
-      for (;;)
-        switch (*++yyp)
-          {
-          case '\'':
-          case ',':
-            goto do_not_strip_quotes;
-
-          case '\\':
-            if (*++yyp != '\\')
-              goto do_not_strip_quotes;
-            /* Fall through.  */
-          default:
-            if (yyres)
-              yyres[yyn] = *yyp;
-            yyn++;
-            break;
-
-          case '"':
-            if (yyres)
-              yyres[yyn] = '\0';
-            return yyn;
-          }
-    do_not_strip_quotes: ;
-    }
-
-  if (! yyres)
-    return yystrlen (yystr);
-
-  return yystpcpy (yyres, yystr) - yyres;
-}
-# endif
-
-/* Copy into *YYMSG, which is of size *YYMSG_ALLOC, an error message
-   about the unexpected token YYTOKEN for the state stack whose top is
-   YYSSP.
-
-   Return 0 if *YYMSG was successfully written.  Return 1 if *YYMSG is
-   not large enough to hold the message.  In that case, also set
-   *YYMSG_ALLOC to the required number of bytes.  Return 2 if the
-   required number of bytes is too large to store.  */
-static int
-yysyntax_error (YYSIZE_T *yymsg_alloc, char **yymsg,
-                yytype_int16 *yyssp, int yytoken)
-{
-  YYSIZE_T yysize0 = yytnamerr (YY_NULLPTR, yytname[yytoken]);
-  YYSIZE_T yysize = yysize0;
-  enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
-  /* Internationalized format string. */
-  const char *yyformat = YY_NULLPTR;
-  /* Arguments of yyformat. */
-  char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
-  /* Number of reported tokens (one for the "unexpected", one per
-     "expected"). */
-  int yycount = 0;
-
-  /* There are many possibilities here to consider:
-     - If this state is a consistent state with a default action, then
-       the only way this function was invoked is if the default action
-       is an error action.  In that case, don't check for expected
-       tokens because there are none.
-     - The only way there can be no lookahead present (in yychar) is if
-       this state is a consistent state with a default action.  Thus,
-       detecting the absence of a lookahead is sufficient to determine
-       that there is no unexpected or expected token to report.  In that
-       case, just report a simple "syntax error".
-     - Don't assume there isn't a lookahead just because this state is a
-       consistent state with a default action.  There might have been a
-       previous inconsistent state, consistent state with a non-default
-       action, or user semantic action that manipulated yychar.
-     - Of course, the expected token list depends on states to have
-       correct lookahead information, and it depends on the parser not
-       to perform extra reductions after fetching a lookahead from the
-       scanner and before detecting a syntax error.  Thus, state merging
-       (from LALR or IELR) and default reductions corrupt the expected
-       token list.  However, the list is correct for canonical LR with
-       one exception: it will still contain any token that will not be
-       accepted due to an error action in a later state.
-  */
-  if (yytoken != YYEMPTY)
-    {
-      int yyn = yypact[*yyssp];
-      yyarg[yycount++] = yytname[yytoken];
-      if (!yypact_value_is_default (yyn))
-        {
-          /* Start YYX at -YYN if negative to avoid negative indexes in
-             YYCHECK.  In other words, skip the first -YYN actions for
-             this state because they are default actions.  */
-          int yyxbegin = yyn < 0 ? -yyn : 0;
-          /* Stay within bounds of both yycheck and yytname.  */
-          int yychecklim = YYLAST - yyn + 1;
-          int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
-          int yyx;
-
-          for (yyx = yyxbegin; yyx < yyxend; ++yyx)
-            if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR
-                && !yytable_value_is_error (yytable[yyx + yyn]))
-              {
-                if (yycount == YYERROR_VERBOSE_ARGS_MAXIMUM)
-                  {
-                    yycount = 1;
-                    yysize = yysize0;
-                    break;
-                  }
-                yyarg[yycount++] = yytname[yyx];
-                {
-                  YYSIZE_T yysize1 = yysize + yytnamerr (YY_NULLPTR, yytname[yyx]);
-                  if (! (yysize <= yysize1
-                         && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
-                    return 2;
-                  yysize = yysize1;
-                }
-              }
-        }
-    }
-
-  switch (yycount)
-    {
-# define YYCASE_(N, S)                      \
-      case N:                               \
-        yyformat = S;                       \
-      break
-      YYCASE_(0, YY_("syntax error"));
-      YYCASE_(1, YY_("syntax error, unexpected %s"));
-      YYCASE_(2, YY_("syntax error, unexpected %s, expecting %s"));
-      YYCASE_(3, YY_("syntax error, unexpected %s, expecting %s or %s"));
-      YYCASE_(4, YY_("syntax error, unexpected %s, expecting %s or %s or %s"));
-      YYCASE_(5, YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s"));
-# undef YYCASE_
-    }
-
-  {
-    YYSIZE_T yysize1 = yysize + yystrlen (yyformat);
-    if (! (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM))
-      return 2;
-    yysize = yysize1;
-  }
-
-  if (*yymsg_alloc < yysize)
-    {
-      *yymsg_alloc = 2 * yysize;
-      if (! (yysize <= *yymsg_alloc
-             && *yymsg_alloc <= YYSTACK_ALLOC_MAXIMUM))
-        *yymsg_alloc = YYSTACK_ALLOC_MAXIMUM;
-      return 1;
-    }
-
-  /* Avoid sprintf, as that infringes on the user's name space.
-     Don't have undefined behavior even if the translation
-     produced a string with the wrong number of "%s"s.  */
-  {
-    char *yyp = *yymsg;
-    int yyi = 0;
-    while ((*yyp = *yyformat) != '\0')
-      if (*yyp == '%' && yyformat[1] == 's' && yyi < yycount)
-        {
-          yyp += yytnamerr (yyp, yyarg[yyi++]);
-          yyformat += 2;
-        }
-      else
-        {
-          yyp++;
-          yyformat++;
-        }
-  }
-  return 0;
-}
-#endif /* YYERROR_VERBOSE */
 
 /*-----------------------------------------------.
 | Release the memory associated to this symbol.  |
 `-----------------------------------------------*/
 
 static void
-yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, PHB_MACRO pMacro)
+yydestruct (const char *yymsg,
+            yysymbol_kind_t yykind, YYSTYPE *yyvaluep, PHB_MACRO pMacro)
 {
-  YYUSE (yyvaluep);
-  YYUSE (pMacro);
+  YY_USE (yyvaluep);
+  YY_USE (pMacro);
   if (!yymsg)
     yymsg = "Deleting";
-  YY_SYMBOL_PRINT (yymsg, yytype, yyvaluep, yylocationp);
+  YY_SYMBOL_PRINT (yymsg, yykind, yyvaluep, yylocationp);
 
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
-  YYUSE (yytype);
+  YY_USE (yykind);
   YY_IGNORE_MAYBE_UNINITIALIZED_END
 }
+
+
 
 
 
@@ -1612,7 +1511,7 @@ yydestruct (const char *yymsg, int yytype, YYSTYPE *yyvaluep, PHB_MACRO pMacro)
 int
 yyparse (PHB_MACRO pMacro)
 {
-/* The lookahead symbol.  */
+/* Lookahead token kind.  */
 int yychar;
 
 
@@ -1623,45 +1522,38 @@ YY_INITIAL_VALUE (static YYSTYPE yyval_default;)
 YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
 
     /* Number of syntax errors so far.  */
-    int yynerrs;
+    int yynerrs = 0;
 
-    int yystate;
+    yy_state_fast_t yystate = 0;
     /* Number of tokens to shift before error messages enabled.  */
-    int yyerrstatus;
+    int yyerrstatus = 0;
 
-    /* The stacks and their tools:
-       'yyss': related to states.
-       'yyvs': related to semantic values.
-
-       Refer to the stacks through separate pointers, to allow yyoverflow
+    /* Refer to the stacks through separate pointers, to allow yyoverflow
        to reallocate them elsewhere.  */
 
-    /* The state stack.  */
-    yytype_int16 yyssa[YYINITDEPTH];
-    yytype_int16 *yyss;
-    yytype_int16 *yyssp;
+    /* Their size.  */
+    YYPTRDIFF_T yystacksize = YYINITDEPTH;
 
-    /* The semantic value stack.  */
+    /* The state stack: array, bottom, top.  */
+    yy_state_t yyssa[YYINITDEPTH];
+    yy_state_t *yyss = yyssa;
+    yy_state_t *yyssp = yyss;
+
+    /* The semantic value stack: array, bottom, top.  */
     YYSTYPE yyvsa[YYINITDEPTH];
-    YYSTYPE *yyvs;
-    YYSTYPE *yyvsp;
-
-    YYSIZE_T yystacksize;
+    YYSTYPE *yyvs = yyvsa;
+    YYSTYPE *yyvsp = yyvs;
 
   int yyn;
+  /* The return value of yyparse.  */
   int yyresult;
-  /* Lookahead token as an internal (translated) token number.  */
-  int yytoken = 0;
+  /* Lookahead symbol kind.  */
+  yysymbol_kind_t yytoken = YYSYMBOL_YYEMPTY;
   /* The variables used to return semantic value and location from the
      action routines.  */
   YYSTYPE yyval;
 
-#if YYERROR_VERBOSE
-  /* Buffer for error messages, and its allocated size.  */
-  char yymsgbuf[128];
-  char *yymsg = yymsgbuf;
-  YYSIZE_T yymsg_alloc = sizeof yymsgbuf;
-#endif
+
 
 #define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N))
 
@@ -1669,74 +1561,75 @@ YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
      Keep to zero when no symbol should be popped.  */
   int yylen = 0;
 
-  yyssp = yyss = yyssa;
-  yyvsp = yyvs = yyvsa;
-  yystacksize = YYINITDEPTH;
-
   YYDPRINTF ((stderr, "Starting parse\n"));
 
-  yystate = 0;
-  yyerrstatus = 0;
+  yychar = HB_MACRO_YYEMPTY; /* Cause a token to be read.  */
 
-  yynerrs = 0;
-  HB_SYMBOL_UNUSED( yynerrs );
-
-  yychar = YYEMPTY; /* Cause a token to be read.  */
   goto yysetstate;
 
+
 /*------------------------------------------------------------.
-| yynewstate -- Push a new state, which is found in yystate.  |
+| yynewstate -- push a new state, which is found in yystate.  |
 `------------------------------------------------------------*/
- yynewstate:
+yynewstate:
   /* In all cases, when you get here, the value and location stacks
      have just been pushed.  So pushing a state here evens the stacks.  */
   yyssp++;
 
- yysetstate:
-  *yyssp = yystate;
+
+/*--------------------------------------------------------------------.
+| yysetstate -- set current state (the top of the stack) to yystate.  |
+`--------------------------------------------------------------------*/
+yysetstate:
+  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+  YY_ASSERT (0 <= yystate && yystate < YYNSTATES);
+  YY_IGNORE_USELESS_CAST_BEGIN
+  *yyssp = YY_CAST (yy_state_t, yystate);
+  YY_IGNORE_USELESS_CAST_END
+  YY_STACK_PRINT (yyss, yyssp);
 
   if (yyss + yystacksize - 1 <= yyssp)
+#if !defined yyoverflow && !defined YYSTACK_RELOCATE
+    YYNOMEM;
+#else
     {
       /* Get the current used size of the three stacks, in elements.  */
-      YYSIZE_T yysize = yyssp - yyss + 1;
+      YYPTRDIFF_T yysize = yyssp - yyss + 1;
 
-#ifdef yyoverflow
+# if defined yyoverflow
       {
         /* Give user a chance to reallocate the stack.  Use copies of
            these so that the &'s don't force the real ones into
            memory.  */
+        yy_state_t *yyss1 = yyss;
         YYSTYPE *yyvs1 = yyvs;
-        yytype_int16 *yyss1 = yyss;
 
         /* Each stack pointer address is followed by the size of the
            data in use in that stack, in bytes.  This used to be a
            conditional around just the two extra args, but that might
            be undefined if yyoverflow is a macro.  */
         yyoverflow (YY_("memory exhausted"),
-                    &yyss1, yysize * sizeof (*yyssp),
-                    &yyvs1, yysize * sizeof (*yyvsp),
+                    &yyss1, yysize * YYSIZEOF (*yyssp),
+                    &yyvs1, yysize * YYSIZEOF (*yyvsp),
                     &yystacksize);
-
         yyss = yyss1;
         yyvs = yyvs1;
       }
-#else /* no yyoverflow */
-# ifndef YYSTACK_RELOCATE
-      goto yyexhaustedlab;
-# else
+# else /* defined YYSTACK_RELOCATE */
       /* Extend the stack our own way.  */
       if (YYMAXDEPTH <= yystacksize)
-        goto yyexhaustedlab;
+        YYNOMEM;
       yystacksize *= 2;
       if (YYMAXDEPTH < yystacksize)
         yystacksize = YYMAXDEPTH;
 
       {
-        yytype_int16 *yyss1 = yyss;
+        yy_state_t *yyss1 = yyss;
         union yyalloc *yyptr =
-          (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
+          YY_CAST (union yyalloc *,
+                   YYSTACK_ALLOC (YY_CAST (YYSIZE_T, YYSTACK_BYTES (yystacksize))));
         if (! yyptr)
-          goto yyexhaustedlab;
+          YYNOMEM;
         YYSTACK_RELOCATE (yyss_alloc, yyss);
         YYSTACK_RELOCATE (yyvs_alloc, yyvs);
 #  undef YYSTACK_RELOCATE
@@ -1744,30 +1637,31 @@ YYSTYPE yylval YY_INITIAL_VALUE (= yyval_default);
           YYSTACK_FREE (yyss1);
       }
 # endif
-#endif /* no yyoverflow */
 
       yyssp = yyss + yysize - 1;
       yyvsp = yyvs + yysize - 1;
 
-      YYDPRINTF ((stderr, "Stack size increased to %lu\n",
-                  (unsigned long int) yystacksize));
+      YY_IGNORE_USELESS_CAST_BEGIN
+      YYDPRINTF ((stderr, "Stack size increased to %ld\n",
+                  YY_CAST (long, yystacksize)));
+      YY_IGNORE_USELESS_CAST_END
 
       if (yyss + yystacksize - 1 <= yyssp)
         YYABORT;
     }
+#endif /* !defined yyoverflow && !defined YYSTACK_RELOCATE */
 
-  YYDPRINTF ((stderr, "Entering state %d\n", yystate));
 
   if (yystate == YYFINAL)
     YYACCEPT;
 
   goto yybackup;
 
+
 /*-----------.
 | yybackup.  |
 `-----------*/
 yybackup:
-
   /* Do appropriate processing given the current state.  Read a
      lookahead token if we need one and don't already have one.  */
 
@@ -1778,17 +1672,28 @@ yybackup:
 
   /* Not known => get a lookahead token if don't already have one.  */
 
-  /* YYCHAR is either YYEMPTY or YYEOF or a valid lookahead symbol.  */
-  if (yychar == YYEMPTY)
+  /* YYCHAR is either empty, or end-of-input, or a valid lookahead.  */
+  if (yychar == HB_MACRO_YYEMPTY)
     {
-      YYDPRINTF ((stderr, "Reading a token: "));
+      YYDPRINTF ((stderr, "Reading a token\n"));
       yychar = yylex (&yylval, pMacro);
     }
 
-  if (yychar <= YYEOF)
+  if (yychar <= HB_MACRO_YYEOF)
     {
-      yychar = yytoken = YYEOF;
+      yychar = HB_MACRO_YYEOF;
+      yytoken = YYSYMBOL_YYEOF;
       YYDPRINTF ((stderr, "Now at end of input.\n"));
+    }
+  else if (yychar == HB_MACRO_YYerror)
+    {
+      /* The scanner already issued an error message, process directly
+         to error recovery.  But do not keep the error token as
+         lookahead, it is too special and may lead us to an endless
+         loop in error recovery. */
+      yychar = HB_MACRO_YYUNDEF;
+      yytoken = YYSYMBOL_YYerror;
+      goto yyerrlab1;
     }
   else
     {
@@ -1817,15 +1722,13 @@ yybackup:
 
   /* Shift the lookahead token.  */
   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
-
-  /* Discard the shifted token.  */
-  yychar = YYEMPTY;
-
   yystate = yyn;
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   *++yyvsp = yylval;
   YY_IGNORE_MAYBE_UNINITIALIZED_END
 
+  /* Discard the shifted token.  */
+  yychar = HB_MACRO_YYEMPTY;
   goto yynewstate;
 
 
@@ -1840,7 +1743,7 @@ yydefault:
 
 
 /*-----------------------------.
-| yyreduce -- Do a reduction.  |
+| yyreduce -- do a reduction.  |
 `-----------------------------*/
 yyreduce:
   /* yyn is the number of a rule to reduce with.  */
@@ -1860,9 +1763,9 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-        case 2:
-#line 257 "macro.y" /* yacc.c:1646  */
-    {
+  case 2: /* Main: Expression  */
+#line 257 "../../../macro.y"
+                        {
                            HB_MACRO_DATA->exprType = hb_compExprType( (yyvsp[0].asExpr) );
                            if( HB_MACRO_DATA->Flags &  HB_MACRO_GEN_REFER )
                               hb_macroExprGenPush( hb_compExprNewRef( (yyvsp[0].asExpr), HB_COMP_PARAM ), HB_COMP_PARAM );
@@ -1872,12 +1775,12 @@ yyreduce:
                               hb_macroExprGenPop( (yyvsp[0].asExpr), HB_COMP_PARAM );
                            hb_macroGenPCode1( HB_P_ENDPROC, HB_COMP_PARAM );
                         }
-#line 1873 "macroy.c" /* yacc.c:1646  */
+#line 1779 "macroy.c"
     break;
 
-  case 3:
-#line 267 "macro.y" /* yacc.c:1646  */
-    {
+  case 3: /* Main: AsParamList  */
+#line 267 "../../../macro.y"
+                        {
                            HB_MACRO_DATA->exprType = hb_compExprType( (yyvsp[0].asExpr) );
                            if( HB_MACRO_DATA->Flags &  HB_MACRO_GEN_PUSH )
                               hb_macroExprGenPush( (yyvsp[0].asExpr), HB_COMP_PARAM );
@@ -1885,138 +1788,138 @@ yyreduce:
                               hb_macroError( EG_SYNTAX, HB_COMP_PARAM );
                            hb_macroGenPCode1( HB_P_ENDPROC, HB_COMP_PARAM );
                         }
-#line 1886 "macroy.c" /* yacc.c:1646  */
+#line 1792 "macroy.c"
     break;
 
-  case 4:
-#line 275 "macro.y" /* yacc.c:1646  */
-    {
+  case 4: /* Main: error  */
+#line 275 "../../../macro.y"
+               {
                   HB_TRACE( HB_TR_DEBUG, ( "macro -> invalid syntax: %s", HB_MACRO_DATA->string ) );
                   hb_macroError( EG_SYNTAX, HB_COMP_PARAM );
                   HB_MACRO_ABORT;
                }
-#line 1896 "macroy.c" /* yacc.c:1646  */
+#line 1802 "macroy.c"
     break;
 
-  case 5:
-#line 284 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewDouble( (yyvsp[0].valDouble).dNumber, (yyvsp[0].valDouble).bWidth, (yyvsp[0].valDouble).bDec, HB_COMP_PARAM ); }
-#line 1902 "macroy.c" /* yacc.c:1646  */
+  case 5: /* NumValue: NUM_DOUBLE  */
+#line 284 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewDouble( (yyvsp[0].valDouble).dNumber, (yyvsp[0].valDouble).bWidth, (yyvsp[0].valDouble).bDec, HB_COMP_PARAM ); }
+#line 1808 "macroy.c"
     break;
 
-  case 6:
-#line 285 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewLong( (yyvsp[0].valLong).lNumber, HB_COMP_PARAM ); }
-#line 1908 "macroy.c" /* yacc.c:1646  */
+  case 6: /* NumValue: NUM_LONG  */
+#line 285 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewLong( (yyvsp[0].valLong).lNumber, HB_COMP_PARAM ); }
+#line 1814 "macroy.c"
     break;
 
-  case 7:
-#line 288 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewDate( ( long ) (yyvsp[0].valLong).lNumber, HB_COMP_PARAM ); }
-#line 1914 "macroy.c" /* yacc.c:1646  */
+  case 7: /* DateValue: NUM_DATE  */
+#line 288 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewDate( ( long ) (yyvsp[0].valLong).lNumber, HB_COMP_PARAM ); }
+#line 1820 "macroy.c"
     break;
 
-  case 8:
-#line 291 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewTimeStamp( (yyvsp[0].valTimeStamp).date, (yyvsp[0].valTimeStamp).time, HB_COMP_PARAM ); }
-#line 1920 "macroy.c" /* yacc.c:1646  */
+  case 8: /* TimeStampValue: TIMESTAMP  */
+#line 291 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewTimeStamp( (yyvsp[0].valTimeStamp).date, (yyvsp[0].valTimeStamp).time, HB_COMP_PARAM ); }
+#line 1826 "macroy.c"
     break;
 
-  case 9:
-#line 294 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewLong( (yyvsp[-1].valLong).lNumber, HB_COMP_PARAM ); }
-#line 1926 "macroy.c" /* yacc.c:1646  */
+  case 9: /* NumAlias: NUM_LONG ALIASOP  */
+#line 294 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewLong( (yyvsp[-1].valLong).lNumber, HB_COMP_PARAM ); }
+#line 1832 "macroy.c"
     break;
 
-  case 10:
-#line 299 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewNil( HB_COMP_PARAM ); }
-#line 1932 "macroy.c" /* yacc.c:1646  */
+  case 10: /* NilValue: NIL  */
+#line 299 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewNil( HB_COMP_PARAM ); }
+#line 1838 "macroy.c"
     break;
 
-  case 11:
-#line 304 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewString( (yyvsp[0].valChar).string, (yyvsp[0].valChar).length, HB_FALSE, HB_COMP_PARAM ); }
-#line 1938 "macroy.c" /* yacc.c:1646  */
+  case 11: /* LiteralValue: LITERAL  */
+#line 304 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewString( (yyvsp[0].valChar).string, (yyvsp[0].valChar).length, HB_FALSE, HB_COMP_PARAM ); }
+#line 1844 "macroy.c"
     break;
 
-  case 12:
-#line 309 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewLogical( HB_TRUE, HB_COMP_PARAM ); }
-#line 1944 "macroy.c" /* yacc.c:1646  */
+  case 12: /* Logical: TRUEVALUE  */
+#line 309 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewLogical( HB_TRUE, HB_COMP_PARAM ); }
+#line 1850 "macroy.c"
     break;
 
-  case 13:
-#line 310 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewLogical( HB_FALSE, HB_COMP_PARAM ); }
-#line 1950 "macroy.c" /* yacc.c:1646  */
+  case 13: /* Logical: FALSEVALUE  */
+#line 310 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewLogical( HB_FALSE, HB_COMP_PARAM ); }
+#line 1856 "macroy.c"
     break;
 
-  case 14:
-#line 315 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewSelf( HB_COMP_PARAM ); }
-#line 1956 "macroy.c" /* yacc.c:1646  */
+  case 14: /* SelfValue: SELF  */
+#line 315 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewSelf( HB_COMP_PARAM ); }
+#line 1862 "macroy.c"
     break;
 
-  case 15:
-#line 320 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewArray( (yyvsp[-1].asExpr), HB_COMP_PARAM ); }
-#line 1962 "macroy.c" /* yacc.c:1646  */
+  case 15: /* Array: '{' ElemList '}'  */
+#line 320 "../../../macro.y"
+                                    { (yyval.asExpr) = hb_compExprNewArray( (yyvsp[-1].asExpr), HB_COMP_PARAM ); }
+#line 1868 "macroy.c"
     break;
 
-  case 16:
-#line 325 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 1968 "macroy.c" /* yacc.c:1646  */
+  case 16: /* ArrayAt: Array ArrayIndex  */
+#line 325 "../../../macro.y"
+                                    { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 1874 "macroy.c"
     break;
 
-  case 17:
-#line 330 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewHash( NULL, HB_COMP_PARAM ); }
-#line 1974 "macroy.c" /* yacc.c:1646  */
+  case 17: /* Hash: '{' HASHOP '}'  */
+#line 330 "../../../macro.y"
+                                    { (yyval.asExpr) = hb_compExprNewHash( NULL, HB_COMP_PARAM ); }
+#line 1880 "macroy.c"
     break;
 
-  case 18:
-#line 331 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewHash( (yyvsp[-1].asExpr), HB_COMP_PARAM ); }
-#line 1980 "macroy.c" /* yacc.c:1646  */
+  case 18: /* Hash: '{' HashList '}'  */
+#line 331 "../../../macro.y"
+                                    { (yyval.asExpr) = hb_compExprNewHash( (yyvsp[-1].asExpr), HB_COMP_PARAM ); }
+#line 1886 "macroy.c"
     break;
 
-  case 19:
-#line 334 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprAddListExpr( hb_compExprNewList( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr) ); }
-#line 1986 "macroy.c" /* yacc.c:1646  */
+  case 19: /* HashList: Expression HASHOP EmptyExpression  */
+#line 334 "../../../macro.y"
+                                                               { (yyval.asExpr) = hb_compExprAddListExpr( hb_compExprNewList( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr) ); }
+#line 1892 "macroy.c"
     break;
 
-  case 20:
-#line 335 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprAddListExpr( hb_compExprAddListExpr( (yyvsp[-4].asExpr), (yyvsp[-2].asExpr) ), (yyvsp[0].asExpr) ); }
-#line 1992 "macroy.c" /* yacc.c:1646  */
+  case 20: /* HashList: HashList ',' Expression HASHOP EmptyExpression  */
+#line 335 "../../../macro.y"
+                                                               { (yyval.asExpr) = hb_compExprAddListExpr( hb_compExprAddListExpr( (yyvsp[-4].asExpr), (yyvsp[-2].asExpr) ), (yyvsp[0].asExpr) ); }
+#line 1898 "macroy.c"
     break;
 
-  case 21:
-#line 341 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewVar( (yyvsp[0].string), HB_COMP_PARAM ); }
-#line 1998 "macroy.c" /* yacc.c:1646  */
+  case 21: /* Variable: IDENTIFIER  */
+#line 341 "../../../macro.y"
+                                    { (yyval.asExpr) = hb_compExprNewVar( (yyvsp[0].string), HB_COMP_PARAM ); }
+#line 1904 "macroy.c"
     break;
 
-  case 22:
-#line 344 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAlias( (yyvsp[-1].string), HB_COMP_PARAM ); }
-#line 2004 "macroy.c" /* yacc.c:1646  */
+  case 22: /* VarAlias: IDENTIFIER ALIASOP  */
+#line 344 "../../../macro.y"
+                                    { (yyval.asExpr) = hb_compExprNewAlias( (yyvsp[-1].string), HB_COMP_PARAM ); }
+#line 1910 "macroy.c"
     break;
 
-  case 23:
-#line 349 "macro.y" /* yacc.c:1646  */
-    {  (yyval.asExpr) = hb_compExprNewMacro( NULL, '&', (yyvsp[0].string), HB_COMP_PARAM );
+  case 23: /* MacroVar: MACROVAR  */
+#line 349 "../../../macro.y"
+                              {  (yyval.asExpr) = hb_compExprNewMacro( NULL, '&', (yyvsp[0].string), HB_COMP_PARAM );
                                  HB_MACRO_CHECK( (yyval.asExpr) );
                               }
-#line 2012 "macroy.c" /* yacc.c:1646  */
+#line 1918 "macroy.c"
     break;
 
-  case 24:
-#line 352 "macro.y" /* yacc.c:1646  */
-    {  HB_BOOL fNewString;
+  case 24: /* MacroVar: MACROTEXT  */
+#line 352 "../../../macro.y"
+                              {  HB_BOOL fNewString;
                                  char * szVarName = hb_macroTextSymbol( (yyvsp[0].string), strlen( (yyvsp[0].string) ), &fNewString );
                                  if( szVarName )
                                  {
@@ -2033,274 +1936,274 @@ yyreduce:
                                     YYABORT;
                                  }
                               }
-#line 2034 "macroy.c" /* yacc.c:1646  */
+#line 1940 "macroy.c"
     break;
 
-  case 25:
-#line 371 "macro.y" /* yacc.c:1646  */
-    { hb_compExprMacroAsAlias( (yyvsp[-1].asExpr) ); }
-#line 2040 "macroy.c" /* yacc.c:1646  */
+  case 25: /* MacroVarAlias: MacroVar ALIASOP  */
+#line 371 "../../../macro.y"
+                                    { hb_compExprMacroAsAlias( (yyvsp[-1].asExpr) ); }
+#line 1946 "macroy.c"
     break;
 
-  case 26:
-#line 376 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewMacro( (yyvsp[0].asExpr), 0, NULL, HB_COMP_PARAM ); }
-#line 2046 "macroy.c" /* yacc.c:1646  */
+  case 26: /* MacroExpr: '&' PareExpList  */
+#line 376 "../../../macro.y"
+                                    { (yyval.asExpr) = hb_compExprNewMacro( (yyvsp[0].asExpr), 0, NULL, HB_COMP_PARAM ); }
+#line 1952 "macroy.c"
     break;
 
-  case 28:
-#line 386 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAlias( "FIELD", HB_COMP_PARAM ); }
-#line 2052 "macroy.c" /* yacc.c:1646  */
+  case 28: /* FieldAlias: FIELD ALIASOP  */
+#line 386 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewAlias( "FIELD", HB_COMP_PARAM ); }
+#line 1958 "macroy.c"
     break;
 
-  case 29:
-#line 387 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2058 "macroy.c" /* yacc.c:1646  */
+  case 29: /* FieldAlias: FIELD ALIASOP FieldAlias  */
+#line 387 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 1964 "macroy.c"
     break;
 
-  case 30:
-#line 392 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2064 "macroy.c" /* yacc.c:1646  */
+  case 30: /* FieldVarAlias: FieldAlias VarAlias  */
+#line 392 "../../../macro.y"
+                                                { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 1970 "macroy.c"
     break;
 
-  case 31:
-#line 393 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2070 "macroy.c" /* yacc.c:1646  */
+  case 31: /* FieldVarAlias: FieldAlias NumAlias  */
+#line 393 "../../../macro.y"
+                                                { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 1976 "macroy.c"
     break;
 
-  case 32:
-#line 394 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2076 "macroy.c" /* yacc.c:1646  */
+  case 32: /* FieldVarAlias: FieldAlias PareExpListAlias  */
+#line 394 "../../../macro.y"
+                                                { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 1982 "macroy.c"
     break;
 
-  case 33:
-#line 395 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2082 "macroy.c" /* yacc.c:1646  */
+  case 33: /* FieldVarAlias: FieldAlias MacroVarAlias  */
+#line 395 "../../../macro.y"
+                                                { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 1988 "macroy.c"
     break;
 
-  case 34:
-#line 396 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2088 "macroy.c" /* yacc.c:1646  */
+  case 34: /* FieldVarAlias: FieldAlias MacroExprAlias  */
+#line 396 "../../../macro.y"
+                                                { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 1994 "macroy.c"
     break;
 
-  case 35:
-#line 399 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewVar( (yyvsp[0].string), HB_COMP_PARAM ); }
-#line 2094 "macroy.c" /* yacc.c:1646  */
+  case 35: /* AliasId: IDENTIFIER  */
+#line 399 "../../../macro.y"
+                              { (yyval.asExpr) = hb_compExprNewVar( (yyvsp[0].string), HB_COMP_PARAM ); }
+#line 2000 "macroy.c"
     break;
 
-  case 38:
-#line 404 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2100 "macroy.c" /* yacc.c:1646  */
+  case 38: /* AliasVar: NumAlias AliasId  */
+#line 404 "../../../macro.y"
+                                       { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2006 "macroy.c"
     break;
 
-  case 39:
-#line 405 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2106 "macroy.c" /* yacc.c:1646  */
+  case 39: /* AliasVar: MacroVarAlias AliasId  */
+#line 405 "../../../macro.y"
+                                       { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2012 "macroy.c"
     break;
 
-  case 40:
-#line 406 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2112 "macroy.c" /* yacc.c:1646  */
+  case 40: /* AliasVar: MacroExprAlias AliasId  */
+#line 406 "../../../macro.y"
+                                       { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2018 "macroy.c"
     break;
 
-  case 41:
-#line 407 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2118 "macroy.c" /* yacc.c:1646  */
+  case 41: /* AliasVar: PareExpListAlias AliasId  */
+#line 407 "../../../macro.y"
+                                       { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2024 "macroy.c"
     break;
 
-  case 42:
-#line 408 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2124 "macroy.c" /* yacc.c:1646  */
+  case 42: /* AliasVar: VarAlias AliasId  */
+#line 408 "../../../macro.y"
+                                       { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2030 "macroy.c"
     break;
 
-  case 43:
-#line 409 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2130 "macroy.c" /* yacc.c:1646  */
+  case 43: /* AliasVar: FieldAlias AliasId  */
+#line 409 "../../../macro.y"
+                                       { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2036 "macroy.c"
     break;
 
-  case 44:
-#line 410 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2136 "macroy.c" /* yacc.c:1646  */
+  case 44: /* AliasVar: FieldVarAlias AliasId  */
+#line 410 "../../../macro.y"
+                                       { (yyval.asExpr) = hb_compExprNewAliasVar( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2042 "macroy.c"
     break;
 
-  case 45:
-#line 419 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2142 "macroy.c" /* yacc.c:1646  */
+  case 45: /* AliasExpr: NumAlias PareExpList  */
+#line 419 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2048 "macroy.c"
     break;
 
-  case 46:
-#line 420 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2148 "macroy.c" /* yacc.c:1646  */
+  case 46: /* AliasExpr: VarAlias PareExpList  */
+#line 420 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2054 "macroy.c"
     break;
 
-  case 47:
-#line 421 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2154 "macroy.c" /* yacc.c:1646  */
+  case 47: /* AliasExpr: MacroVarAlias PareExpList  */
+#line 421 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2060 "macroy.c"
     break;
 
-  case 48:
-#line 422 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2160 "macroy.c" /* yacc.c:1646  */
+  case 48: /* AliasExpr: MacroExprAlias PareExpList  */
+#line 422 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2066 "macroy.c"
     break;
 
-  case 49:
-#line 423 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2166 "macroy.c" /* yacc.c:1646  */
+  case 49: /* AliasExpr: PareExpListAlias PareExpList  */
+#line 423 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewAliasExpr( (yyvsp[-1].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2072 "macroy.c"
     break;
 
-  case 50:
-#line 428 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2172 "macroy.c" /* yacc.c:1646  */
+  case 50: /* VariableAt: NumValue ArrayIndex  */
+#line 428 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2078 "macroy.c"
     break;
 
-  case 51:
-#line 429 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2178 "macroy.c" /* yacc.c:1646  */
+  case 51: /* VariableAt: NilValue ArrayIndex  */
+#line 429 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2084 "macroy.c"
     break;
 
-  case 52:
-#line 430 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2184 "macroy.c" /* yacc.c:1646  */
+  case 52: /* VariableAt: DateValue ArrayIndex  */
+#line 430 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2090 "macroy.c"
     break;
 
-  case 53:
-#line 431 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2190 "macroy.c" /* yacc.c:1646  */
+  case 53: /* VariableAt: TimeStampValue ArrayIndex  */
+#line 431 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2096 "macroy.c"
     break;
 
-  case 54:
-#line 432 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2196 "macroy.c" /* yacc.c:1646  */
+  case 54: /* VariableAt: LiteralValue ArrayIndex  */
+#line 432 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2102 "macroy.c"
     break;
 
-  case 55:
-#line 433 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2202 "macroy.c" /* yacc.c:1646  */
+  case 55: /* VariableAt: CodeBlock ArrayIndex  */
+#line 433 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2108 "macroy.c"
     break;
 
-  case 56:
-#line 434 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2208 "macroy.c" /* yacc.c:1646  */
+  case 56: /* VariableAt: Logical ArrayIndex  */
+#line 434 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2114 "macroy.c"
     break;
 
-  case 57:
-#line 435 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2214 "macroy.c" /* yacc.c:1646  */
+  case 57: /* VariableAt: Hash ArrayIndex  */
+#line 435 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2120 "macroy.c"
     break;
 
-  case 58:
-#line 436 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2220 "macroy.c" /* yacc.c:1646  */
+  case 58: /* VariableAt: SelfValue ArrayIndex  */
+#line 436 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2126 "macroy.c"
     break;
 
-  case 59:
-#line 437 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2226 "macroy.c" /* yacc.c:1646  */
+  case 59: /* VariableAt: Variable ArrayIndex  */
+#line 437 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2132 "macroy.c"
     break;
 
-  case 60:
-#line 438 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2232 "macroy.c" /* yacc.c:1646  */
+  case 60: /* VariableAt: AliasVar ArrayIndex  */
+#line 438 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2138 "macroy.c"
     break;
 
-  case 61:
-#line 439 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2238 "macroy.c" /* yacc.c:1646  */
+  case 61: /* VariableAt: AliasExpr ArrayIndex  */
+#line 439 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2144 "macroy.c"
     break;
 
-  case 62:
-#line 440 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2244 "macroy.c" /* yacc.c:1646  */
+  case 62: /* VariableAt: MacroVar ArrayIndex  */
+#line 440 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2150 "macroy.c"
     break;
 
-  case 63:
-#line 441 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2250 "macroy.c" /* yacc.c:1646  */
+  case 63: /* VariableAt: MacroExpr ArrayIndex  */
+#line 441 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2156 "macroy.c"
     break;
 
-  case 64:
-#line 442 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2256 "macroy.c" /* yacc.c:1646  */
+  case 64: /* VariableAt: ObjectData ArrayIndex  */
+#line 442 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2162 "macroy.c"
     break;
 
-  case 65:
-#line 443 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2262 "macroy.c" /* yacc.c:1646  */
+  case 65: /* VariableAt: ObjectMethod ArrayIndex  */
+#line 443 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2168 "macroy.c"
     break;
 
-  case 66:
-#line 444 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2268 "macroy.c" /* yacc.c:1646  */
+  case 66: /* VariableAt: FunCall ArrayIndex  */
+#line 444 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2174 "macroy.c"
     break;
 
-  case 67:
-#line 445 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2274 "macroy.c" /* yacc.c:1646  */
+  case 67: /* VariableAt: IfInline ArrayIndex  */
+#line 445 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2180 "macroy.c"
     break;
 
-  case 68:
-#line 446 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2280 "macroy.c" /* yacc.c:1646  */
+  case 68: /* VariableAt: PareExpList ArrayIndex  */
+#line 446 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2186 "macroy.c"
     break;
 
-  case 69:
-#line 451 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_macroExprNewFunCall( hb_compExprNewFunName( (yyvsp[-3].string), HB_COMP_PARAM ), (yyvsp[-1].asExpr), HB_COMP_PARAM );
+  case 69: /* FunCall: IDENTIFIER '(' ArgList ')'  */
+#line 451 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_macroExprNewFunCall( hb_compExprNewFunName( (yyvsp[-3].string), HB_COMP_PARAM ), (yyvsp[-1].asExpr), HB_COMP_PARAM );
                                             HB_MACRO_CHECK( (yyval.asExpr) );
                                           }
-#line 2288 "macroy.c" /* yacc.c:1646  */
+#line 2194 "macroy.c"
     break;
 
-  case 70:
-#line 454 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_macroExprNewFunCall( (yyvsp[-3].asExpr), (yyvsp[-1].asExpr), HB_COMP_PARAM );
+  case 70: /* FunCall: MacroVar '(' ArgList ')'  */
+#line 454 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_macroExprNewFunCall( (yyvsp[-3].asExpr), (yyvsp[-1].asExpr), HB_COMP_PARAM );
                                             HB_MACRO_CHECK( (yyval.asExpr) );
                                           }
-#line 2296 "macroy.c" /* yacc.c:1646  */
+#line 2202 "macroy.c"
     break;
 
-  case 71:
-#line 459 "macro.y" /* yacc.c:1646  */
-    {  if( hb_compExprParamListLen( (yyvsp[-1].asExpr) ) != 0 )
+  case 71: /* FunRef: '@' IDENTIFIER '(' ArgList ')'  */
+#line 459 "../../../macro.y"
+                                             {  if( hb_compExprParamListLen( (yyvsp[-1].asExpr) ) != 0 )
                                                 {
                                                    hb_macroError( EG_SYNTAX, HB_COMP_PARAM );
                                                    YYABORT;
@@ -2308,126 +2211,126 @@ yyreduce:
                                                 else
                                                    (yyval.asExpr) = hb_compExprNewFunRef( (yyvsp[-3].string), HB_COMP_PARAM );
                                              }
-#line 2309 "macroy.c" /* yacc.c:1646  */
+#line 2215 "macroy.c"
     break;
 
-  case 72:
-#line 469 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewArgList( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2315 "macroy.c" /* yacc.c:1646  */
+  case 72: /* ArgList: ExtArgument  */
+#line 469 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewArgList( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2221 "macroy.c"
     break;
 
-  case 73:
-#line 470 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprAddListExpr( (yyvsp[-2].asExpr), (yyvsp[0].asExpr) ); }
-#line 2321 "macroy.c" /* yacc.c:1646  */
+  case 73: /* ArgList: ArgList ',' ExtArgument  */
+#line 470 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprAddListExpr( (yyvsp[-2].asExpr), (yyvsp[0].asExpr) ); }
+#line 2227 "macroy.c"
     break;
 
-  case 76:
-#line 477 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewVarRef( (yyvsp[0].string), HB_COMP_PARAM ); }
-#line 2327 "macroy.c" /* yacc.c:1646  */
+  case 76: /* RefArgument: '@' IDENTIFIER  */
+#line 477 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewVarRef( (yyvsp[0].string), HB_COMP_PARAM ); }
+#line 2233 "macroy.c"
     break;
 
-  case 77:
-#line 478 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewRef( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2333 "macroy.c" /* yacc.c:1646  */
+  case 77: /* RefArgument: '@' MacroVar  */
+#line 478 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewRef( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2239 "macroy.c"
     break;
 
-  case 78:
-#line 479 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewRef( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2339 "macroy.c" /* yacc.c:1646  */
+  case 78: /* RefArgument: '@' AliasVar  */
+#line 479 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewRef( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2245 "macroy.c"
     break;
 
-  case 79:
-#line 480 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewRef( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2345 "macroy.c" /* yacc.c:1646  */
+  case 79: /* RefArgument: '@' ObjectData  */
+#line 480 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewRef( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2251 "macroy.c"
     break;
 
-  case 80:
-#line 481 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); (yyval.asExpr)->value.asList.reference = HB_TRUE; }
-#line 2351 "macroy.c" /* yacc.c:1646  */
+  case 80: /* RefArgument: '@' VariableAt  */
+#line 481 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr); (yyval.asExpr)->value.asList.reference = HB_TRUE; }
+#line 2257 "macroy.c"
     break;
 
-  case 81:
-#line 484 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewArgRef( HB_COMP_PARAM ); }
-#line 2357 "macroy.c" /* yacc.c:1646  */
+  case 81: /* ExtArgument: EPSILON  */
+#line 484 "../../../macro.y"
+                       { (yyval.asExpr) = hb_compExprNewArgRef( HB_COMP_PARAM ); }
+#line 2263 "macroy.c"
     break;
 
-  case 83:
-#line 490 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewMethodObject( (yyvsp[0].asExpr), (yyvsp[-2].asExpr) ); }
-#line 2363 "macroy.c" /* yacc.c:1646  */
+  case 83: /* ObjectData: LeftExpression ':' SendId  */
+#line 490 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprNewMethodObject( (yyvsp[0].asExpr), (yyvsp[-2].asExpr) ); }
+#line 2269 "macroy.c"
     break;
 
-  case 84:
-#line 493 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewSend( (yyvsp[0].string), HB_COMP_PARAM ); }
-#line 2369 "macroy.c" /* yacc.c:1646  */
+  case 84: /* SendId: IDENTIFIER  */
+#line 493 "../../../macro.y"
+                             { (yyval.asExpr) = hb_compExprNewSend( (yyvsp[0].string), HB_COMP_PARAM ); }
+#line 2275 "macroy.c"
     break;
 
-  case 85:
-#line 494 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewMacroSend( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2375 "macroy.c" /* yacc.c:1646  */
+  case 85: /* SendId: MacroVar  */
+#line 494 "../../../macro.y"
+                             { (yyval.asExpr) = hb_compExprNewMacroSend( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2281 "macroy.c"
     break;
 
-  case 86:
-#line 495 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewMacroSend( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2381 "macroy.c" /* yacc.c:1646  */
+  case 86: /* SendId: MacroExpr  */
+#line 495 "../../../macro.y"
+                             { (yyval.asExpr) = hb_compExprNewMacroSend( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2287 "macroy.c"
     break;
 
-  case 87:
-#line 500 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewMethodCall( (yyvsp[-3].asExpr), (yyvsp[-1].asExpr) ); }
-#line 2387 "macroy.c" /* yacc.c:1646  */
+  case 87: /* ObjectMethod: ObjectData '(' ArgList ')'  */
+#line 500 "../../../macro.y"
+                                             { (yyval.asExpr) = hb_compExprNewMethodCall( (yyvsp[-3].asExpr), (yyvsp[-1].asExpr) ); }
+#line 2293 "macroy.c"
     break;
 
-  case 110:
-#line 526 "macro.y" /* yacc.c:1646  */
-    { HB_MACRO_IFENABLED( (yyval.asExpr), (yyvsp[0].asExpr), HB_SM_HARBOUR ); }
-#line 2393 "macroy.c" /* yacc.c:1646  */
+  case 110: /* SimpleExpression: ExprOperEq  */
+#line 526 "../../../macro.y"
+                                    { HB_MACRO_IFENABLED( (yyval.asExpr), (yyvsp[0].asExpr), HB_SM_HARBOUR ); }
+#line 2299 "macroy.c"
     break;
 
-  case 111:
-#line 527 "macro.y" /* yacc.c:1646  */
-    { HB_MACRO_IFENABLED( (yyval.asExpr), (yyvsp[0].asExpr), HB_SM_HARBOUR ); }
-#line 2399 "macroy.c" /* yacc.c:1646  */
+  case 111: /* SimpleExpression: ExprPostOp  */
+#line 527 "../../../macro.y"
+                                    { HB_MACRO_IFENABLED( (yyval.asExpr), (yyvsp[0].asExpr), HB_SM_HARBOUR ); }
+#line 2305 "macroy.c"
     break;
 
-  case 112:
-#line 528 "macro.y" /* yacc.c:1646  */
-    { HB_MACRO_IFENABLED( (yyval.asExpr), (yyvsp[0].asExpr), HB_SM_HARBOUR ); }
-#line 2405 "macroy.c" /* yacc.c:1646  */
+  case 112: /* SimpleExpression: ExprPreOp  */
+#line 528 "../../../macro.y"
+                                    { HB_MACRO_IFENABLED( (yyval.asExpr), (yyvsp[0].asExpr), HB_SM_HARBOUR ); }
+#line 2311 "macroy.c"
     break;
 
-  case 118:
-#line 536 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); HB_MACRO_CHECK( (yyval.asExpr) ); }
-#line 2411 "macroy.c" /* yacc.c:1646  */
+  case 118: /* Expression: SimpleExpression  */
+#line 536 "../../../macro.y"
+                                    { (yyval.asExpr) = (yyvsp[0].asExpr); HB_MACRO_CHECK( (yyval.asExpr) ); }
+#line 2317 "macroy.c"
     break;
 
-  case 119:
-#line 537 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); HB_MACRO_CHECK( (yyval.asExpr) ); }
-#line 2417 "macroy.c" /* yacc.c:1646  */
+  case 119: /* Expression: PareExpList  */
+#line 537 "../../../macro.y"
+                                    { (yyval.asExpr) = (yyvsp[0].asExpr); HB_MACRO_CHECK( (yyval.asExpr) ); }
+#line 2323 "macroy.c"
     break;
 
-  case 120:
-#line 540 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewArgRef( HB_COMP_PARAM ); }
-#line 2423 "macroy.c" /* yacc.c:1646  */
+  case 120: /* ExtExpression: EPSILON  */
+#line 540 "../../../macro.y"
+                                    { (yyval.asExpr) = hb_compExprNewArgRef( HB_COMP_PARAM ); }
+#line 2329 "macroy.c"
     break;
 
-  case 122:
-#line 544 "macro.y" /* yacc.c:1646  */
-    {
+  case 122: /* $@1: %empty  */
+#line 544 "../../../macro.y"
+                                    {
                                        if( !( HB_MACRO_DATA->Flags & HB_MACRO_GEN_LIST ) )
                                        {
                                           HB_TRACE( HB_TR_DEBUG, ( "macro -> invalid expression: %s", HB_MACRO_DATA->string ) );
@@ -2435,339 +2338,340 @@ yyreduce:
                                           YYABORT;
                                        }
                                     }
-#line 2436 "macroy.c" /* yacc.c:1646  */
+#line 2342 "macroy.c"
     break;
 
-  case 123:
-#line 552 "macro.y" /* yacc.c:1646  */
-    {
+  case 123: /* RootParamList: EmptyExpression ',' $@1 EmptyExpression  */
+#line 552 "../../../macro.y"
+                                    {
                                        HB_MACRO_DATA->uiListElements = 1;
                                        (yyval.asExpr) = hb_compExprAddListExpr( ( HB_MACRO_DATA->Flags & HB_MACRO_GEN_PARE ) ? hb_compExprNewList( (yyvsp[-3].asExpr), HB_COMP_PARAM ) : hb_compExprNewArgList( (yyvsp[-3].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr) );
                                     }
-#line 2445 "macroy.c" /* yacc.c:1646  */
+#line 2351 "macroy.c"
     break;
 
-  case 125:
-#line 559 "macro.y" /* yacc.c:1646  */
-    { HB_MACRO_DATA->uiListElements++;
+  case 125: /* AsParamList: AsParamList ',' EmptyExpression  */
+#line 559 "../../../macro.y"
+                                                { HB_MACRO_DATA->uiListElements++;
                                                   (yyval.asExpr) = hb_compExprAddListExpr( (yyvsp[-2].asExpr), (yyvsp[0].asExpr) ); }
-#line 2452 "macroy.c" /* yacc.c:1646  */
+#line 2358 "macroy.c"
     break;
 
-  case 126:
-#line 563 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewEmpty( HB_COMP_PARAM ); }
-#line 2458 "macroy.c" /* yacc.c:1646  */
+  case 126: /* EmptyExpression: %empty  */
+#line 563 "../../../macro.y"
+                                             { (yyval.asExpr) = hb_compExprNewEmpty( HB_COMP_PARAM ); }
+#line 2364 "macroy.c"
     break;
 
-  case 148:
-#line 587 "macro.y" /* yacc.c:1646  */
-    { HB_MACRO_IFENABLED( (yyval.asExpr), (yyvsp[0].asExpr), HB_SM_HARBOUR ); }
-#line 2464 "macroy.c" /* yacc.c:1646  */
+  case 148: /* LeftExpression: ObjectData  */
+#line 587 "../../../macro.y"
+                                    { HB_MACRO_IFENABLED( (yyval.asExpr), (yyvsp[0].asExpr), HB_SM_HARBOUR ); }
+#line 2370 "macroy.c"
     break;
 
-  case 150:
-#line 594 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewPostInc( (yyvsp[-1].asExpr), HB_COMP_PARAM ); }
-#line 2470 "macroy.c" /* yacc.c:1646  */
+  case 150: /* PostOp: INC  */
+#line 594 "../../../macro.y"
+                     { (yyval.asExpr) = hb_compExprNewPostInc( (yyvsp[-1].asExpr), HB_COMP_PARAM ); }
+#line 2376 "macroy.c"
     break;
 
-  case 151:
-#line 595 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewPostDec( (yyvsp[-1].asExpr), HB_COMP_PARAM ); }
-#line 2476 "macroy.c" /* yacc.c:1646  */
+  case 151: /* PostOp: DEC  */
+#line 595 "../../../macro.y"
+                     { (yyval.asExpr) = hb_compExprNewPostDec( (yyvsp[-1].asExpr), HB_COMP_PARAM ); }
+#line 2382 "macroy.c"
     break;
 
-  case 152:
-#line 601 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2482 "macroy.c" /* yacc.c:1646  */
+  case 152: /* ExprPostOp: LeftExpression PostOp  */
+#line 601 "../../../macro.y"
+                                                { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2388 "macroy.c"
     break;
 
-  case 153:
-#line 604 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewPreInc( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2488 "macroy.c" /* yacc.c:1646  */
+  case 153: /* ExprPreOp: INC Expression  */
+#line 604 "../../../macro.y"
+                                             { (yyval.asExpr) = hb_compExprNewPreInc( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2394 "macroy.c"
     break;
 
-  case 154:
-#line 605 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewPreDec( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2494 "macroy.c" /* yacc.c:1646  */
+  case 154: /* ExprPreOp: DEC Expression  */
+#line 605 "../../../macro.y"
+                                             { (yyval.asExpr) = hb_compExprNewPreDec( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2400 "macroy.c"
     break;
 
-  case 155:
-#line 608 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewNot( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2500 "macroy.c" /* yacc.c:1646  */
+  case 155: /* ExprUnary: NOT Expression  */
+#line 608 "../../../macro.y"
+                                             { (yyval.asExpr) = hb_compExprNewNot( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2406 "macroy.c"
     break;
 
-  case 156:
-#line 609 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewNegate( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2506 "macroy.c" /* yacc.c:1646  */
+  case 156: /* ExprUnary: '-' Expression  */
+#line 609 "../../../macro.y"
+                                             { (yyval.asExpr) = hb_compExprNewNegate( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2412 "macroy.c"
     break;
 
-  case 157:
-#line 610 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr); }
-#line 2512 "macroy.c" /* yacc.c:1646  */
+  case 157: /* ExprUnary: '+' Expression  */
+#line 610 "../../../macro.y"
+                                             { (yyval.asExpr) = (yyvsp[0].asExpr); }
+#line 2418 "macroy.c"
     break;
 
-  case 158:
-#line 613 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprAssign( (yyvsp[-2].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2518 "macroy.c" /* yacc.c:1646  */
+  case 158: /* ExprAssign: LeftExpression INASSIGN Expression  */
+#line 613 "../../../macro.y"
+                                                 { (yyval.asExpr) = hb_compExprAssign( (yyvsp[-2].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2424 "macroy.c"
     break;
 
-  case 159:
-#line 616 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewPlusEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2524 "macroy.c" /* yacc.c:1646  */
+  case 159: /* ExprPlusEq: LeftExpression PLUSEQ Expression  */
+#line 616 "../../../macro.y"
+                                                 { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewPlusEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2430 "macroy.c"
     break;
 
-  case 160:
-#line 619 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMinusEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2530 "macroy.c" /* yacc.c:1646  */
+  case 160: /* ExprMinusEq: LeftExpression MINUSEQ Expression  */
+#line 619 "../../../macro.y"
+                                                 { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMinusEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2436 "macroy.c"
     break;
 
-  case 161:
-#line 622 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMultEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2536 "macroy.c" /* yacc.c:1646  */
+  case 161: /* ExprMultEq: LeftExpression MULTEQ Expression  */
+#line 622 "../../../macro.y"
+                                                 { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMultEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2442 "macroy.c"
     break;
 
-  case 162:
-#line 625 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewDivEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2542 "macroy.c" /* yacc.c:1646  */
+  case 162: /* ExprDivEq: LeftExpression DIVEQ Expression  */
+#line 625 "../../../macro.y"
+                                                 { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewDivEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2448 "macroy.c"
     break;
 
-  case 163:
-#line 628 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewModEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2548 "macroy.c" /* yacc.c:1646  */
+  case 163: /* ExprModEq: LeftExpression MODEQ Expression  */
+#line 628 "../../../macro.y"
+                                                 { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewModEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2454 "macroy.c"
     break;
 
-  case 164:
-#line 631 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewExpEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2554 "macroy.c" /* yacc.c:1646  */
+  case 164: /* ExprExpEq: LeftExpression EXPEQ Expression  */
+#line 631 "../../../macro.y"
+                                                 { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewExpEq( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2460 "macroy.c"
     break;
 
-  case 171:
-#line 642 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewPlus( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2560 "macroy.c" /* yacc.c:1646  */
+  case 171: /* ExprMath: Expression '+' Expression  */
+#line 642 "../../../macro.y"
+                                            { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewPlus( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2466 "macroy.c"
     break;
 
-  case 172:
-#line 643 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMinus( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2566 "macroy.c" /* yacc.c:1646  */
+  case 172: /* ExprMath: Expression '-' Expression  */
+#line 643 "../../../macro.y"
+                                            { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMinus( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2472 "macroy.c"
     break;
 
-  case 173:
-#line 644 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMult( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2572 "macroy.c" /* yacc.c:1646  */
+  case 173: /* ExprMath: Expression '*' Expression  */
+#line 644 "../../../macro.y"
+                                            { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMult( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2478 "macroy.c"
     break;
 
-  case 174:
-#line 645 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewDiv( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2578 "macroy.c" /* yacc.c:1646  */
+  case 174: /* ExprMath: Expression '/' Expression  */
+#line 645 "../../../macro.y"
+                                            { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewDiv( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2484 "macroy.c"
     break;
 
-  case 175:
-#line 646 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMod( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2584 "macroy.c" /* yacc.c:1646  */
+  case 175: /* ExprMath: Expression '%' Expression  */
+#line 646 "../../../macro.y"
+                                            { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewMod( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2490 "macroy.c"
     break;
 
-  case 176:
-#line 647 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewPower( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2590 "macroy.c" /* yacc.c:1646  */
+  case 176: /* ExprMath: Expression POWER Expression  */
+#line 647 "../../../macro.y"
+                                            { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewPower( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2496 "macroy.c"
     break;
 
-  case 177:
-#line 650 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewAnd( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2596 "macroy.c" /* yacc.c:1646  */
+  case 177: /* ExprBool: Expression AND Expression  */
+#line 650 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewAnd( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2502 "macroy.c"
     break;
 
-  case 178:
-#line 651 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewOr( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2602 "macroy.c" /* yacc.c:1646  */
+  case 178: /* ExprBool: Expression OR Expression  */
+#line 651 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewOr( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2508 "macroy.c"
     break;
 
-  case 179:
-#line 654 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewEQ( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2608 "macroy.c" /* yacc.c:1646  */
+  case 179: /* ExprRelation: Expression EQ Expression  */
+#line 654 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewEQ( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2514 "macroy.c"
     break;
 
-  case 180:
-#line 655 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewLT( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2614 "macroy.c" /* yacc.c:1646  */
+  case 180: /* ExprRelation: Expression '<' Expression  */
+#line 655 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewLT( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2520 "macroy.c"
     break;
 
-  case 181:
-#line 656 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewGT( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2620 "macroy.c" /* yacc.c:1646  */
+  case 181: /* ExprRelation: Expression '>' Expression  */
+#line 656 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewGT( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2526 "macroy.c"
     break;
 
-  case 182:
-#line 657 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewLE( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2626 "macroy.c" /* yacc.c:1646  */
+  case 182: /* ExprRelation: Expression LE Expression  */
+#line 657 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewLE( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2532 "macroy.c"
     break;
 
-  case 183:
-#line 658 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewGE( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2632 "macroy.c" /* yacc.c:1646  */
+  case 183: /* ExprRelation: Expression GE Expression  */
+#line 658 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewGE( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2538 "macroy.c"
     break;
 
-  case 184:
-#line 659 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewNE( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2638 "macroy.c" /* yacc.c:1646  */
+  case 184: /* ExprRelation: Expression NE1 Expression  */
+#line 659 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewNE( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2544 "macroy.c"
     break;
 
-  case 185:
-#line 660 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewNE( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2644 "macroy.c" /* yacc.c:1646  */
+  case 185: /* ExprRelation: Expression NE2 Expression  */
+#line 660 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewNE( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2550 "macroy.c"
     break;
 
-  case 186:
-#line 661 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewIN( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2650 "macroy.c" /* yacc.c:1646  */
+  case 186: /* ExprRelation: Expression '$' Expression  */
+#line 661 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewIN( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2556 "macroy.c"
     break;
 
-  case 187:
-#line 662 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewEqual( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2656 "macroy.c" /* yacc.c:1646  */
+  case 187: /* ExprRelation: Expression '=' Expression  */
+#line 662 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprSetOperand( hb_compExprNewEqual( (yyvsp[-2].asExpr), HB_COMP_PARAM ), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2562 "macroy.c"
     break;
 
-  case 189:
-#line 671 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_macroExprNewArrayAt( (yyvsp[-2].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2662 "macroy.c" /* yacc.c:1646  */
+  case 189: /* IndexList: '[' ExtExpression  */
+#line 671 "../../../macro.y"
+                                                { (yyval.asExpr) = hb_macroExprNewArrayAt( (yyvsp[-2].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2568 "macroy.c"
     break;
 
-  case 190:
-#line 672 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_macroExprNewArrayAt( (yyvsp[-2].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2668 "macroy.c" /* yacc.c:1646  */
+  case 190: /* IndexList: IndexList ',' ExtExpression  */
+#line 672 "../../../macro.y"
+                                                { (yyval.asExpr) = hb_macroExprNewArrayAt( (yyvsp[-2].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2574 "macroy.c"
     break;
 
-  case 191:
-#line 673 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_macroExprNewArrayAt( (yyvsp[-3].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2674 "macroy.c" /* yacc.c:1646  */
+  case 191: /* IndexList: IndexList ']' '[' ExtExpression  */
+#line 673 "../../../macro.y"
+                                                { (yyval.asExpr) = hb_macroExprNewArrayAt( (yyvsp[-3].asExpr), (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2580 "macroy.c"
     break;
 
-  case 192:
-#line 676 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewList( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2680 "macroy.c" /* yacc.c:1646  */
+  case 192: /* ElemList: ExtArgument  */
+#line 676 "../../../macro.y"
+                                       { (yyval.asExpr) = hb_compExprNewList( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2586 "macroy.c"
     break;
 
-  case 193:
-#line 677 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprAddListExpr( (yyvsp[-2].asExpr), (yyvsp[0].asExpr) ); }
-#line 2686 "macroy.c" /* yacc.c:1646  */
+  case 193: /* ElemList: ElemList ',' ExtArgument  */
+#line 677 "../../../macro.y"
+                                       { (yyval.asExpr) = hb_compExprAddListExpr( (yyvsp[-2].asExpr), (yyvsp[0].asExpr) ); }
+#line 2592 "macroy.c"
     break;
 
-  case 194:
-#line 681 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewCodeBlock( NULL, 0, 0, HB_COMP_PARAM ); }
-#line 2692 "macroy.c" /* yacc.c:1646  */
+  case 194: /* @2: %empty  */
+#line 681 "../../../macro.y"
+                  { (yyval.asExpr) = hb_compExprNewCodeBlock( NULL, 0, 0, HB_COMP_PARAM ); }
+#line 2598 "macroy.c"
     break;
 
-  case 195:
-#line 683 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[-4].asExpr); }
-#line 2698 "macroy.c" /* yacc.c:1646  */
+  case 195: /* CodeBlock: '{' '|' @2 BlockVars '|' BlockExpList '}'  */
+#line 683 "../../../macro.y"
+                  { (yyval.asExpr) = (yyvsp[-4].asExpr); }
+#line 2604 "macroy.c"
     break;
 
-  case 196:
-#line 688 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprAddCodeblockExpr( (yyvsp[(-2) - (1)].asExpr), (yyvsp[0].asExpr) ); }
-#line 2704 "macroy.c" /* yacc.c:1646  */
+  case 196: /* BlockExpList: Expression  */
+#line 688 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprAddCodeblockExpr( (yyvsp[(-2) - (1)].asExpr), (yyvsp[0].asExpr) ); }
+#line 2610 "macroy.c"
     break;
 
-  case 197:
-#line 689 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprAddCodeblockExpr( (yyvsp[(-2) - (3)].asExpr), (yyvsp[0].asExpr) ); }
-#line 2710 "macroy.c" /* yacc.c:1646  */
+  case 197: /* BlockExpList: BlockExpList ',' Expression  */
+#line 689 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprAddCodeblockExpr( (yyvsp[(-2) - (3)].asExpr), (yyvsp[0].asExpr) ); }
+#line 2616 "macroy.c"
     break;
 
-  case 198:
-#line 694 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = NULL; }
-#line 2716 "macroy.c" /* yacc.c:1646  */
+  case 198: /* BlockVars: %empty  */
+#line 694 "../../../macro.y"
+                                          { (yyval.asExpr) = NULL; }
+#line 2622 "macroy.c"
     break;
 
-  case 199:
-#line 695 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = NULL; (yyvsp[-1].asExpr)->value.asCodeblock.flags |= HB_BLOCK_VPARAMS; }
-#line 2722 "macroy.c" /* yacc.c:1646  */
+  case 199: /* BlockVars: EPSILON  */
+#line 695 "../../../macro.y"
+                                          { (yyval.asExpr) = NULL; (yyvsp[-1].asExpr)->value.asCodeblock.flags |= HB_BLOCK_VPARAMS; }
+#line 2628 "macroy.c"
     break;
 
-  case 200:
-#line 696 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[0].asExpr);   }
-#line 2728 "macroy.c" /* yacc.c:1646  */
+  case 200: /* BlockVars: BlockVarList  */
+#line 696 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[0].asExpr);   }
+#line 2634 "macroy.c"
     break;
 
-  case 201:
-#line 697 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = (yyvsp[-2].asExpr);   (yyvsp[-3].asExpr)->value.asCodeblock.flags |= HB_BLOCK_VPARAMS; }
-#line 2734 "macroy.c" /* yacc.c:1646  */
+  case 201: /* BlockVars: BlockVarList ',' EPSILON  */
+#line 697 "../../../macro.y"
+                                          { (yyval.asExpr) = (yyvsp[-2].asExpr);   (yyvsp[-3].asExpr)->value.asCodeblock.flags |= HB_BLOCK_VPARAMS; }
+#line 2640 "macroy.c"
     break;
 
-  case 202:
-#line 700 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprCBVarAdd( (yyvsp[-1].asExpr), (yyvsp[0].string), ' ', HB_COMP_PARAM ); }
-#line 2740 "macroy.c" /* yacc.c:1646  */
+  case 202: /* BlockVarList: IDENTIFIER  */
+#line 700 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprCBVarAdd( (yyvsp[-1].asExpr), (yyvsp[0].string), ' ', NULL, HB_COMP_PARAM ); }
+#line 2646 "macroy.c"
     break;
 
-  case 203:
-#line 701 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprCBVarAdd( (yyvsp[-3].asExpr), (yyvsp[0].string), ' ', HB_COMP_PARAM ); HB_MACRO_CHECK( (yyval.asExpr) ); }
-#line 2746 "macroy.c" /* yacc.c:1646  */
+  case 203: /* BlockVarList: BlockVarList ',' IDENTIFIER  */
+#line 701 "../../../macro.y"
+                                          { (yyval.asExpr) = hb_compExprCBVarAdd( (yyvsp[-3].asExpr), (yyvsp[0].string), ' ', NULL, HB_COMP_PARAM ); HB_MACRO_CHECK( (yyval.asExpr) ); }
+#line 2652 "macroy.c"
     break;
 
-  case 204:
-#line 704 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewList( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
-#line 2752 "macroy.c" /* yacc.c:1646  */
+  case 204: /* ExpList: '(' EmptyExpression  */
+#line 704 "../../../macro.y"
+                                           { (yyval.asExpr) = hb_compExprNewList( (yyvsp[0].asExpr), HB_COMP_PARAM ); }
+#line 2658 "macroy.c"
     break;
 
-  case 205:
-#line 705 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprAddListExpr( (yyvsp[-2].asExpr), (yyvsp[0].asExpr) ); }
-#line 2758 "macroy.c" /* yacc.c:1646  */
+  case 205: /* ExpList: ExpList ',' EmptyExpression  */
+#line 705 "../../../macro.y"
+                                           { (yyval.asExpr) = hb_compExprAddListExpr( (yyvsp[-2].asExpr), (yyvsp[0].asExpr) ); }
+#line 2664 "macroy.c"
     break;
 
-  case 208:
-#line 716 "macro.y" /* yacc.c:1646  */
-    { (yyval.asExpr) = hb_compExprNewIIF( hb_compExprAddListExpr( hb_compExprAddListExpr( hb_compExprNewList( (yyvsp[-5].asExpr), HB_COMP_PARAM ), (yyvsp[-3].asExpr) ), (yyvsp[-1].asExpr) ) ); }
-#line 2764 "macroy.c" /* yacc.c:1646  */
+  case 208: /* IfInline: IIF '(' Expression ',' Argument ',' Argument ')'  */
+#line 716 "../../../macro.y"
+               { (yyval.asExpr) = hb_compExprNewIIF( hb_compExprAddListExpr( hb_compExprAddListExpr( hb_compExprNewList( (yyvsp[-5].asExpr), HB_COMP_PARAM ), (yyvsp[-3].asExpr) ), (yyvsp[-1].asExpr) ) ); }
+#line 2670 "macroy.c"
     break;
 
 
-#line 2768 "macroy.c" /* yacc.c:1646  */
+#line 2674 "macroy.c"
+
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires
@@ -2781,25 +2685,23 @@ yyreduce:
      case of YYERROR or YYBACKUP, subsequent parser actions might lead
      to an incorrect destructor call or verbose syntax error message
      before the lookahead is translated.  */
-  YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
+  YY_SYMBOL_PRINT ("-> $$ =", YY_CAST (yysymbol_kind_t, yyr1[yyn]), &yyval, &yyloc);
 
   YYPOPSTACK (yylen);
   yylen = 0;
-  YY_STACK_PRINT (yyss, yyssp);
 
   *++yyvsp = yyval;
 
   /* Now 'shift' the result of the reduction.  Determine what state
      that goes to, based on the state we popped back to and the rule
      number reduced by.  */
-
-  yyn = yyr1[yyn];
-
-  yystate = yypgoto[yyn - YYNTOKENS] + *yyssp;
-  if (0 <= yystate && yystate <= YYLAST && yycheck[yystate] == *yyssp)
-    yystate = yytable[yystate];
-  else
-    yystate = yydefgoto[yyn - YYNTOKENS];
+  {
+    const int yylhs = yyr1[yyn] - YYNTOKENS;
+    const int yyi = yypgoto[yylhs] + *yyssp;
+    yystate = (0 <= yyi && yyi <= YYLAST && yycheck[yyi] == *yyssp
+               ? yytable[yyi]
+               : yydefgoto[yylhs]);
+  }
 
   goto yynewstate;
 
@@ -2810,66 +2712,30 @@ yyreduce:
 yyerrlab:
   /* Make sure we have latest lookahead translation.  See comments at
      user semantic actions for why this is necessary.  */
-  yytoken = yychar == YYEMPTY ? YYEMPTY : YYTRANSLATE (yychar);
-
+  yytoken = yychar == HB_MACRO_YYEMPTY ? YYSYMBOL_YYEMPTY : YYTRANSLATE (yychar);
   /* If not already recovering from an error, report this error.  */
   if (!yyerrstatus)
     {
       ++yynerrs;
-#if ! YYERROR_VERBOSE
       yyerror (pMacro, YY_("syntax error"));
-#else
-# define YYSYNTAX_ERROR yysyntax_error (&yymsg_alloc, &yymsg, \
-                                        yyssp, yytoken)
-      {
-        char const *yymsgp = YY_("syntax error");
-        int yysyntax_error_status;
-        yysyntax_error_status = YYSYNTAX_ERROR;
-        if (yysyntax_error_status == 0)
-          yymsgp = yymsg;
-        else if (yysyntax_error_status == 1)
-          {
-            if (yymsg != yymsgbuf)
-              YYSTACK_FREE (yymsg);
-            yymsg = (char *) YYSTACK_ALLOC (yymsg_alloc);
-            if (!yymsg)
-              {
-                yymsg = yymsgbuf;
-                yymsg_alloc = sizeof yymsgbuf;
-                yysyntax_error_status = 2;
-              }
-            else
-              {
-                yysyntax_error_status = YYSYNTAX_ERROR;
-                yymsgp = yymsg;
-              }
-          }
-        yyerror (pMacro, yymsgp);
-        if (yysyntax_error_status == 2)
-          goto yyexhaustedlab;
-      }
-# undef YYSYNTAX_ERROR
-#endif
     }
-
-
 
   if (yyerrstatus == 3)
     {
       /* If just tried and failed to reuse lookahead token after an
          error, discard it.  */
 
-      if (yychar <= YYEOF)
+      if (yychar <= HB_MACRO_YYEOF)
         {
           /* Return failure if at end of input.  */
-          if (yychar == YYEOF)
+          if (yychar == HB_MACRO_YYEOF)
             YYABORT;
         }
       else
         {
           yydestruct ("Error: discarding",
                       yytoken, &yylval, pMacro);
-          yychar = YYEMPTY;
+          yychar = HB_MACRO_YYEMPTY;
         }
     }
 
@@ -2882,12 +2748,11 @@ yyerrlab:
 | yyerrorlab -- error raised explicitly by YYERROR.  |
 `---------------------------------------------------*/
 yyerrorlab:
-
-  /* Pacify compilers like GCC when the user code never invokes
-     YYERROR and the label yyerrorlab therefore never appears in user
-     code.  */
-  if (/*CONSTCOND*/ 0)
-     goto yyerrorlab;
+  /* Pacify compilers when the user code never invokes YYERROR and the
+     label yyerrorlab therefore never appears in user code.  */
+  if (0)
+    YYERROR;
+  ++yynerrs;
 
   /* Do not reclaim the symbols of the rule whose action triggered
      this YYERROR.  */
@@ -2904,13 +2769,14 @@ yyerrorlab:
 yyerrlab1:
   yyerrstatus = 3;      /* Each real token shifted decrements this.  */
 
+  /* Pop stack until we find a state that shifts the error token.  */
   for (;;)
     {
       yyn = yypact[yystate];
       if (!yypact_value_is_default (yyn))
         {
-          yyn += YYTERROR;
-          if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYTERROR)
+          yyn += YYSYMBOL_YYerror;
+          if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == YYSYMBOL_YYerror)
             {
               yyn = yytable[yyn];
               if (0 < yyn)
@@ -2924,7 +2790,7 @@ yyerrlab1:
 
 
       yydestruct ("Error: popping",
-                  yystos[yystate], yyvsp, pMacro);
+                  YY_ACCESSING_SYMBOL (yystate), yyvsp, pMacro);
       YYPOPSTACK (1);
       yystate = *yyssp;
       YY_STACK_PRINT (yyss, yyssp);
@@ -2936,7 +2802,7 @@ yyerrlab1:
 
 
   /* Shift the error token.  */
-  YY_SYMBOL_PRINT ("Shifting", yystos[yyn], yyvsp, yylsp);
+  YY_SYMBOL_PRINT ("Shifting", YY_ACCESSING_SYMBOL (yyn), yyvsp, yylsp);
 
   yystate = yyn;
   goto yynewstate;
@@ -2947,27 +2813,31 @@ yyerrlab1:
 `-------------------------------------*/
 yyacceptlab:
   yyresult = 0;
-  goto yyreturn;
+  goto yyreturnlab;
+
 
 /*-----------------------------------.
 | yyabortlab -- YYABORT comes here.  |
 `-----------------------------------*/
 yyabortlab:
   yyresult = 1;
-  goto yyreturn;
+  goto yyreturnlab;
 
-#if !defined yyoverflow || YYERROR_VERBOSE
-/*-------------------------------------------------.
-| yyexhaustedlab -- memory exhaustion comes here.  |
-`-------------------------------------------------*/
+
+/*-----------------------------------------------------------.
+| yyexhaustedlab -- YYNOMEM (memory exhaustion) comes here.  |
+`-----------------------------------------------------------*/
 yyexhaustedlab:
   yyerror (pMacro, YY_("memory exhausted"));
   yyresult = 2;
-  /* Fall through.  */
-#endif
+  goto yyreturnlab;
 
-yyreturn:
-  if (yychar != YYEMPTY)
+
+/*----------------------------------------------------------.
+| yyreturnlab -- parsing is finished, clean up and return.  |
+`----------------------------------------------------------*/
+yyreturnlab:
+  if (yychar != HB_MACRO_YYEMPTY)
     {
       /* Make sure we have latest lookahead translation.  See comments at
          user semantic actions for why this is necessary.  */
@@ -2982,20 +2852,18 @@ yyreturn:
   while (yyssp != yyss)
     {
       yydestruct ("Cleanup: popping",
-                  yystos[*yyssp], yyvsp, pMacro);
+                  YY_ACCESSING_SYMBOL (+*yyssp), yyvsp, pMacro);
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
   if (yyss != yyssa)
     YYSTACK_FREE (yyss);
 #endif
-#if YYERROR_VERBOSE
-  if (yymsg != yymsgbuf)
-    YYSTACK_FREE (yymsg);
-#endif
+
   return yyresult;
 }
-#line 719 "macro.y" /* yacc.c:1906  */
+
+#line 719 "../../../macro.y"
 
 
 

@@ -348,6 +348,8 @@ extern void hb_compAstDecl( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pV
 extern void hb_compAstDeclDim( HB_COMP_DECL );
 extern void hb_compAstUse( HB_COMP_DECL, const char * szVarName, int iScope, int iAccess );
 extern void hb_compAstTag( HB_COMP_DECL, const char * szVarName, int iAccess );
+extern void hb_compAstUseChk( HB_COMP_DECL, const char * szVarName );                        /* ast-8: write imposed by an emitted -kt post-store check */
+extern void hb_compAstDeclChk( HB_COMP_DECL, const char * szVarName );                       /* ast-8: parameter covered by an emitted -kt prologue check */
 extern void hb_compAstCallAdd( HB_COMP_DECL, const char * szFunName );
 extern void hb_compAstSendAdd( HB_COMP_DECL, const char * szMsgName );
 extern void hb_compAstBlock( HB_COMP_DECL, int iKind, int iEvent );

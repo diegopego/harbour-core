@@ -1,8 +1,9 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2021 Free Software Foundation,
+   Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -15,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -29,6 +30,10 @@
 
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
+
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
 #ifndef YY_HB_MACRO_YY_MACROY_H_INCLUDED
 # define YY_HB_MACRO_YY_MACROY_H_INCLUDED
@@ -48,58 +53,62 @@
 extern int hb_macro_yydebug;
 #endif
 
-/* Token type.  */
+/* Token kinds.  */
 #ifndef HB_MACRO_YYTOKENTYPE
 # define HB_MACRO_YYTOKENTYPE
   enum hb_macro_yytokentype
   {
-    IDENTIFIER = 258,
-    NIL = 259,
-    NUM_DOUBLE = 260,
-    INASSIGN = 261,
-    NUM_LONG = 262,
-    NUM_DATE = 263,
-    TIMESTAMP = 264,
-    IIF = 265,
-    LITERAL = 266,
-    TRUEVALUE = 267,
-    FALSEVALUE = 268,
-    AND = 269,
-    OR = 270,
-    NOT = 271,
-    EQ = 272,
-    NE1 = 273,
-    NE2 = 274,
-    INC = 275,
-    DEC = 276,
-    ALIASOP = 277,
-    HASHOP = 278,
-    SELF = 279,
-    LE = 280,
-    GE = 281,
-    FIELD = 282,
-    MACROVAR = 283,
-    MACROTEXT = 284,
-    PLUSEQ = 285,
-    MINUSEQ = 286,
-    MULTEQ = 287,
-    DIVEQ = 288,
-    POWER = 289,
-    EXPEQ = 290,
-    MODEQ = 291,
-    EPSILON = 292,
-    POST = 293,
-    UNARY = 294,
-    PRE = 295
+    HB_MACRO_YYEMPTY = -2,
+    HB_MACRO_YYEOF = 0,            /* "end of file"  */
+    HB_MACRO_YYerror = 256,        /* error  */
+    HB_MACRO_YYUNDEF = 257,        /* "invalid token"  */
+    IDENTIFIER = 258,              /* IDENTIFIER  */
+    NIL = 259,                     /* NIL  */
+    NUM_DOUBLE = 260,              /* NUM_DOUBLE  */
+    INASSIGN = 261,                /* INASSIGN  */
+    NUM_LONG = 262,                /* NUM_LONG  */
+    NUM_DATE = 263,                /* NUM_DATE  */
+    TIMESTAMP = 264,               /* TIMESTAMP  */
+    IIF = 265,                     /* IIF  */
+    LITERAL = 266,                 /* LITERAL  */
+    TRUEVALUE = 267,               /* TRUEVALUE  */
+    FALSEVALUE = 268,              /* FALSEVALUE  */
+    AND = 269,                     /* AND  */
+    OR = 270,                      /* OR  */
+    NOT = 271,                     /* NOT  */
+    EQ = 272,                      /* EQ  */
+    NE1 = 273,                     /* NE1  */
+    NE2 = 274,                     /* NE2  */
+    INC = 275,                     /* INC  */
+    DEC = 276,                     /* DEC  */
+    ALIASOP = 277,                 /* ALIASOP  */
+    HASHOP = 278,                  /* HASHOP  */
+    SELF = 279,                    /* SELF  */
+    LE = 280,                      /* LE  */
+    GE = 281,                      /* GE  */
+    FIELD = 282,                   /* FIELD  */
+    MACROVAR = 283,                /* MACROVAR  */
+    MACROTEXT = 284,               /* MACROTEXT  */
+    PLUSEQ = 285,                  /* PLUSEQ  */
+    MINUSEQ = 286,                 /* MINUSEQ  */
+    MULTEQ = 287,                  /* MULTEQ  */
+    DIVEQ = 288,                   /* DIVEQ  */
+    POWER = 289,                   /* POWER  */
+    EXPEQ = 290,                   /* EXPEQ  */
+    MODEQ = 291,                   /* MODEQ  */
+    EPSILON = 292,                 /* EPSILON  */
+    POST = 293,                    /* POST  */
+    UNARY = 294,                   /* UNARY  */
+    PRE = 295                      /* PRE  */
   };
+  typedef enum hb_macro_yytokentype hb_macro_yytoken_kind_t;
 #endif
 
 /* Value type.  */
 #if ! defined HB_MACRO_YYSTYPE && ! defined HB_MACRO_YYSTYPE_IS_DECLARED
-typedef union HB_MACRO_YYSTYPE HB_MACRO_YYSTYPE;
 union HB_MACRO_YYSTYPE
 {
-#line 140 "macro.y" /* yacc.c:1909  */
+#line 140 "../../../macro.y"
 
    const char * string; /* to hold a string returned by lex */
    int       iNumber;   /* to hold a temporary integer number */
@@ -132,14 +141,18 @@ union HB_MACRO_YYSTYPE
       long     time;    /* to hold milliseconds */
    } valTimeStamp;
 
-#line 136 "macroy.h" /* yacc.c:1909  */
+#line 145 "macroy.h"
+
 };
+typedef union HB_MACRO_YYSTYPE HB_MACRO_YYSTYPE;
 # define HB_MACRO_YYSTYPE_IS_TRIVIAL 1
 # define HB_MACRO_YYSTYPE_IS_DECLARED 1
 #endif
 
 
 
+
 int hb_macro_yyparse (PHB_MACRO pMacro);
+
 
 #endif /* !YY_HB_MACRO_YY_MACROY_H_INCLUDED  */
