@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-11"
+#define HB_AST_SCHEMA         "ast-12"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -1290,6 +1290,37 @@ static void hb_compAstWriteFromItem( FILE * file, HB_BOOL fFirst, int iApp,
             nAt, nLen );
 }
 
+/* ast-12: does the value the programmer wrote at match marker <iMarker> of
+   application <iApp> feed a PASTE or STRINGIFY derivation - i.e. does it
+   GENERATE an artifact (a keyword concatenated from it, or a string dumped
+   from it) that otherwise loses any connection to that name?  'c'lone
+   (the value copied through as-is, e.g. an argument passed to the expanded
+   call) is NOT generation.  The whole derivation graph already lives on the
+   AST tokens (pFrom, ast-3), so this is a pure reverse scan - no pp API.
+   A consumer that must rename/track the site uses this to tell "the name
+   that GENERATES code" (rename it and its artifacts) from "a bound symbol
+   that merely flows into a command" (rename it as the local/param it is). */
+static HB_BOOL hb_compAstMarkerGenerates( PHB_ASTDUMP pAst, int iApp,
+                                          int iMarker )
+{
+   HB_SIZE n;
+
+   for( n = 0; n < pAst->nTokenCount; ++n )
+   {
+      PHB_ASTTOKEN pTok = &pAst->pTokens[ n ];
+      int i;
+
+      for( i = 0; i < pTok->iFromCount; ++i )
+      {
+         if( pTok->pFrom[ i ].iApp == iApp &&
+             pTok->pFrom[ i ].iMarker == iMarker &&
+             ( pTok->pFrom[ i ].cOp == 'p' || pTok->pFrom[ i ].cOp == 's' ) )
+            return HB_TRUE;
+      }
+   }
+   return HB_FALSE;
+}
+
 /* marker kind vocabulary of the PP pattern parse (hbpp.h): the match
    side and the result side use disjoint constant ranges */
 static const char * hb_compAstRuleMkind( int iType )
@@ -1591,6 +1622,12 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
                   fprintf( file, " ]" );
                }
             }
+            /* ast-12: mark the source-marker fill whose written name FEEDS a
+               paste/stringify (it GENERATES an artifact - the rename target
+               is the marker and its derivatives, not a homonym local the
+               expansion may also fabricate). Absent = does not generate. */
+            if( iMarker >= 1 && hb_compAstMarkerGenerates( pAst, i, iMarker ) )
+               fprintf( file, ", \"generates\": true" );
             fprintf( file, " }" );
          }
          fprintf( file, "%s ] }", iTokens ? "\n    " : "" );
