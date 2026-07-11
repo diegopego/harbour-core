@@ -483,23 +483,23 @@ DECLARE HBClass ;
 
    #xcommand VAR <!DataName!> [ AS <type> ] IN <!SuperClass!> => ;
       _HB_MEMBER {[ AS <type>] <DataName> } ;;
-      oClass:AddInline( <(DataName)>, {|Self| Self:<SuperClass>:<DataName> }, HB_OO_CLSTP_EXPORTED + HB_OO_CLSTP_READONLY ) ;;
-      oClass:AddInline( "_" + <(DataName)>, {|Self, param| Self:<SuperClass>:<DataName> := param }, HB_OO_CLSTP_EXPORTED )
+      oClass:AddInline( <(DataName)>, {|Self _HB_INLINESELF _CLASS_NAME_ | Self:<SuperClass>:<DataName> }, HB_OO_CLSTP_EXPORTED + HB_OO_CLSTP_READONLY ) ;;
+      oClass:AddInline( "_" + <(DataName)>, {|Self _HB_INLINESELF _CLASS_NAME_, param| Self:<SuperClass>:<DataName> := param }, HB_OO_CLSTP_EXPORTED )
 
    #xcommand VAR <!DataName!> [ AS <type> ] IS <!SprDataName!> IN <!SuperClass!> => ;
       _HB_MEMBER {[ AS <type>] <DataName> } ;;
-      oClass:AddInline( <(DataName)>, {|Self| Self:<SuperClass>:<SprDataName> }, HB_OO_CLSTP_EXPORTED + HB_OO_CLSTP_READONLY ) ;;
-      oClass:AddInline( "_" + <(DataName)>, {|Self, param| Self:<SuperClass>:<SprDataName> := param }, HB_OO_CLSTP_EXPORTED )
+      oClass:AddInline( <(DataName)>, {|Self _HB_INLINESELF _CLASS_NAME_ | Self:<SuperClass>:<SprDataName> }, HB_OO_CLSTP_EXPORTED + HB_OO_CLSTP_READONLY ) ;;
+      oClass:AddInline( "_" + <(DataName)>, {|Self _HB_INLINESELF _CLASS_NAME_, param| Self:<SuperClass>:<SprDataName> := param }, HB_OO_CLSTP_EXPORTED )
 
    #xcommand VAR <!DataName1!> [ AS <type> ] IS <!DataName2!> => ;
       _HB_MEMBER {[ AS <type>] <DataName1> } ;;
-      oClass:AddInline( <(DataName1)>, {|Self| Self:<DataName2> }, HB_OO_CLSTP_EXPORTED + HB_OO_CLSTP_READONLY ) ;;
-      oClass:AddInline( "_" + <(DataName1)>, {|Self, param| Self:<DataName2> := param }, HB_OO_CLSTP_EXPORTED )
+      oClass:AddInline( <(DataName1)>, {|Self _HB_INLINESELF _CLASS_NAME_ | Self:<DataName2> }, HB_OO_CLSTP_EXPORTED + HB_OO_CLSTP_READONLY ) ;;
+      oClass:AddInline( "_" + <(DataName1)>, {|Self _HB_INLINESELF _CLASS_NAME_, param| Self:<DataName2> := param }, HB_OO_CLSTP_EXPORTED )
 
    #xcommand VAR <!DataName1!> [ AS <type> ] IS <!DataName2!> TO <!oObject!> => ;
       _HB_MEMBER {[ AS <type>] <DataName1> } ;;
-      oClass:AddInline( <(DataName1)>, {|Self| Self:<oObject>:<DataName2> }, HB_OO_CLSTP_EXPORTED + HB_OO_CLSTP_READONLY ) ;;
-      oClass:AddInline( "_" + <(DataName1)>, {|Self, param| Self:<oObject>:<DataName2> := param }, HB_OO_CLSTP_EXPORTED )
+      oClass:AddInline( <(DataName1)>, {|Self _HB_INLINESELF _CLASS_NAME_ | Self:<oObject>:<DataName2> }, HB_OO_CLSTP_EXPORTED + HB_OO_CLSTP_READONLY ) ;;
+      oClass:AddInline( "_" + <(DataName1)>, {|Self _HB_INLINESELF _CLASS_NAME_, param| Self:<oObject>:<DataName2> := param }, HB_OO_CLSTP_EXPORTED )
 
 #endif /* HB_CLS_CSY */
 

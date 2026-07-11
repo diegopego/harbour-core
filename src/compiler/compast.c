@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-10"
+#define HB_AST_SCHEMA         "ast-11"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -965,6 +965,37 @@ static void hb_compAstExprWrite( HB_COMP_DECL, PHB_ASTBUF pBuf, PHB_EXPR pExpr,
 
       case HB_ET_CODEBLOCK:
          hb_compAstBufFmt( pBuf, ",\"cbflags\":%d", ( int ) pExpr->value.asCodeblock.flags );
+         /* ast-11 (completude M-B): the block's OWN parameters as declared,
+            attached to the block NODE. A Self-rooted send inside a block is
+            typed by the SPECIFIC block it sits in, so two blocks sharing one
+            source line (a VAR ... IS getter and its "_" setter) stop being
+            ambiguous - the line-count guard the consumer used for block
+            params is no longer the only anchor. Dump-only: read from the
+            already-alive asCodeblock.pLocals, no pcode effect. The fact-only
+            inline-Self sentinel maps to 'S' just like every other type. */
+         {
+            PHB_CBVAR pVar = pExpr->value.asCodeblock.pLocals;
+            hb_compAstBufStr( pBuf, ",\"params\":[" );
+            while( pVar )
+            {
+               HB_BYTE cType = pVar->bType;
+               if( cType == HB_VARTYPE_INLINE_SELF )
+                  cType = 'S';
+               hb_compAstBufStr( pBuf,
+                  pVar == pExpr->value.asCodeblock.pLocals ? "{\"sym\":" : ",{\"sym\":" );
+               hb_compAstBufJsonStr( pBuf, pVar->szName, strlen( pVar->szName ) );
+               if( cType != ' ' && cType != '\0' )
+                  hb_compAstBufFmt( pBuf, ",\"type\":\"%c\"", cType );
+               if( pVar->szFromClass )
+               {
+                  hb_compAstBufStr( pBuf, ",\"class\":" );
+                  hb_compAstBufJsonStr( pBuf, pVar->szFromClass, strlen( pVar->szFromClass ) );
+               }
+               hb_compAstBufStr( pBuf, "}" );
+               pVar = pVar->pNext;
+            }
+            hb_compAstBufStr( pBuf, "]" );
+         }
          hb_compAstBufStr( pBuf, ",\"body\":" );
          hb_compAstExprList( HB_COMP_PARAM, pBuf, pExpr->value.asCodeblock.pExprList,
                              pnTokMin, pnTokMax );
