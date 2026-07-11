@@ -156,23 +156,24 @@ extern int hb_comp_yydebug;
     DECLARE_CLASS = 349,           /* DECLARE_CLASS  */
     DECLARE_MEMBER = 350,          /* DECLARE_MEMBER  */
     DECLARE_SUPER = 351,           /* DECLARE_SUPER  */
-    PROCREQ = 352,                 /* PROCREQ  */
-    CBSTART = 353,                 /* CBSTART  */
-    DOIDENT = 354,                 /* DOIDENT  */
-    FOREACH = 355,                 /* FOREACH  */
-    DESCEND = 356,                 /* DESCEND  */
-    DOSWITCH = 357,                /* DOSWITCH  */
-    ENDSWITCH = 358,               /* ENDSWITCH  */
-    WITHOBJECT = 359,              /* WITHOBJECT  */
-    ENDWITH = 360,                 /* ENDWITH  */
-    NUM_DATE = 361,                /* NUM_DATE  */
-    TIMESTAMP = 362,               /* TIMESTAMP  */
-    EPSILON = 363,                 /* EPSILON  */
-    HASHOP = 364,                  /* HASHOP  */
-    THREAD_STATIC = 365,           /* THREAD_STATIC  */
-    POST = 366,                    /* POST  */
-    UNARY = 367,                   /* UNARY  */
-    PRE = 368                      /* PRE  */
+    INLINE_SELF = 352,             /* INLINE_SELF  */
+    PROCREQ = 353,                 /* PROCREQ  */
+    CBSTART = 354,                 /* CBSTART  */
+    DOIDENT = 355,                 /* DOIDENT  */
+    FOREACH = 356,                 /* FOREACH  */
+    DESCEND = 357,                 /* DESCEND  */
+    DOSWITCH = 358,                /* DOSWITCH  */
+    ENDSWITCH = 359,               /* ENDSWITCH  */
+    WITHOBJECT = 360,              /* WITHOBJECT  */
+    ENDWITH = 361,                 /* ENDWITH  */
+    NUM_DATE = 362,                /* NUM_DATE  */
+    TIMESTAMP = 363,               /* TIMESTAMP  */
+    EPSILON = 364,                 /* EPSILON  */
+    HASHOP = 365,                  /* HASHOP  */
+    THREAD_STATIC = 366,           /* THREAD_STATIC  */
+    POST = 367,                    /* POST  */
+    UNARY = 368,                   /* UNARY  */
+    PRE = 369                      /* PRE  */
   };
   typedef enum hb_comp_yytokentype hb_comp_yytoken_kind_t;
 #endif
@@ -220,7 +221,7 @@ union HB_COMP_YYSTYPE
    } asCodeblock;
    PHB_VARTYPE asVarType;
 
-#line 224 "harboury.h"
+#line 225 "harboury.h"
 
 };
 typedef union HB_COMP_YYSTYPE HB_COMP_YYSTYPE;

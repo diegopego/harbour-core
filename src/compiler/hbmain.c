@@ -2778,7 +2778,10 @@ static HB_BOOL hb_compChkTypeGenCall( HB_COMP_DECL, PHB_HVAR pVar, int iVar )
    /* only WRITTEN annotations are imposed: the dimensioned form
       (LOCAL a[ n ]) carries an internal 'A' mark that is not a promise
       by the programmer */
-   if( pVar->cType == ' ' || ( pVar->uiFlags & HB_VSCOMP_DIMMED ) != 0 )
+   /* HB_VARTYPE_INLINE_SELF is a dump-only fact (the class of a
+      directive-generated codeblock Self): never imposed - see RD */
+   if( pVar->cType == ' ' || pVar->cType == HB_VARTYPE_INLINE_SELF ||
+       ( pVar->uiFlags & HB_VSCOMP_DIMMED ) != 0 )
       return HB_FALSE;
    if( ( pVar->cType == 'S' || pVar->cType == 's' ) && pVar->pClass )
       hb_snprintf( szSpec, sizeof( szSpec ), "%c:%s", pVar->cType,

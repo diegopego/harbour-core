@@ -183,7 +183,7 @@ extern void yyerror( HB_COMP_DECL, const char * );     /* parsing error manageme
 %token MACROVAR MACROTEXT
 %token AS_ARRAY AS_BLOCK AS_CHARACTER AS_CLASS AS_DATE AS_LOGICAL AS_NUMERIC AS_OBJECT AS_VARIANT
 %token AS_ARRAY_ARRAY AS_BLOCK_ARRAY AS_CHARACTER_ARRAY AS_CLASS_ARRAY AS_DATE_ARRAY AS_LOGICAL_ARRAY AS_NUMERIC_ARRAY AS_OBJECT_ARRAY
-%token DECLARE OPTIONAL DECLARE_CLASS DECLARE_MEMBER DECLARE_SUPER
+%token DECLARE OPTIONAL DECLARE_CLASS DECLARE_MEMBER DECLARE_SUPER INLINE_SELF
 %token PROCREQ
 %token CBSTART DOIDENT
 %token FOREACH DESCEND
@@ -1023,6 +1023,12 @@ BlockVars  : /* empty list */          { $$ = NULL; }
 
 BlockVarList : IdentName AsType                    { HB_COMP_PARAM->iVarScope = HB_VSCOMP_LOCAL; $$ = hb_compExprCBVarAdd( $<asExpr>0, $1, $2->cVarType, $2->szFromClass, HB_COMP_PARAM ); if( HB_COMP_PARAM->fAst ) hb_compAstCBVarPos( HB_COMP_PARAM, $$ ); }
              | BlockVarList ',' IdentName AsType   { HB_COMP_PARAM->iVarScope = HB_VSCOMP_LOCAL; $$ = hb_compExprCBVarAdd( $<asExpr>0, $3, $4->cVarType, $4->szFromClass, HB_COMP_PARAM ); if( HB_COMP_PARAM->fAst ) hb_compAstCBVarPos( HB_COMP_PARAM, $$ ); }
+             /* RD "rota da diretiva": the directive-generated Self of an
+                hbclass INLINE/OPERATOR/ACCESS/ASSIGN carries its class as a
+                FACT for the dump (HB_VARTYPE_INLINE_SELF), never imposed by
+                -kt. No source token, so no position hook. */
+             | IdentName INLINE_SELF IdentName                    { HB_COMP_PARAM->iVarScope = HB_VSCOMP_LOCAL; $$ = hb_compExprCBVarAdd( $<asExpr>0, $1, HB_VARTYPE_INLINE_SELF, $3, HB_COMP_PARAM ); }
+             | BlockVarList ',' IdentName INLINE_SELF IdentName   { HB_COMP_PARAM->iVarScope = HB_VSCOMP_LOCAL; $$ = hb_compExprCBVarAdd( $<asExpr>0, $3, HB_VARTYPE_INLINE_SELF, $5, HB_COMP_PARAM ); }
              ;
 
 BlockExpList : Expression                    { $$ = hb_compExprAddCodeblockExpr( $<asExpr>-1, $1 ); }

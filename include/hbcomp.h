@@ -85,6 +85,16 @@ extern void hb_compParserRun( HB_COMP_DECL );
 #define HB_VSCOMP_MEMVAR     ( HB_VSCOMP_PUBLIC | HB_VSCOMP_PRIVATE )
 #define HB_VSCOMP_TH_STATIC  ( HB_VSCOMP_STATIC | HB_VSCOMP_THREAD )
 
+/* declared-type sentinel: a codeblock parameter's class recorded as a
+   FACT for the AST dump only (the `_HB_INLINESELF` channel of hbclass.ch:
+   the Self a directive GENERATES has no source token, so `AS CLASS` would
+   impose a redundant -kt check on it - see RD "rota da diretiva"). Rides
+   the cType byte like any type letter (VarType->CBVar->HVar->pDecl), but
+   -kt NEVER imposes it (hb_compChkTypeGenCall skips it) and the dump
+   emits it as 'S' (hb_compAstWriteType maps it). NOT a written promise,
+   so no class resolution / W0025 - works for runtime-only classes too. */
+#define HB_VARTYPE_INLINE_SELF  ( ( HB_BYTE ) '\x01' )
+
 /* return detailed information about a class of variable */
 #define HB_VS_UNDECLARED      0
 /* variables declared in a current codeblock/function/procedure */

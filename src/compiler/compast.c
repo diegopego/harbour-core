@@ -1181,6 +1181,10 @@ static const char * hb_compAstDeclScope( int iScope )
 /* declared type char + AS CLASS name; nothing emitted for untyped */
 static void hb_compAstWriteType( FILE * file, HB_BYTE cType, const char * szClass )
 {
+   /* RD: the fact-only inline-Self class (HB_VARTYPE_INLINE_SELF) is a
+      normal declared class to every consumer of the dump */
+   if( cType == HB_VARTYPE_INLINE_SELF )
+      cType = 'S';
    if( cType != ' ' && cType != '\0' )
       fprintf( file, ", \"type\": \"%c\"", cType );
    if( szClass )

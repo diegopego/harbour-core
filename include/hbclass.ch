@@ -142,6 +142,7 @@
    #xcommand DECLARE    <*decl*>      =>
    #xtranslate AS <!type!>            =>
    #xtranslate AS CLASS <!name!>      =>
+   #xtranslate _HB_INLINESELF <!name!> =>
 #endif
 
 /* should we inherit from HBObject class by default ? */
@@ -334,7 +335,7 @@ DECLARE HBClass ;
 
 /* Operator overloading */
 #xcommand OPERATOR <op> [<arg: ARG, ARGS> <Args,...>] [LOCAL <Locals,...>] INLINE <Code,...> [ <export: EXPORTED, VISIBLE>] [<protect: PROTECTED>] [<hidde: HIDDEN>] [<sync: SYNC>] => ;
-   oClass:AddInline( <(op)>, {|Self [,<Args>] [,<Locals>]| HB_SYMBOL_UNUSED(Self), <Code>}, __HB_CLS_SCOPE( <.export.>, <.protect.>, <.hidde.> ) + iif( <.sync.>, HB_OO_CLSTP_SYNC, 0 ) )
+   oClass:AddInline( <(op)>, {|Self _HB_INLINESELF _CLASS_NAME_ [,<Args>] [,<Locals>]| HB_SYMBOL_UNUSED(Self), <Code>}, __HB_CLS_SCOPE( <.export.>, <.protect.>, <.hidde.> ) + iif( <.sync.>, HB_OO_CLSTP_SYNC, 0 ) )
 
 #xcommand METHOD <MethodName> [ AS <type> ] OPERATOR <op> [ <export: EXPORTED, VISIBLE>] [<protect: PROTECTED>] [<hidde: HIDDEN>] [<sync: SYNC>] => ;
    _HB_MEMBER __HB_CLS_ASFUNC(<MethodName>) [ AS <type> ];;
@@ -379,7 +380,7 @@ DECLARE HBClass ;
    oClass:AddInline( __HB_CLS_ASSTRING(<MessageName>), <CodeBlock>, __HB_CLS_SCOPE( <.export.>, <.protect.>, <.hidde.> ) + iif( <.ctor.>, HB_OO_CLSTP_CTOR, 0 ) + iif( <.persistent.>, HB_OO_CLSTP_PERSIST, 0 ) + iif( <.sync.>, HB_OO_CLSTP_SYNC, 0 ) )
 
 #xcommand MESSAGE <MessageName> [ AS <type> ] [LOCAL <Locals,...>] INLINE <Code,...> [<ctor: CONSTRUCTOR>] [<export: EXPORTED, VISIBLE>] [<protect: PROTECTED>] [<hidde: HIDDEN>] [<persistent: PERSISTENT, PROPERTY>] [<sync: SYNC>] => ;
-   MESSAGE <MessageName> [ AS <type> ] BLOCK {|Self __HB_CLS_ASARGSOPT(<MessageName>) [,<Locals>]| HB_SYMBOL_UNUSED(Self), <Code>} <ctor> <export> <protect> <hidde> <persistent> <sync>
+   MESSAGE <MessageName> [ AS <type> ] BLOCK {|Self _HB_INLINESELF _CLASS_NAME_ __HB_CLS_ASARGSOPT(<MessageName>) [,<Locals>]| HB_SYMBOL_UNUSED(Self), <Code>} <ctor> <export> <protect> <hidde> <persistent> <sync>
 
 #xcommand MESSAGE <MessageName> [ AS <type> ] <arg: ARG, ARGS> <Args,...> [LOCAL <Locals,...>] INLINE <Code,...> [<ctor: CONSTRUCTOR>] [<export: EXPORTED, VISIBLE>] [<protect: PROTECTED>] [<hidde: HIDDEN>] [<persistent: PERSISTENT, PROPERTY>] [<sync: SYNC>] => ;
    MESSAGE __HB_CLS_ASID(<MessageName>)(<Args>) [ AS <type> ] [LOCAL <Locals>] INLINE <Code> <ctor> <export> <protect> <hidde> <persistent> <sync>
@@ -468,10 +469,10 @@ DECLARE HBClass ;
 
    /* Classy compatibility... Added By JF Lefebvre (mafact) 2006-11-07 */
    #xcommand METHOD <MethodName> [ AS <type> ] INLINE [Local <v>,] <Code,...> [<other>] => ;
-             MESSAGE <MethodName> [ AS <type> ] BLOCK {|Self [,<v>] | HB_SYMBOL_UNUSED(Self), <Code>} [ <other>]
+             MESSAGE <MethodName> [ AS <type> ] BLOCK {|Self _HB_INLINESELF _CLASS_NAME_ [,<v>] | HB_SYMBOL_UNUSED(Self), <Code>} [ <other>]
 
    #xcommand METHOD <MethodName>( [<params,...>] ) [ AS <type> ] INLINE [Local <v>,] <Code,...> [<other>] => ;
-             MESSAGE <MethodName> [ AS <type> ] BLOCK {|Self [, <params>] [, <v>] | HB_SYMBOL_UNUSED(Self), <Code> } [ <other>]
+             MESSAGE <MethodName> [ AS <type> ] BLOCK {|Self _HB_INLINESELF _CLASS_NAME_ [, <params>] [, <v>] | HB_SYMBOL_UNUSED(Self), <Code> } [ <other>]
 
 
    /* These definitions are not Class(y) compatible - I'm leaving them as is now */
