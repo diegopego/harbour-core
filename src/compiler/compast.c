@@ -1300,11 +1300,15 @@ static void hb_compAstWriteFromItem( FILE * file, HB_BOOL fFirst, int iApp,
    A consumer that must rename/track the site uses this to tell "the name
    that GENERATES code" (rename it and its artifacts) from "a bound symbol
    that merely flows into a command" (rename it as the local/param it is). */
-static HB_BOOL hb_compAstMarkerGenerates( PHB_ASTDUMP pAst, int iApp,
-                                          int iMarker )
+static HB_BOOL hb_compAstMarkerGenerates( PHB_ASTDUMP pAst, PHB_PP_STATE pPP,
+                                          int iApp, int iMarker )
 {
    HB_SIZE n;
+   int iAppCount, iA;
 
+   /* (1) the surviving token stream: a paste/stringify artifact that reached
+      the compiler as-is (e.g. a generated FUNCTION name that is not consumed
+      by an outer expansion) */
    for( n = 0; n < pAst->nTokenCount; ++n )
    {
       PHB_ASTTOKEN pTok = &pAst->pTokens[ n ];
@@ -1316,6 +1320,40 @@ static HB_BOOL hb_compAstMarkerGenerates( PHB_ASTDUMP pAst, int iApp,
              pTok->pFrom[ i ].iMarker == iMarker &&
              ( pTok->pFrom[ i ].cOp == 'p' || pTok->pFrom[ i ].cOp == 's' ) )
             return HB_TRUE;
+      }
+   }
+
+   /* (2) the CONSUMED tokens of pp applications keep the ORIGINAL synthesis
+      op even when the token that survived into tokens[] was later re-cloned
+      by an OUTER expansion.  `? EVENTO x` (EVENTO stringifies x, then the `?`
+      command clones EVENTO's result): tokens[] shows the outer 'clone', but
+      the `?` application's consumed token still records the inner 'stringify'
+      that ties x to the generated string.  Without this pass a marker whose
+      artifact is re-consumed reads as non-generating (bug found on a pure
+      #xtranslate stringify inside a command). */
+   iAppCount = pPP ? hb_pp_trackApplyCount( pPP ) : 0;
+   for( iA = 0; iA < iAppCount; ++iA )
+   {
+      int iRule, iLine, iTokens, iTok;
+
+      hb_pp_trackApplyGet( pPP, iA, &iRule, &iLine, &iTokens );
+      for( iTok = 0; iTok < iTokens; ++iTok )
+      {
+         int iFromCount = hb_pp_trackApplyTokenFromCount( pPP, iA, iTok );
+         int iFrom;
+
+         for( iFrom = 0; iFrom < iFromCount; ++iFrom )
+         {
+            int iFApp, iFMk;
+            char cOp;
+            HB_SIZE nAt, nFLen;
+
+            hb_pp_trackApplyTokenFromGet( pPP, iA, iTok, iFrom, &iFApp, &iFMk,
+                                          &cOp, &nAt, &nFLen );
+            if( iFApp == iApp && iFMk == iMarker &&
+                ( cOp == 'p' || cOp == 's' ) )
+               return HB_TRUE;
+         }
       }
    }
    return HB_FALSE;
@@ -1626,7 +1664,7 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
                paste/stringify (it GENERATES an artifact - the rename target
                is the marker and its derivatives, not a homonym local the
                expansion may also fabricate). Absent = does not generate. */
-            if( iMarker >= 1 && hb_compAstMarkerGenerates( pAst, i, iMarker ) )
+            if( iMarker >= 1 && hb_compAstMarkerGenerates( pAst, pPP, i, iMarker ) )
                fprintf( file, ", \"generates\": true" );
             fprintf( file, " }" );
          }
