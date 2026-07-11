@@ -730,6 +730,15 @@ extern HB_EXPORT HB_BOOL hb_pp_trackApplyTokenFromGet( PHB_PP_STATE pState,
                                                        int iFrom, int * piApp,
                                                        int * piMarker, char * pcOp,
                                                        HB_SIZE * pnAt, HB_SIZE * pnLen );
+extern HB_EXPORT int     hb_pp_trackRuleTokenFromCount( PHB_PP_STATE pState,
+                                                        int iRule, HB_BOOL fResult,
+                                                        int iToken );
+extern HB_EXPORT HB_BOOL hb_pp_trackRuleTokenFromGet( PHB_PP_STATE pState,
+                                                      int iRule, HB_BOOL fResult,
+                                                      int iToken, int iFrom,
+                                                      int * piApp, int * piMarker,
+                                                      char * pcOp, HB_SIZE * pnAt,
+                                                      HB_SIZE * pnLen );
 
 /* PP lib helper functions */
 extern PHB_PP_STATE hb_pp_Param( int iParam );
