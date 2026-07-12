@@ -1,6 +1,6 @@
-<!-- changelog-baseline: harbour-core@611e0c45cc (feature/compiler-ast-dump) -->
+<!-- changelog-baseline: harbour-core@a465e85bd1 (feature/compiler-ast-dump) -->
 <!-- Delta pointer. Everything after this commit is NOT yet described here.
-     To catch up:  git log 611e0c45cc..HEAD   (see § Maintaining this file). -->
+     To catch up:  git log a465e85bd1..HEAD   (see § Maintaining this file). -->
 
 # NEWS — `feature/compiler-ast-dump`
 
