@@ -1,3 +1,5 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The compiler already knows — an AST dump proposal for Harbour</title>
 <script>
   (function () {
@@ -106,7 +108,9 @@
     padding:9px 15px; border-bottom:1px solid var(--border-soft); background:var(--bg-1);
     font-family:var(--mono); font-size:.7rem; color:var(--text-dim); letter-spacing:.06em;
   }
-  .term pre{margin:0; padding:16px 18px; overflow-x:auto; font-family:var(--mono); font-size:.83rem; line-height:1.64; color:var(--text-soft)}
+  .term pre{margin:0; padding:16px 18px; overflow-x:auto; font-family:var(--mono); font-size:.83rem; line-height:1.64; color:var(--text-soft); -webkit-overflow-scrolling:touch; scrollbar-width:thin}
+  .term pre::-webkit-scrollbar{height:6px}
+  .term pre::-webkit-scrollbar-thumb{background:var(--border); border-radius:3px}
   figcaption{font-size:.86rem; color:var(--text-dim); margin-top:.65rem; max-width:64ch}
   .ok{color:var(--ok); font-weight:600}
   .bad{color:var(--bad)}
@@ -120,7 +124,7 @@
   .verdict .txt{font-size:.95rem; color:var(--text)}
   section{padding:54px 0; border-top:1px solid var(--border-soft)}
   section:first-of-type{border-top:0}
-  .channels{display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:13px; overflow:hidden; margin:1.6rem 0}
+  .channels{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:13px; overflow:hidden; margin:1.6rem 0}
   .ch{background:var(--bg-2); padding:22px}
   .ch .k{font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:.5rem}
   .ch p{font-size:.92rem; margin:0; color:var(--text-soft)}
@@ -147,6 +151,16 @@
   .open p{color:var(--text-soft)}
   footer{border-top:1px solid var(--border); padding:34px 0 60px; color:var(--text-dim); font-size:.85rem}
   @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+  @media (max-width:620px){
+    .channels{grid-template-columns:1fr}
+  }
+  @media (max-width:480px){
+    .wrap{padding:0 18px}
+    .hero{padding:52px 0 8px}
+    section{padding:40px 0}
+    .term pre{font-size:.76rem; padding:14px}
+    .icon-btn{width:38px; height:38px}
+  }
 </style>
 
 <header>
@@ -301,7 +315,7 @@ src/vm/classes.c          <span class="dim">the runtime helper the -kt checks ca
 <span class="dim">…and a handful of headers.</span>
 </pre>
     </div>
-    <p class="col" style="font-size:.86rem;color:var(--steel)">Regenerated parser output
+    <p class="col" style="font-size:.86rem;color:var(--text-dim)">Regenerated parser output
     (<code>.yyc</code>/<code>.yyh</code>) excluded — it is bison's, not ours. <b>Ninety lines removed
     in total</b>: this branch adds, it does not rearrange.</p>
   </section>
@@ -311,13 +325,13 @@ src/vm/classes.c          <span class="dim">the runtime helper the -kt checks ca
     <p>These are independent of the proposal. They are in stock Harbour today, and the fixes stand on
     their own even if the rest is rejected.</p>
 
-    <h3 style="color:var(--found)">A segfault in the compiler</h3>
+    <h3 style="color:var(--bad)">A segfault in the compiler</h3>
     <p><code>hb_compClassFind()</code> compared a class name against <code>NULL</code> — a
     <code>strcmp</code> on a null pointer, reachable from any module that knew about a class. Guarded.
     As a side effect, <code>W0025</code> now names the real class instead of printing
     <code>'(null)'</code>.</p>
 
-    <h3 style="color:var(--found)">A false <code>W0019</code></h3>
+    <h3 style="color:var(--bad)">A false <code>W0019</code></h3>
     <p>The duplicate-declaration warning fired even when the second declaration merely <b>completed a
     missing return type</b> — a completion, not a conflict. Under <code>-w3 -es2</code> that turned a
     legitimate build into a failure. A genuine conflict still warns.</p>
