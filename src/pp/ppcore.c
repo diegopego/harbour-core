@@ -936,9 +936,22 @@ typedef struct
    char *    szFile;          /* directive file, NULL = built-in rule */
    int       iLine;           /* directive line, 0 = built-in */
    char      cType;           /* 'd'efine 't'ranslate 'c'ommand */
-   HB_BOOL   fX;              /* #x... variant (non-abbreviable keywords) */
+   HB_USHORT mode;            /* ast-16: the rule's HB_PP_CMP_* comparison mode.
+                                 Was a plain fX bool (== HB_PP_CMP_STD), which
+                                 could not tell CMP_CASE (the #y... family) from
+                                 CMP_DBASE and reported #ycommand as "command" -
+                                 i.e. as abbreviable, which it is NOT */
    char *    szHead;          /* head keyword, NULL when it is a marker */
    HB_USHORT markers;         /* number of match markers */
+   /* ast-16: a rule has a LEXICAL LIFETIME - #[x|y]uncommand/#...untranslate
+      remove it.  The pp knew this and dropped it on the floor: the removing
+      directive left no trace at all, so a consumer could not see that a rule
+      stops applying at some point of the source (nor edit that directive when
+      renaming the rule it names). */
+   HB_BOOL   fDel;            /* this record IS an #un... directive (it removes) */
+   int       iDelOf;          /* rule record it removed; -1 = removed NOTHING
+                                 (an orphan #un..., i.e. dead directive) */
+   HB_BOOL   fRemoved;        /* this rule was later removed by an #un... */
    HB_PP_RULETOKEN * pMatchToks;   /* the rule seen from inside: */
    int       iMatchCount;          /* one entry per pattern token */
    HB_PP_RULETOKEN * pResultToks;
@@ -1170,12 +1183,16 @@ static void hb_pp_ruleTokAdd( HB_PP_RULETOKEN ** pToksPtr, int * piCount,
    their marker token) and positions from the position table, which at
    this moment still holds a live entry for every token cut from a
    directive line.  Optional groups recurse (the match side may nest) */
+/* pStop bounds the walk (NULL = to the end of the list).  #undef needs it: its
+   "pattern" is the single name token, but that token still sits in the live
+   source line, so an unbounded walk would drag the rest of the line in. */
 static void hb_pp_ruleTokWalk( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                                HB_BOOL fResult,
                                HB_PP_RULETOKEN ** pToksPtr,
-                               int * piCount, int * piAlloc )
+                               int * piCount, int * piAlloc,
+                               PHB_PP_TOKEN pStop )
 {
-   while( pToken )
+   while( pToken && pToken != pStop )
    {
       HB_USHORT type = HB_PP_TOKEN_TYPE( pToken->type );
       PHB_PP_POSITEM pPos = hb_pp_posFind( pState, pToken );
@@ -1190,7 +1207,7 @@ static void hb_pp_ruleTokWalk( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
          hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, NULL, 0, type, 0,
                            '[', NULL, NULL, NULL );
          hb_pp_ruleTokWalk( pState, pToken->pMTokens, fResult,
-                            pToksPtr, piCount, piAlloc );
+                            pToksPtr, piCount, piAlloc, NULL );
          hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, NULL, 0, type, 0,
                            ']', NULL, NULL, NULL );
       }
@@ -1232,8 +1249,17 @@ static void hb_pp_ruleTokWalk( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
    }
 }
 
-static int hb_pp_trackRuleAdd( PHB_PP_STATE pState, PHB_PP_RULE pRule,
-                               char cType, const char * szFile, int iLine )
+/* ast-16: the recording core, driven by the PIECES of a directive (pattern,
+   result, mode, markers) rather than by a registered PHB_PP_RULE - because an
+   #un... directive never becomes a rule: it REMOVES one and is then thrown
+   away.  pRule is the identity used to correlate applications, and is NULL for
+   an #un... record (nothing ever applies it). */
+static int hb_pp_trackRuleRec( PHB_PP_STATE pState, PHB_PP_RULE pRule,
+                               PHB_PP_TOKEN pMatch, PHB_PP_TOKEN pResult,
+                               HB_USHORT mode, HB_USHORT markers,
+                               char cType, HB_BOOL fDel, int iDelOf,
+                               const char * szFile, int iLine,
+                               PHB_PP_TOKEN pMatchStop )
 {
    PHB_PP_RULETBL pTbl;
    PHB_PP_RULEREC pRec;
@@ -1250,25 +1276,62 @@ static int hb_pp_trackRuleAdd( PHB_PP_STATE pState, PHB_PP_RULE pRule,
                               pTbl->nRuleAlloc * sizeof( HB_PP_RULEREC ) );
    }
    pRec = &pTbl->pRules[ pTbl->nRuleCount ];
-   pRec->pRule   = pRule;
-   pRec->szFile  = szFile ? hb_strdup( szFile ) : NULL;
-   pRec->iLine   = iLine;
-   pRec->cType   = cType;
-   pRec->fX      = HB_PP_CMP_MODE( pRule->mode ) == HB_PP_CMP_STD;
-   pRec->szHead  = HB_PP_TOKEN_ISMATCH( pRule->pMatch ) ? NULL :
-                   hb_strdup( pRule->pMatch->value );
-   pRec->markers = pRule->markers;
+   pRec->pRule    = pRule;
+   pRec->szFile   = szFile ? hb_strdup( szFile ) : NULL;
+   pRec->iLine    = iLine;
+   pRec->cType    = cType;
+   pRec->mode     = HB_PP_CMP_MODE( mode );
+   pRec->szHead   = HB_PP_TOKEN_ISMATCH( pMatch ) ? NULL :
+                    hb_strdup( pMatch->value );
+   pRec->markers  = markers;
+   pRec->fDel     = fDel;
+   pRec->iDelOf   = iDelOf;
+   pRec->fRemoved = HB_FALSE;
 
    pRec->pMatchToks = NULL;
    pRec->iMatchCount = iAlloc = 0;
-   hb_pp_ruleTokWalk( pState, pRule->pMatch, HB_FALSE,
-                      &pRec->pMatchToks, &pRec->iMatchCount, &iAlloc );
+   hb_pp_ruleTokWalk( pState, pMatch, HB_FALSE,
+                      &pRec->pMatchToks, &pRec->iMatchCount, &iAlloc,
+                      pMatchStop );
    pRec->pResultToks = NULL;
    pRec->iResultCount = iAlloc = 0;
-   hb_pp_ruleTokWalk( pState, pRule->pResult, HB_TRUE,
-                      &pRec->pResultToks, &pRec->iResultCount, &iAlloc );
+   hb_pp_ruleTokWalk( pState, pResult, HB_TRUE,
+                      &pRec->pResultToks, &pRec->iResultCount, &iAlloc, NULL );
 
    return ( int ) pTbl->nRuleCount++;
+}
+
+static int hb_pp_trackRuleAdd( PHB_PP_STATE pState, PHB_PP_RULE pRule,
+                               char cType, const char * szFile, int iLine )
+{
+   return hb_pp_trackRuleRec( pState, pRule, pRule->pMatch, pRule->pResult,
+                              pRule->mode, pRule->markers, cType,
+                              HB_FALSE, -1, szFile, iLine, NULL );
+}
+
+/* ast-16: the record of the rule this #un... is about to remove, marked as
+   removed so a recycled rule pointer never resolves back to it */
+static int hb_pp_trackRuleRemoved( PHB_PP_STATE pState, PHB_PP_RULE pRule )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+   HB_SIZE n;
+
+   if( pTbl )
+   {
+      n = pTbl->nRuleCount;
+      while( n-- )
+      {
+         PHB_PP_RULEREC pRec = &pTbl->pRules[ n ];
+
+         if( pRec->pRule == ( const void * ) pRule && ! pRec->fDel &&
+             ! pRec->fRemoved )
+         {
+            pRec->fRemoved = HB_TRUE;
+            return ( int ) n;
+         }
+      }
+   }
+   return -1;
 }
 
 /* registration hook: called (gated by fTrackPos) where #define and
@@ -2843,6 +2906,11 @@ static void hb_pp_defineAdd( PHB_PP_STATE pState, HB_USHORT mode,
    hb_pp_ruleSetId( pState, pMatch, HB_PP_DEFINE );
 }
 
+/* ast-16: a #define has a lifetime too - #undef ends it.  This is the THIRD
+   removing family (the other two, #un[x|y]command/#un...translate, go through
+   hb_pp_directiveDel) and it was the one initially missed: a tool renaming the
+   #define left the #undef behind, pointing at a name that no longer exists, and
+   the define leaked past the point where it was switched off. */
 static void hb_pp_defineDel( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
 {
    PHB_PP_RULE * pRulePtr = &pState->pDefinitions, pRule;
@@ -2852,6 +2920,19 @@ static void hb_pp_defineDel( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
       pRule = *pRulePtr;
       if( hb_pp_tokenEqual( pToken, pRule->pMatch, HB_PP_CMP_CASE ) )
       {
+         if( pState->fTrackPos )
+         {
+            int iDelOf = hb_pp_trackRuleRemoved( pState, pRule );
+
+            /* the #undef's own name token, bounded to ITSELF: it still sits in
+               the live source line, and it carries the position a consumer
+               needs in order to edit this directive */
+            hb_pp_trackRuleRec( pState, NULL, pToken, NULL,
+                                HB_PP_CMP_CASE, 0, 'd', HB_TRUE, iDelOf,
+                                pState->pFile ? pState->pFile->szFileName : NULL,
+                                pState->pFile ? pState->pFile->iCurrentLine : 0,
+                                pToken->pNext );
+         }
          *pRulePtr = pRule->pPrev;
          hb_pp_ruleFree( pRule );
          pState->iDefinitions--;
@@ -4309,9 +4390,13 @@ static HB_BOOL hb_pp_patternCompare( PHB_PP_TOKEN pToken1, PHB_PP_TOKEN pToken2 
    return ! pToken1 && ! pToken2;
 }
 
+/* ast-16: piDelOf (when tracking) receives the record index of the rule that
+   was removed, or stays -1 when this #un... matched no rule at all - an ORPHAN
+   removing directive, which is silent dead code today */
 static void hb_pp_directiveDel( PHB_PP_STATE pState, PHB_PP_TOKEN pMatch,
                                 HB_USHORT markers, PHB_PP_MARKER pMarkers,
-                                HB_USHORT mode, HB_BOOL fCommand )
+                                HB_USHORT mode, HB_BOOL fCommand,
+                                int * piDelOf )
 {
    PHB_PP_RULE pRule, * pRulePtr = fCommand ? &pState->pCommands :
                                               &pState->pTranslations;
@@ -4329,6 +4414,9 @@ static void hb_pp_directiveDel( PHB_PP_STATE pState, PHB_PP_TOKEN pMatch,
          }
          if( u == markers && hb_pp_patternCompare( pRule->pMatch, pMatch ) )
          {
+            /* while the rule is still alive: say WHICH one is going away */
+            if( piDelOf )
+               *piDelOf = hb_pp_trackRuleRemoved( pState, pRule );
             *pRulePtr = pRule->pPrev;
             hb_pp_ruleFree( pRule );
             if( fCommand )
@@ -4553,7 +4641,23 @@ static void hb_pp_directiveNew( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
       {
          if( fDelete )
          {
-            hb_pp_directiveDel( pState, pMatch, usPCount, pMarkers, mode, fCommand );
+            int iDelOf = -1;
+
+            hb_pp_directiveDel( pState, pMatch, usPCount, pMarkers, mode,
+                                fCommand, pState->fTrackPos ? &iDelOf : NULL );
+            /* ast-16: the removing directive itself is a FACT - record it while
+               its pattern tokens (and their source positions) are still alive;
+               they are freed a few lines below.  Without this the pp removes a
+               rule and leaves no trace: a consumer cannot see that the rule's
+               lifetime ends here, nor edit this directive when renaming the
+               rule it names. */
+            if( pState->fTrackPos )
+               hb_pp_trackRuleRec( pState, NULL, pMatch, pResult, mode,
+                                   usPCount, fCommand ? 'c' : 't',
+                                   HB_TRUE, iDelOf,
+                                   pState->pFile ? pState->pFile->szFileName : NULL,
+                                   pState->pFile ? pState->pFile->iCurrentLine : 0,
+                                   NULL );
             if( pMarkers )
                hb_xfree( pMarkers );
          }
@@ -6577,10 +6681,15 @@ int hb_pp_trackRuleCount( PHB_PP_STATE pState )
    return pTbl ? ( int ) pTbl->nRuleCount : 0;
 }
 
+/* ast-16: piMode replaces the old fX bool (which collapsed the #y... family
+   onto the abbreviable #command); pfDel/piDelOf/pfRemoved expose the rule's
+   LIFETIME - see HB_PP_RULEREC */
 HB_BOOL hb_pp_trackRuleGet( PHB_PP_STATE pState, int iRule,
-                            int * piType, HB_BOOL * pfX,
+                            int * piType, int * piMode,
                             const char ** pszFile, int * piLine,
-                            const char ** pszHead, int * piMarkers )
+                            const char ** pszHead, int * piMarkers,
+                            HB_BOOL * pfDel, int * piDelOf,
+                            HB_BOOL * pfRemoved )
 {
    PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
 
@@ -6590,8 +6699,8 @@ HB_BOOL hb_pp_trackRuleGet( PHB_PP_STATE pState, int iRule,
 
       if( piType )
          *piType = pRec->cType;
-      if( pfX )
-         *pfX = pRec->fX;
+      if( piMode )
+         *piMode = pRec->mode;
       if( pszFile )
          *pszFile = pRec->szFile;
       if( piLine )
@@ -6600,6 +6709,12 @@ HB_BOOL hb_pp_trackRuleGet( PHB_PP_STATE pState, int iRule,
          *pszHead = pRec->szHead;
       if( piMarkers )
          *piMarkers = pRec->markers;
+      if( pfDel )
+         *pfDel = pRec->fDel;
+      if( piDelOf )
+         *piDelOf = pRec->iDelOf;
+      if( pfRemoved )
+         *pfRemoved = pRec->fRemoved;
       return HB_TRUE;
    }
    return HB_FALSE;

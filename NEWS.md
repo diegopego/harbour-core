@@ -1,4 +1,4 @@
-<!-- changelog-baseline: harbour-core@4d6deca13d (feature/compiler-ast-dump) -->
+<!-- changelog-baseline: harbour-core@89f57c77ea (feature/compiler-ast-dump) -->
 <!-- Delta pointer. Everything after this commit is NOT yet described here.
      To catch up:  git log 4d6deca13d..HEAD   (see § Maintaining this file). -->
 
@@ -120,6 +120,7 @@ The file carries a `"schema"` field; a consumer should check it.
 | `ast-13` | **a directive that writes another directive** (`hbclass.ch` does it constantly) — the generated rule is linked back to whatever created it |
 | `ast-14` | a marker that a rule matches but never uses is no longer indistinguishable from a word of the rule itself |
 | `ast-15` | **which** word of the rule a token matched — needed because `#command` accepts its keywords **abbreviated** (from 4 letters on), so `GRAV` may be the rule's own keyword *or* `GRAVAR` cut short, and only the preprocessor knows which |
+| `ast-16` | **a directive has a lifetime, and which family it belongs to.** `#xuncommand` (and friends) *switch a directive off* partway through a file — the preprocessor did that and told nobody, so a tool renaming the directive left the switch-off behind, pointing at a name that no longer existed, and the directive silently leaked past the point where you turned it off. Also: Harbour has **three** directive families (keywords abbreviable, exact, exact-and-case-sensitive) and this file used to describe the third as if it were the first — i.e. it claimed an exact rule accepts abbreviations |
 
 `hbmk2` passes `-x` through per module, so it works with whatever project shape it
 already accepts.
@@ -149,7 +150,7 @@ generates:
 ## Limits (honest)
 
 - This is a **branch**, not upstream Harbour. To use it, you build this tree.
-- The dump **schema is not frozen** (`ast-1` → `ast-15`). Check the `"schema"` field.
+- The dump **schema is not frozen** (`ast-1` → `ast-16`). Check the `"schema"` field.
 - After changing the compiler, rebuild **`harbour` *and* `hbmk2`** — `hbmk2` embeds
   the compiler, and a stale one keeps emitting the old schema without reporting any
   error.

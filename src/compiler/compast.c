@@ -1610,16 +1610,27 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
       for( i = 0; i < iCount; ++i )
       {
          const char * szFile, * szHead;
-         int iType, iLine, iMarkers;
-         HB_BOOL fX;
+         int iType, iLine, iMarkers, iMode, iDelOf;
+         HB_BOOL fDel, fRemoved;
 
-         hb_pp_trackRuleGet( pPP, i, &iType, &fX, &szFile, &iLine,
-                             &szHead, &iMarkers );
-         fprintf( file, "%s\n    { \"id\": %d, \"kind\": \"%s%s\", \"file\": ",
-                  i ? "," : "", i,
-                  iType == 'd' ? "" : ( fX ? "x" : "" ),
-                  iType == 'd' ? "define" :
-                  iType == 't' ? "translate" : "command" );
+         hb_pp_trackRuleGet( pPP, i, &iType, &iMode, &szFile, &iLine,
+                             &szHead, &iMarkers, &fDel, &iDelOf, &fRemoved );
+         /* ast-16: the kind now carries the FAMILY as the pp really sees it -
+            the comparison mode ("" = dBase/abbreviable, "x" = exact, "y" =
+            exact and case sensitive) - and whether the directive REMOVES a
+            rule instead of creating one ("un"). */
+         /* #define -> "define" / "undef" (the directive really is spelled
+            #undef); the rule families carry the comparison mode as a prefix */
+         if( iType == 'd' )
+            fprintf( file, "%s\n    { \"id\": %d, \"kind\": \"%s\", \"file\": ",
+                     i ? "," : "", i, fDel ? "undef" : "define" );
+         else
+            fprintf( file, "%s\n    { \"id\": %d, \"kind\": \"%s%s%s\", \"file\": ",
+                     i ? "," : "", i,
+                     iMode == HB_PP_CMP_STD ? "x" :
+                     iMode == HB_PP_CMP_CASE ? "y" : "",
+                     fDel ? "un" : "",
+                     iType == 't' ? "translate" : "command" );
          if( szFile )
             hb_compAstWriteStr( file, szFile );
          else
@@ -1629,6 +1640,20 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             hb_compAstWriteStr( file, szHead );
          else
             fprintf( file, "null" );
+         /* ast-16: the rule's LIFETIME. On an #un... record, "undoes" is the id
+            of the rule it removed, or null when it removed NOTHING (an orphan
+            removing directive - silent dead code). On a created rule, "removed"
+            says an #un... later took it out of the rule table. */
+         if( fDel )
+         {
+            fprintf( file, ", \"undoes\": " );
+            if( iDelOf >= 0 )
+               fprintf( file, "%d", iDelOf );
+            else
+               fprintf( file, "null" );
+         }
+         else if( fRemoved )
+            fprintf( file, ", \"removed\": true" );
          fprintf( file, ", \"markers\": %d,\n      \"match\": ", iMarkers );
          hb_compAstWriteRuleToks( file, pPP, i, HB_FALSE );
          fprintf( file, ",\n      \"result\": " );

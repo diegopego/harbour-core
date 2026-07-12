@@ -394,6 +394,17 @@ typedef struct _HB_PP_TOKEN
 }
 HB_PP_TOKEN, * PHB_PP_TOKEN;
 
+/* comparison modes - the FAMILY a rule belongs to.  Public because the rule
+   tracking API (hb_pp_trackRuleGet) reports it: #command/#translate compare
+   dBase-style (a keyword matches ABBREVIATED, from 4 chars), the #x... family
+   compares exactly, and the #y... family exactly and case sensitively. */
+#define HB_PP_CMP_ADDR        0 /* compare token addresses */
+#define HB_PP_CMP_STD         1 /* standard comparison, ignore the case of the characters */
+#define HB_PP_CMP_DBASE       2 /* dBase keyword comparison (accepts at least four character shortcuts) ignore the case of the characters */
+#define HB_PP_CMP_CASE        3 /* case sensitive comparison */
+
+#define HB_PP_CMP_MODE(t)     ( (t) & 0xff )
+
 
 #ifdef _HB_PP_INTERNAL
 
@@ -413,13 +424,8 @@ HB_PP_TOKEN, * PHB_PP_TOKEN;
 #define HB_PP_TRANSLATE       2
 #define HB_PP_COMMAND         4
 
-/* comparison modes */
-#define HB_PP_CMP_ADDR        0 /* compare token addresses */
-#define HB_PP_CMP_STD         1 /* standard comparison, ignore the case of the characters */
-#define HB_PP_CMP_DBASE       2 /* dBase keyword comparison (accepts at least four character shortcuts) ignore the case of the characters */
-#define HB_PP_CMP_CASE        3 /* case sensitive comparison */
-
-#define HB_PP_CMP_MODE(t)     ( (t) & 0xff )
+/* (the HB_PP_CMP_* comparison modes and HB_PP_CMP_MODE() are now public - see
+   above: the rule tracking API reports the family a rule belongs to) */
 #define HB_PP_STD_RULE        0x8000
 
 
@@ -697,10 +703,16 @@ extern HB_EXPORT void    hb_pp_trackPos( PHB_PP_STATE pState, HB_BOOL fEnable );
 extern HB_EXPORT HB_BOOL hb_pp_tokenPos( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                                          int * piLine, int * piCol, HB_BOOL * pfMainFile );
 extern HB_EXPORT int     hb_pp_trackRuleCount( PHB_PP_STATE pState );
+/* ast-16: piMode is the rule's HB_PP_CMP_* comparison mode (it replaces a bool
+   that could not tell the #y... family from #command); pfDel says this record
+   is an #un... directive, piDelOf is the rule it removed (-1 = it removed
+   NOTHING - an orphan), and pfRemoved says this rule was later removed. */
 extern HB_EXPORT HB_BOOL hb_pp_trackRuleGet( PHB_PP_STATE pState, int iRule,
-                                             int * piType, HB_BOOL * pfX,
+                                             int * piType, int * piMode,
                                              const char ** pszFile, int * piLine,
-                                             const char ** pszHead, int * piMarkers );
+                                             const char ** pszHead, int * piMarkers,
+                                             HB_BOOL * pfDel, int * piDelOf,
+                                             HB_BOOL * pfRemoved );
 extern HB_EXPORT int     hb_pp_trackRuleTokenCount( PHB_PP_STATE pState,
                                                     int iRule, HB_BOOL fResult );
 extern HB_EXPORT HB_BOOL hb_pp_trackRuleToken( PHB_PP_STATE pState, int iRule,
