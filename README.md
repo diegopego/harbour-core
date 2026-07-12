@@ -7,6 +7,13 @@ a compiler and runtime libraries with multiple UI and database
 backends, its own make system and a large collection of libraries
 and interfaces to many popular APIs.
 
+> **This branch: `feature/compiler-ast-dump`.** It adds two things for the Harbour
+> programmer — **`-kt`** (your `AS` annotations become invariants the runtime
+> enforces) and **`-x`** (the compiler exports the facts it knows, so tools can act
+> on them instead of guessing with regexes). Without those switches your build is
+> unchanged, byte for byte. **What it gives you, in plain terms: [NEWS.md](NEWS.md).**
+> (The developer-facing log stays [`ChangeLog.txt`](ChangeLog.txt).)
+
 # Table of Content
 
 1. [Guarantees and Liability](#guarantees-and-liability)

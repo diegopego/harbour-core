@@ -1,0 +1,436 @@
+<title>The compiler already knows — an AST dump proposal for Harbour</title>
+<script>
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('hbr-theme'); } catch (e) {}
+    if (!t) { t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; }
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<style>
+  /* ── Nord: the same token system as the consumer's site, so the two read as
+     one project. Semantics kept: green = "byte-identical" (the guarantee),
+     red = "a bug we found in stock Harbour". ── */
+  :root {
+    --nord0:#2e3440; --nord1:#3b4252; --nord2:#434c5e; --nord3:#4c566a;
+    --nord4:#d8dee9; --nord5:#e5e9f0; --nord6:#eceff4;
+    --frost0:#8fbcbb; --frost1:#88c0d0; --frost2:#81a1c1; --frost3:#5e81ac;
+    --red:#bf616a; --orange:#d08770; --yellow:#ebcb8b; --green:#a3be8c; --purple:#b48ead;
+
+    /* dark (default, as on the consumer's site) */
+    --bg:var(--nord0);
+    --bg-1:#333b4a;
+    --bg-2:var(--nord1);
+    --bg-code:#2b313d;
+    --border:#3f4a5c;
+    --border-soft:#39424f;
+    --text:var(--nord6);
+    --text-soft:var(--nord4);
+    --text-dim:#8b95a7;
+    --accent:var(--frost1);
+    --accent-2:var(--frost0);
+    --ok:var(--green);
+    --ok-bg:rgba(163,190,140,.10);
+    --bad:var(--red);
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 30px rgba(0,0,0,.28);
+    --glow:0 0 0 1px rgba(136,192,208,.18), 0 12px 40px rgba(94,129,172,.16);
+
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"JetBrains Mono","Cascadia Code","SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  :root[data-theme="light"] {
+    --bg:var(--nord6);
+    --bg-1:#e9edf3;
+    --bg-2:#ffffff;
+    --bg-code:#eef1f6;
+    --border:#d3dae6;
+    --border-soft:#dfe4ec;
+    --text:var(--nord0);
+    --text-soft:#3b4252;
+    --text-dim:#5b6678;
+    --accent:var(--frost3);
+    --accent-2:var(--frost2);
+    --ok:#4f7a3f;
+    --ok-bg:rgba(79,122,63,.08);
+    --bad:#a54049;
+    --shadow:0 1px 2px rgba(46,52,64,.06), 0 10px 30px rgba(46,52,64,.08);
+    --glow:0 0 0 1px rgba(94,129,172,.14), 0 12px 40px rgba(94,129,172,.10);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme]) {
+      --bg:var(--nord6); --bg-1:#e9edf3; --bg-2:#ffffff; --bg-code:#eef1f6;
+      --border:#d3dae6; --border-soft:#dfe4ec; --text:var(--nord0);
+      --text-soft:#3b4252; --text-dim:#5b6678; --accent:var(--frost3);
+      --accent-2:var(--frost2); --ok:#4f7a3f; --ok-bg:rgba(79,122,63,.08); --bad:#a54049;
+    }
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--sans); font-size:17px; line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px; margin:0 auto; padding:0 28px}
+  .col{max-width:68ch}
+  a{color:var(--accent); text-decoration:none; border-bottom:1px solid color-mix(in srgb, var(--accent) 35%, transparent)}
+  a:hover{border-bottom-color:var(--accent)}
+  a:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:3px}
+  code, .mono{font-family:var(--mono); font-size:.88em}
+  code{background:var(--bg-code); padding:.12em .4em; border-radius:4px; border:1px solid var(--border-soft)}
+  h1,h2,h3{font-weight:700; text-wrap:balance; letter-spacing:-.02em; line-height:1.18}
+  h1{font-size:clamp(2.1rem,5vw,3.1rem); margin:0 0 .6rem}
+  h2{font-size:clamp(1.5rem,2.6vw,1.95rem); margin:0 0 .75rem}
+  h3{font-size:1.06rem; margin:0 0 .4rem; letter-spacing:-.01em}
+  p{margin:0 0 1.05rem}
+  .eyebrow{
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); margin:0 0 1.1rem;
+  }
+  header{border-bottom:1px solid var(--border); padding:20px 0; background:var(--bg-2)}
+  .bar{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap}
+  .brand{font-family:var(--mono); font-size:.82rem; color:var(--text-dim)}
+  .brand b{color:var(--text); font-weight:600}
+  .links{display:flex; gap:18px; font-size:.85rem; align-items:center}
+  .icon-btn{
+    background:var(--bg-1); border:1px solid var(--border); color:var(--text-soft);
+    width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:.9rem; line-height:1;
+  }
+  .icon-btn:hover{border-color:var(--accent); color:var(--accent)}
+  .hero{padding:76px 0 12px}
+  .lede{font-size:1.16rem; color:var(--text-soft); max-width:60ch}
+  .lede strong{color:var(--text); font-weight:600}
+  figure{margin:0 0 1.9rem}
+  .term{background:var(--bg-2); border:1px solid var(--border); border-radius:13px; overflow:hidden; box-shadow:var(--shadow)}
+  .term-top{
+    padding:9px 15px; border-bottom:1px solid var(--border-soft); background:var(--bg-1);
+    font-family:var(--mono); font-size:.7rem; color:var(--text-dim); letter-spacing:.06em;
+  }
+  .term pre{margin:0; padding:16px 18px; overflow-x:auto; font-family:var(--mono); font-size:.83rem; line-height:1.64; color:var(--text-soft)}
+  figcaption{font-size:.86rem; color:var(--text-dim); margin-top:.65rem; max-width:64ch}
+  .ok{color:var(--ok); font-weight:600}
+  .bad{color:var(--bad)}
+  .dim{color:var(--text-dim)}
+  .verdict{
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    background:var(--ok-bg); border:1px solid color-mix(in srgb, var(--ok) 32%, transparent);
+    border-radius:13px; padding:17px 21px; margin:0 0 1.6rem;
+  }
+  .verdict .num{font-family:var(--mono); font-size:1.5rem; font-weight:700; color:var(--ok); font-variant-numeric:tabular-nums}
+  .verdict .txt{font-size:.95rem; color:var(--text)}
+  section{padding:54px 0; border-top:1px solid var(--border-soft)}
+  section:first-of-type{border-top:0}
+  .channels{display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:13px; overflow:hidden; margin:1.6rem 0}
+  .ch{background:var(--bg-2); padding:22px}
+  .ch .k{font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); margin-bottom:.5rem}
+  .ch p{font-size:.92rem; margin:0; color:var(--text-soft)}
+  .ch p b{color:var(--text); font-weight:600}
+  .tbl{width:100%; border-collapse:collapse; font-size:.88rem; margin:1.2rem 0 .6rem}
+  .tbl th{
+    text-align:left; font-family:var(--mono); font-weight:500; font-size:.68rem;
+    letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim);
+    padding:0 12px 9px 0; border-bottom:1px solid var(--border);
+  }
+  .tbl td{padding:9px 12px 9px 0; border-bottom:1px solid var(--border-soft); vertical-align:top; color:var(--text-soft)}
+  .tbl td.n{font-family:var(--mono); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .tbl td.f{font-family:var(--mono); font-size:.84rem; color:var(--text)}
+  .add{color:var(--ok)}
+  .del{color:var(--bad)}
+  .tbl tr.total td{font-weight:600; border-bottom:0; color:var(--text)}
+  .ask{background:var(--bg-2); border:1px solid var(--border); border-radius:13px; padding:26px 28px; box-shadow:var(--shadow)}
+  .ask ul{margin:0; padding-left:1.15rem}
+  .ask li{margin-bottom:.65rem; color:var(--text-soft)}
+  .ask li b{color:var(--text)}
+  .ask li:last-child{margin-bottom:0}
+  .open{border-left:3px solid var(--bad); padding-left:17px; margin:1.5rem 0}
+  .open h3{color:var(--bad)}
+  .open p{color:var(--text-soft)}
+  footer{border-top:1px solid var(--border); padding:34px 0 60px; color:var(--text-dim); font-size:.85rem}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+
+<header>
+  <div class="wrap bar">
+    <div class="brand"><b>harbour</b> / <b>core</b> &nbsp;·&nbsp; branch <b>feature/compiler-ast-dump</b></div>
+    <div class="links">
+      <a href="NEWS.md">NEWS.md</a>
+      <a href="https://github.com/diegopego/hbrefactor">the consumer</a>
+      <button id="themeToggle" class="icon-btn" aria-label="Toggle light / dark theme" title="Toggle theme">◐</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="hero col">
+    <p class="eyebrow">A proposal to the Harbour maintainers</p>
+    <h1>The compiler already knows. This branch makes it say so.</h1>
+    <p class="lede">Harbour's compiler works out, on every build, exactly the facts a refactoring
+    tool needs — and then throws them away. This branch keeps them. <strong>It changes nothing about
+    the language, and nothing about your build.</strong></p>
+  </div>
+
+  <section>
+    <figure>
+      <div class="term">
+        <div class="term-top">the corpus, compiled by the patched compiler with the switches off, then compared byte by byte</div>
+<pre>generated pcode, patched vs. stock            <span class="ok">1085 / 1085 identical</span>
+every .prg module under src/                  <span class="ok"> 112 /  112 identical</span>
+                                              <span class="dim">…and identical to the pre-patch binary</span>
+
+differences                                   <span class="ok">none</span>
+</pre>
+      </div>
+      <figcaption>The patched compiler, with <code>-x</code> and <code>-kt</code> off, produces the
+      same bytes as the compiler you have today. That result <em>is</em> the proposal; everything below
+      only explains how it is possible. <span class="dim">(The one corpus that did differ turned out to
+      be the <b>stock</b> compiler segfaulting — see the bugs below.)</span></figcaption>
+    </figure>
+
+    <div class="verdict">
+      <span class="num">0</span>
+      <span class="txt">bytes of difference in the compiled output when the switches are off —
+      the state every existing Harbour user is in.</span>
+    </div>
+  </section>
+
+  <section class="col">
+    <h2>What it adds, in two sentences</h2>
+    <p><code>-x</code> makes the compiler <b>write down the facts it already computed</b> — the token
+    stream with exact positions, declarations with resolved scopes, calls, sends, the preprocessor's
+    own rewrites — as JSON, while it compiles. Nothing is inferred; nothing new is analysed.</p>
+    <p><code>-kt</code> makes the <code>AS</code> annotations that Harbour has parsed for twenty years
+    <b>actually mean something</b>: the compiler emits runtime checks for them, so a declared type
+    becomes an invariant that fails at the site instead of a comment with better syntax.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Why the compiler has to be the one to say it</h2>
+      <p>Every attempt to build a safe Harbour refactoring tool has broken on the same rock:
+      <b>by the time code means something, the source text no longer describes it.</b></p>
+    </div>
+
+    <figure>
+      <div class="term">
+        <div class="term-top">what a tool reading the .prg sees &nbsp;·&nbsp; what actually happens</div>
+<pre><span class="dim">#xcommand REGISTRO &lt;n&gt; =&gt; FUNCTION reg_&lt;n&gt;() ;; LOCAL &lt;n&gt; := &lt;"n"&gt;</span>
+
+   REGISTRO Salva
+   <span class="dim">└─ one word written by the user. after the preprocessor:</span>
+      <span class="bad">reg_Salva</span>   <span class="dim">a function name, pasted from it</span>
+      <span class="bad">"Salva"</span>     <span class="dim">a string, dumped from it</span>
+      <span class="bad">Salva</span>       <span class="dim">a local variable, cloned from it</span>
+</pre>
+      </div>
+      <figcaption>Three different things, from one token, none of them visible in the file. A tool
+      with a regex must guess which is which — and eventually it guesses wrong and corrupts someone's
+      code. The preprocessor never guesses: it <em>did</em> the paste, the stringify and the clone,
+      and it knows which was which. It simply had no way to tell anyone.</figcaption>
+    </figure>
+
+    <div class="col">
+      <p>That is the entire thesis. Everything this branch adds is a channel for something Harbour
+      already worked out and then discarded.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>The consolidated shape</h2>
+      <p>The dump grew through fifteen schema versions, but it is not fifteen ideas — it is four
+      channels. (The version-by-version record lives in <a href="NEWS.md">NEWS.md</a>; git has the
+      rest.)</p>
+    </div>
+
+    <div class="channels">
+      <div class="ch">
+        <div class="k">Channel one</div>
+        <h3>Positions that survive the preprocessor</h3>
+        <p>Every token with its <b>real line and byte column</b> — kept correct through
+        <code>#command</code>/<code>#translate</code> rewrites, so an edit lands where the programmer
+        actually typed.</p>
+      </div>
+      <div class="ch">
+        <div class="k">Channel two</div>
+        <h3>The preprocessor, made visible</h3>
+        <p>The rules, every application of them, and <b>what each directive did with each name</b> —
+        copied through, pasted into a symbol, or dumped into a string. Including directives that write
+        other directives, which is how <code>hbclass.ch</code> works.</p>
+      </div>
+      <div class="ch">
+        <div class="k">Channel three</div>
+        <h3>The declared-type channel</h3>
+        <p><code>AS</code>, <code>DECLARE</code>, class and member declarations, <b>inheritance</b> —
+        carried through exactly as written, including on codeblock parameters, where the parser used
+        to discard them.</p>
+      </div>
+      <div class="ch">
+        <div class="k">Channel four</div>
+        <h3>Enforcement — <code>-kt</code></h3>
+        <p>The declared types stop being advisory. Checked on entry, after each store, on
+        <code>RETURN</code>, and on <b>every <code>Eval</code></b> of an annotated block. The is-a test
+        runs on the live object, so runtime-assembled classes pass.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>The shape of the diff</h2>
+      <p>What a maintainer actually has to live with. The dump's logic is <b>one new file</b>; the
+      hooks in existing files are flag-gated and almost entirely additive.</p>
+    </div>
+
+    <div style="overflow-x:auto">
+    <table class="tbl">
+      <thead>
+        <tr><th>File</th><th>Added</th><th>Removed</th><th>What it is</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="f">src/compiler/compast.c</td>
+          <td class="n add">+1962</td><td class="n">—</td>
+          <td><b>New file.</b> All the dump logic. Delete it and the branch is gone.</td>
+        </tr>
+        <tr>
+          <td class="f">src/pp/ppcore.c</td>
+          <td class="n add">+1407</td><td class="n del">−28</td>
+          <td>The tracking tables (positions, rules, derivation). <b>The biggest intrusion</b> — and
+          the one we most want reviewed.</td>
+        </tr>
+        <tr>
+          <td class="f">src/compiler/hbmain.c</td>
+          <td class="n add">+215</td><td class="n del">−13</td>
+          <td>The <code>-kt</code> check generation, plus one-line dump hooks.</td>
+        </tr>
+        <tr>
+          <td class="f">src/compiler/harbour.y</td>
+          <td class="n add">+91</td><td class="n del">−7</td>
+          <td>Block params keep their declared class; two productions.</td>
+        </tr>
+        <tr>
+          <td class="f">src/vm/classes.c</td>
+          <td class="n add">+81</td><td class="n">—</td>
+          <td>The runtime helper the <code>-kt</code> checks call.</td>
+        </tr>
+        <tr>
+          <td class="f dim">14 other files</td>
+          <td class="n add">+230</td><td class="n del">−42</td>
+          <td class="dim">Headers, keyword table, usage text, <code>hbclass.ch</code>.</td>
+        </tr>
+        <tr class="total">
+          <td>Total, hand-written</td>
+          <td class="n add">+3986</td><td class="n del">−90</td>
+          <td>Half of it a new, self-contained file.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="col" style="font-size:.86rem;color:var(--steel)">Regenerated parser output
+    (<code>.yyc</code>/<code>.yyh</code>) excluded — it is bison's, not ours. <b>Ninety lines removed
+    in total</b>: this branch adds, it does not rearrange.</p>
+  </section>
+
+  <section class="col">
+    <h2>Two bugs it fixes for everyone</h2>
+    <p>These are independent of the proposal. They are in stock Harbour today, and the fixes stand on
+    their own even if the rest is rejected.</p>
+
+    <h3 style="color:var(--found)">A segfault in the compiler</h3>
+    <p><code>hb_compClassFind()</code> compared a class name against <code>NULL</code> — a
+    <code>strcmp</code> on a null pointer, reachable from any module that knew about a class. Guarded.
+    As a side effect, <code>W0025</code> now names the real class instead of printing
+    <code>'(null)'</code>.</p>
+
+    <h3 style="color:var(--found)">A false <code>W0019</code></h3>
+    <p>The duplicate-declaration warning fired even when the second declaration merely <b>completed a
+    missing return type</b> — a completion, not a conflict. Under <code>-w3 -es2</code> that turned a
+    legitimate build into a failure. A genuine conflict still warns.</p>
+  </section>
+
+  <section class="col">
+    <h2>This is not speculative</h2>
+    <p>The channels exist because something consumes them. <a href="https://github.com/diegopego/hbrefactor">hbrefactor</a>
+    is a working refactoring tool built entirely on this dump — and it is what proves the facts are
+    the <em>right</em> facts.</p>
+    <p>Its contract is the one that matters here: it <b>refuses to guess</b>. Every edit is applied,
+    the project is recompiled, and the resulting symbols and pcode are compared. If anything moved
+    that should not have, the edit is <b>rolled back</b>. A rename that "almost worked" does not
+    exist. Where the compiler cannot prove something — a name built by <code>&amp;macro</code>, a
+    string that happens to match a symbol — the tool reports it and <b>does not touch it</b>.</p>
+    <p>That discipline is why the branch looks the way it does. Every time the tool was tempted to
+    guess, the answer was to <b>teach the compiler to keep the fact</b> instead — which is how a
+    twenty-year-old segfault surfaced, and how the preprocessor stopped discarding things it already
+    knew.</p>
+    <div class="verdict">
+      <span class="num">892</span>
+      <span class="txt">assertions across 111 executable cases in the consumer's suite — the proof
+      that these channels carry real, usable facts.</span>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What we are asking of you</h2>
+    </div>
+    <div class="ask col">
+      <ul>
+        <li><b>Review the preprocessor side first.</b> <code>ppcore.c</code> is where we touched the
+        most, and where a mistake would cost the most. If any of it should live elsewhere, say so.</li>
+        <li><b>Tell us how to split it.</b> The dump (<code>-x</code>) and the enforced annotations
+        (<code>-kt</code>) are independent and could land as separate PRs. The two bug fixes could go
+        in first, alone.</li>
+        <li><b>Rule on the schema.</b> It has moved fifteen times because consumers kept needing more.
+        We do not know what stability guarantee, if any, Harbour wants to make here — and we would
+        rather be told than guess.</li>
+      </ul>
+    </div>
+
+    <div class="open col">
+      <h3>What we do not have good answers for</h3>
+      <p style="margin-bottom:.6rem">Said plainly, because you would find them anyway:</p>
+      <p style="margin-bottom:.6rem"><b>The dump's cost is not free at compile time</b> when
+      <code>-x</code> is on — the tracking tables grow with the module. It is off by default and off in
+      every normal build, but we have not profiled a very large project with it on.</p>
+      <p style="margin-bottom:0"><b><code>-kt</code> emits real checks that really run.</b> It is a
+      development and CI mode. We are not proposing it as a default, and it should probably never be
+      one.</p>
+    </div>
+  </section>
+
+  <section class="col">
+    <h2>Where the detail lives</h2>
+    <p>This page is the <b>concept</b>, kept consolidated on purpose — it is not a log, and it does not
+    grow a new section every commit.</p>
+    <ul style="margin:0 0 1.05rem; padding-left:1.15rem">
+      <li><a href="NEWS.md"><b>NEWS.md</b></a> — what changed, for the Harbour programmer.
+      <span class="dim">(GNU convention: <code>ChangeLog</code> is the developer's log, <code>NEWS</code>
+      is the user's.)</span></li>
+      <li><a href="ChangeLog.txt"><b>ChangeLog.txt</b></a> — the project's own technical log, untouched.</li>
+      <li><b>git</b> — the how. Every commit says which fact was missing, why the consumer could not
+      work around it, and what it cost to keep it.</li>
+      <li><a href="https://github.com/diegopego/hbrefactor"><b>hbrefactor</b></a> — the why. Each
+      channel here exists because a real refactoring failed without it; that repo records which one,
+      and how.</li>
+    </ul>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap col">
+    <p style="margin:0">Branch <code>feature/compiler-ast-dump</code> of a Harbour fork, offered for
+    review. Not upstream — yet. Built with the same rule the tool follows:
+    <b>facts, never inference.</b></p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('themeToggle').addEventListener('click', function () {
+    var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    var next = cur === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('hbr-theme', next); } catch (e) {}
+  });
+</script>
