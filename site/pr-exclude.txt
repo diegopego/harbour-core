@@ -1,0 +1,29 @@
+# Caminhos que estão no branch mas NÃO são o trabalho de AST/-kt.
+# Ficam fora da conta da "forma do diff" na proposta aos mantenedores, e devem
+# ficar fora do PR (fase B6). Lista AUDITÁVEL de propósito: um número na página
+# que dependa de uma exclusão escondida não vale nada.
+#
+# (a) 4 commits de release para Windows (eac95cbf95, 01a54fe431, bc4ea89e21, 6df4c08b98)
+.github/workflows/release-windows.yml
+.github/workflows/release.yml
+ChangeLog.txt
+README.md
+config/global.mk
+debian/changelog
+doc/howtorel.txt
+include/hbver.h
+package/BUILD-WIN-RELEASE.txt
+package/RELEASE-3.2.0.txt
+package/archive_win_pkg.bat
+package/build_win_release.bat
+package/harbour.rb
+package/winuni/RELNOTES.txt
+package/winuni/mpkg_win_uni.bat
+# (b) instrumentos do nosso fluxo, não do Harbour
+CLAUDE.md
+.gitignore
+# (c) a proposta em si: é a EMBALAGEM do PR, não conteúdo dele
+site/index.html
+site/pr-exclude.txt
+site/Makefile
+NEWS.md

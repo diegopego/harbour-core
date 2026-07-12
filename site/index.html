@@ -241,7 +241,7 @@ divergent modules                             <span class="ok">none</span>
   <section>
     <div class="col">
       <h2>The consolidated shape</h2>
-      <p>The dump grew through sixteen schema versions, but it is not sixteen ideas — it is four
+      <p>The dump grew through <span data-metric="schema-count">16</span> schema versions, but that is not <span data-metric="schema-count">16</span> ideas — it is four
       channels. (The version-by-version record lives in <a href="NEWS.md">NEWS.md</a>; git has the
       rest.)</p>
     </div>
@@ -293,38 +293,38 @@ divergent modules                             <span class="ok">none</span>
       <tbody>
         <tr>
           <td class="f">src/compiler/compast.c</td>
-          <td class="n add">+1987</td><td class="n">—</td>
+          <td class="n add">+<span data-metric="core-compast-add">1987</span></td><td class="n">—</td>
           <td><b>New file.</b> All the dump logic. Delete it and the branch is gone.</td>
         </tr>
         <tr>
           <td class="f">src/pp/ppcore.c</td>
-          <td class="n add">+1524</td><td class="n del">−30</td>
+          <td class="n add">+<span data-metric="core-ppcore-add">1524</span></td><td class="n del">−<span data-metric="core-ppcore-del">30</span></td>
           <td>The tracking tables (positions, rules, derivation). <b>The biggest intrusion</b> — and
           the one we most want reviewed.</td>
         </tr>
         <tr>
           <td class="f">src/compiler/hbmain.c</td>
-          <td class="n add">+215</td><td class="n del">−13</td>
+          <td class="n add">+<span data-metric="core-hbmain-add">215</span></td><td class="n del">−<span data-metric="core-hbmain-del">13</span></td>
           <td>The <code>-kt</code> check generation, plus one-line dump hooks.</td>
         </tr>
         <tr>
           <td class="f">src/compiler/harbour.y</td>
-          <td class="n add">+91</td><td class="n del">−7</td>
+          <td class="n add">+<span data-metric="core-grammar-add">91</span></td><td class="n del">−<span data-metric="core-grammar-del">7</span></td>
           <td>Block params keep their declared class; two productions.</td>
         </tr>
         <tr>
           <td class="f">src/vm/classes.c</td>
-          <td class="n add">+81</td><td class="n">—</td>
+          <td class="n add">+<span data-metric="core-classes-add">81</span></td><td class="n">—</td>
           <td>The runtime helper the <code>-kt</code> checks call.</td>
         </tr>
         <tr>
-          <td class="f dim">14 other files</td>
-          <td class="n add">+249</td><td class="n del">−49</td>
+          <td class="f dim"><span data-metric="core-other-files">14</span> other files</td>
+          <td class="n add">+<span data-metric="core-other-add">249</span></td><td class="n del">−<span data-metric="core-other-del">49</span></td>
           <td class="dim">Headers, keyword table, usage text, <code>hbclass.ch</code>.</td>
         </tr>
         <tr class="total">
           <td>Total, hand-written</td>
-          <td class="n add">+4147</td><td class="n del">−99</td>
+          <td class="n add">+<span data-metric="core-total-add">4147</span></td><td class="n del">−<span data-metric="core-total-del">99</span></td>
           <td>Half of it a new, self-contained file.</td>
         </tr>
       </tbody>
@@ -367,8 +367,8 @@ divergent modules                             <span class="ok">none</span>
     twenty-year-old segfault surfaced, and how the preprocessor stopped discarding things it already
     knew.</p>
     <div class="verdict">
-      <span class="num">913</span>
-      <span class="txt">assertions across 112 executable cases in the consumer's suite — the proof
+      <span class="num" data-metric="suite-checks">913</span>
+      <span class="txt">assertions across <span data-metric="suite-cases">112</span> executable cases in the consumer's suite — the proof
       that these channels carry real, usable facts.</span>
     </div>
   </section>
