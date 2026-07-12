@@ -173,12 +173,15 @@
   <section>
     <figure>
       <div class="term">
-        <div class="term-top">the corpus, compiled by the patched compiler with the switches off, then compared byte by byte</div>
-<pre>generated pcode, patched vs. stock            <span class="ok">1085 / 1085 identical</span>
-every .prg module under src/                  <span class="ok"> 112 /  112 identical</span>
-                                              <span class="dim">…and identical to the pre-patch binary</span>
+        <div class="term-top">don't take our word for it — compile the tree with both compilers and diff the bytes</div>
+<pre><span class="dim"># every .prg the two compilers both accept, built to portable pcode
+# with the new switches OFF, then compared byte for byte:</span>
 
-differences                                   <span class="ok">none</span>
+$ harbour-<span class="ok">stock</span>   m.prg -gh -o/tmp/a/     <span class="dim"># the compiler you have today</span>
+$ harbour-<span class="ok">patched</span> m.prg -gh -o/tmp/b/     <span class="dim"># this branch, no -x, no -kt</span>
+$ cmp /tmp/a/m.hrb /tmp/b/m.hrb
+
+divergent modules                             <span class="ok">none</span>
 </pre>
       </div>
       <figcaption>The patched compiler, with <code>-x</code> and <code>-kt</code> off, produces the
@@ -290,12 +293,12 @@ differences                                   <span class="ok">none</span>
       <tbody>
         <tr>
           <td class="f">src/compiler/compast.c</td>
-          <td class="n add">+1962</td><td class="n">—</td>
+          <td class="n add">+1987</td><td class="n">—</td>
           <td><b>New file.</b> All the dump logic. Delete it and the branch is gone.</td>
         </tr>
         <tr>
           <td class="f">src/pp/ppcore.c</td>
-          <td class="n add">+1407</td><td class="n del">−28</td>
+          <td class="n add">+1524</td><td class="n del">−30</td>
           <td>The tracking tables (positions, rules, derivation). <b>The biggest intrusion</b> — and
           the one we most want reviewed.</td>
         </tr>
@@ -316,12 +319,12 @@ differences                                   <span class="ok">none</span>
         </tr>
         <tr>
           <td class="f dim">14 other files</td>
-          <td class="n add">+230</td><td class="n del">−42</td>
+          <td class="n add">+249</td><td class="n del">−49</td>
           <td class="dim">Headers, keyword table, usage text, <code>hbclass.ch</code>.</td>
         </tr>
         <tr class="total">
           <td>Total, hand-written</td>
-          <td class="n add">+3986</td><td class="n del">−90</td>
+          <td class="n add">+4147</td><td class="n del">−99</td>
           <td>Half of it a new, self-contained file.</td>
         </tr>
       </tbody>
@@ -364,8 +367,8 @@ differences                                   <span class="ok">none</span>
     twenty-year-old segfault surfaced, and how the preprocessor stopped discarding things it already
     knew.</p>
     <div class="verdict">
-      <span class="num">892</span>
-      <span class="txt">assertions across 111 executable cases in the consumer's suite — the proof
+      <span class="num">913</span>
+      <span class="txt">assertions across 112 executable cases in the consumer's suite — the proof
       that these channels carry real, usable facts.</span>
     </div>
   </section>
