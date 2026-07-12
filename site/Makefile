@@ -7,9 +7,9 @@
 HBREFACTOR ?= $(HOME)/devel/hbrefactor
 
 numbers:
-	@CORE=$(CURDIR)/.. $(HBREFACTOR)/bin/site-numbers.sh
+	@CORE=$(CURDIR)/.. $(HBREFACTOR)/tools/site-numbers.sh
 
 check:
-	@CORE=$(CURDIR)/.. $(HBREFACTOR)/bin/site-numbers.sh --check
+	@CORE=$(CURDIR)/.. $(HBREFACTOR)/tools/site-numbers.sh --check
 
 .PHONY: numbers check
