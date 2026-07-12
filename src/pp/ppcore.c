@@ -4364,6 +4364,30 @@ static void hb_pp_directiveNew( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
          }
       }
 
+      /* AST dump (gated by fTrackPos): give an index to EVERY match marker,
+         including the ones the result never references. Without an index the
+         pp matches such a marker and then DISCARDS the binding - see
+         hb_pp_patternMatch(), which only calls hb_pp_patternAddResult() when
+         pMatch->index is set. The consequence for a consumer of the tracking
+         tables: the fill of an unused marker reaches hb_pp_trackApply() with
+         marker 0, i.e. indistinguishable from a literal word of the rule
+         itself (the comment there assumed exactly that, and it is false).
+         Indexing them makes the binding a FACT instead of something a consumer
+         has to guess from the token text. The expansion is unaffected: the
+         result never references these markers, so nothing new is stuffed - the
+         only cost is one marker slot and the matched span being remembered.
+         Gated, so a default build of Harbour is byte-for-byte untouched. */
+      if( fValid && pState->fTrackPos )
+      {
+         pMrkLst = pMarkerList;
+         while( pMrkLst )
+         {
+            if( pMrkLst->index == 0 && pMrkLst->pMatchMarkers )
+               pMrkLst->index = ++usPCount;
+            pMrkLst = pMrkLst->pNext;
+         }
+      }
+
       if( fValid && usPCount )
       {
          /* create regular match and result markers from parameters */
