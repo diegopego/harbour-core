@@ -285,50 +285,21 @@ divergent modules                             <span class="ok">none</span>
       hooks in existing files are flag-gated and almost entirely additive.</p>
     </div>
 
-    <div style="overflow-x:auto">
-    <table class="tbl">
-      <thead>
-        <tr><th>File</th><th>Added</th><th>Removed</th><th>What it is</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="f">src/compiler/compast.c</td>
-          <td class="n add">+<span data-metric="core-compast-add">1987</span></td><td class="n">—</td>
-          <td><b>New file.</b> All the dump logic. Delete it and the branch is gone.</td>
-        </tr>
-        <tr>
-          <td class="f">src/pp/ppcore.c</td>
-          <td class="n add">+<span data-metric="core-ppcore-add">1524</span></td><td class="n del">−<span data-metric="core-ppcore-del">30</span></td>
-          <td>The tracking tables (positions, rules, derivation). <b>The biggest intrusion</b> — and
-          the one we most want reviewed.</td>
-        </tr>
-        <tr>
-          <td class="f">src/compiler/hbmain.c</td>
-          <td class="n add">+<span data-metric="core-hbmain-add">215</span></td><td class="n del">−<span data-metric="core-hbmain-del">13</span></td>
-          <td>The <code>-kt</code> check generation, plus one-line dump hooks.</td>
-        </tr>
-        <tr>
-          <td class="f">src/compiler/harbour.y</td>
-          <td class="n add">+<span data-metric="core-grammar-add">91</span></td><td class="n del">−<span data-metric="core-grammar-del">7</span></td>
-          <td>Block params keep their declared class; two productions.</td>
-        </tr>
-        <tr>
-          <td class="f">src/vm/classes.c</td>
-          <td class="n add">+<span data-metric="core-classes-add">81</span></td><td class="n">—</td>
-          <td>The runtime helper the <code>-kt</code> checks call.</td>
-        </tr>
-        <tr>
-          <td class="f dim"><span data-metric="core-other-files">14</span> other files</td>
-          <td class="n add">+<span data-metric="core-other-add">249</span></td><td class="n del">−<span data-metric="core-other-del">49</span></td>
-          <td class="dim">Headers, keyword table, usage text, <code>hbclass.ch</code>.</td>
-        </tr>
-        <tr class="total">
-          <td>Total, hand-written</td>
-          <td class="n add">+<span data-metric="core-total-add">4147</span></td><td class="n del">−<span data-metric="core-total-del">99</span></td>
-          <td>Half of it a new, self-contained file.</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="term">
+      <div class="term-top">the shape of the diff — run it yourself, it is one command</div>
+<pre>$ git remote add ast https://github.com/diegopego/harbour-core
+$ git fetch ast feature/compiler-ast-dump
+$ git diff --stat master...ast/feature/compiler-ast-dump -- src include
+
+<span class="dim"># what you will see:</span>
+src/compiler/compast.c    <span class="ok">a NEW file</span>  <span class="dim">— all of the dump logic. Delete it and the branch is gone.</span>
+src/pp/ppcore.c           <span class="ok">the tracking tables</span>  <span class="dim">— positions, rules, derivation.
+                          THE BIGGEST INTRUSION, and the one we most want reviewed.</span>
+src/compiler/hbmain.c     <span class="dim">the -kt check generation, plus one-line dump hooks</span>
+src/compiler/harbour.y    <span class="dim">block params keep their declared class; two productions</span>
+src/vm/classes.c          <span class="dim">the runtime helper the -kt checks call</span>
+<span class="dim">…and a handful of headers.</span>
+</pre>
     </div>
     <p class="col" style="font-size:.86rem;color:var(--steel)">Regenerated parser output
     (<code>.yyc</code>/<code>.yyh</code>) excluded — it is bison's, not ours. <b>Ninety lines removed
