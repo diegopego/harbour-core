@@ -636,6 +636,9 @@ typedef struct
    void *   pRuleTbl;               /* rule registration/application records (see hb_pp_trackPos()) */
    void *   pDrvTbl;                /* token derivation records (clone/paste/stringify facts) */
    int      iDrvApp;                /* application record of the running rule replacement, -1 = none */
+   void *   pLitTbl;                /* ast-15: pairing of the consumed tokens that matched a rule
+                                       LITERAL with the pattern token they matched - the pp knows it
+                                       while matching and used to drop it (see hb_pp_patternMatch()) */
 }
 HB_PP_STATE, * PHB_PP_STATE;
 
@@ -715,7 +718,8 @@ extern HB_EXPORT HB_BOOL hb_pp_trackApplyToken( PHB_PP_STATE pState, int iApply,
                                                 int iToken, const char ** pszText,
                                                 HB_SIZE * pnLen, int * piType,
                                                 int * piMarker, int * piLine,
-                                                int * piCol, HB_BOOL * pfMainFile );
+                                                int * piCol, HB_BOOL * pfMainFile,
+                                                int * piRuleTok );
 extern HB_EXPORT int     hb_pp_tokenFromCount( PHB_PP_STATE pState,
                                                PHB_PP_TOKEN pToken );
 extern HB_EXPORT HB_BOOL hb_pp_tokenFromGet( PHB_PP_STATE pState,

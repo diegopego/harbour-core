@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-14"
+#define HB_AST_SCHEMA         "ast-15"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -1650,12 +1650,13 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
          {
             const char * szText;
             HB_SIZE nLen;
-            int iType, iMarker, iTokLine, iCol;
+            int iType, iMarker, iTokLine, iCol, iRuleTok;
             HB_BOOL fMain;
             char cProv;
 
             hb_pp_trackApplyToken( pPP, i, iTok, &szText, &nLen, &iType,
-                                   &iMarker, &iTokLine, &iCol, &fMain );
+                                   &iMarker, &iTokLine, &iCol, &fMain,
+                                   &iRuleTok );
             /* same provenance/column rules as tokens[]: a column in
                another physical file is not a column here */
             cProv = fMain ? ( iCol >= 0 ? 's' : 'n' ) : 'i';
@@ -1667,8 +1668,16 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
                fprintf( file, "\"col\": %d, ", iCol );
             else
                fprintf( file, "\"col\": null, " );
-            fprintf( file, "\"len\": %" HB_PFS "u, \"type\": %d, \"prov\": \"%c\", \"marker\": %d, \"text\": ",
+            fprintf( file, "\"len\": %" HB_PFS "u, \"type\": %d, \"prov\": \"%c\", \"marker\": %d, ",
                      nLen, iType, cProv, iMarker );
+            /* ast-15: WHICH literal of the rule this token matched (index into
+               the rule's match[]).  Only for marker == 0; the pp knows it while
+               matching and used to drop it, leaving a consumer to guess the
+               literal from the text - a guess that breaks when one keyword of a
+               rule is a dBase abbreviation prefix of another keyword of it. */
+            if( iRuleTok >= 0 )
+               fprintf( file, "\"ruletok\": %d, ", iRuleTok );
+            fprintf( file, "\"text\": " );
             hb_compAstWriteStr( file, szText );
             {
                int iFromCount = hb_pp_trackApplyTokenFromCount( pPP, i, iTok );

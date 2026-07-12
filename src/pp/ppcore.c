@@ -921,6 +921,12 @@ typedef struct
                                  the generated rule back to the application
                                  that created it (ast-13) */
    int       iFromCount;
+   const void * pKey;         /* the pattern token this entry snapshots
+                                 (ast-15): lets an application's consumed
+                                 token be mapped back to the EXACT rule
+                                 pattern token it matched.  Valid while the
+                                 rule is registered - the pattern tokens are
+                                 owned by the rule */
 } HB_PP_RULETOKEN, * PHB_PP_RULETOKEN;
 
 typedef struct
@@ -953,6 +959,14 @@ typedef struct
                                  replacement (multi-pass chains resolve
                                  through these copies) */
    int       iFromCount;
+   int       iRuleTok;        /* ast-15: index into the rule's pMatchToks of
+                                 the pattern token this token matched, or -1.
+                                 Only meaningful for marker == 0 (a literal
+                                 word of the rule): it says WHICH literal.
+                                 Without it a consumer can only guess from the
+                                 text - and the guess is wrong whenever a
+                                 secondary keyword is a dBase abbreviation
+                                 prefix of another keyword of the same rule */
 } HB_PP_APPTOKEN, * PHB_PP_APPTOKEN;
 
 typedef struct
@@ -975,6 +989,86 @@ typedef struct
    HB_SIZE          nTokCount;
    HB_SIZE          nTokAlloc;
 } HB_PP_RULETBL, * PHB_PP_RULETBL;
+
+/* ast-15: while matching, the pp pairs each source token with the pattern
+   token it matched - and for a LITERAL (a pattern token with no marker index)
+   it then DROPS the pairing: hb_pp_patternMatch() only records a binding when
+   pMatch->index is set (that is the marker path).  So the tracking tables said
+   "marker 0" for every literal without ever saying WHICH literal, and a
+   consumer could only guess it from the text.  The guess breaks whenever one
+   keyword of a rule is a dBase abbreviation prefix of another keyword of the
+   SAME rule (`#command GRAVAR <x> GRAV <y>`: the literal `GRAV`, written in
+   full, is indistinguishable from an abbreviated `GRAVAR`).  This scratch list
+   keeps the pairing for the matching pass; hb_pp_trackApply() consumes it. */
+typedef struct
+{
+   const void * pSrc;         /* the consumed source token */
+   const void * pPat;         /* the rule pattern token it matched */
+} HB_PP_LITITEM, * PHB_PP_LITITEM;
+
+typedef struct
+{
+   HB_PP_LITITEM * pItems;
+   HB_SIZE         nCount;
+   HB_SIZE         nAlloc;
+} HB_PP_LITTBL, * PHB_PP_LITTBL;
+
+static void hb_pp_litClear( PHB_PP_STATE pState )
+{
+   if( pState->pLitTbl )
+      ( ( PHB_PP_LITTBL ) pState->pLitTbl )->nCount = 0;
+}
+
+static void hb_pp_litFree( PHB_PP_STATE pState )
+{
+   if( pState->pLitTbl )
+   {
+      PHB_PP_LITTBL pTbl = ( PHB_PP_LITTBL ) pState->pLitTbl;
+      if( pTbl->pItems )
+         hb_xfree( pTbl->pItems );
+      hb_xfree( pTbl );
+      pState->pLitTbl = NULL;
+   }
+}
+
+static void hb_pp_litAdd( PHB_PP_STATE pState, const void * pSrc,
+                          const void * pPat )
+{
+   PHB_PP_LITTBL pTbl = ( PHB_PP_LITTBL ) pState->pLitTbl;
+
+   if( ! pTbl )
+   {
+      pTbl = ( PHB_PP_LITTBL ) hb_xgrabz( sizeof( HB_PP_LITTBL ) );
+      pState->pLitTbl = pTbl;
+   }
+   if( pTbl->nCount == pTbl->nAlloc )
+   {
+      pTbl->nAlloc += 32;
+      pTbl->pItems = ( HB_PP_LITITEM * ) hb_xrealloc( pTbl->pItems,
+                              pTbl->nAlloc * sizeof( HB_PP_LITITEM ) );
+   }
+   pTbl->pItems[ pTbl->nCount ].pSrc = pSrc;
+   pTbl->pItems[ pTbl->nCount ].pPat = pPat;
+   pTbl->nCount++;
+}
+
+/* the pattern token a consumed token matched, NULL when not recorded */
+static const void * hb_pp_litGet( PHB_PP_STATE pState, const void * pSrc )
+{
+   PHB_PP_LITTBL pTbl = ( PHB_PP_LITTBL ) pState->pLitTbl;
+   HB_SIZE n;
+
+   if( pTbl )
+   {
+      for( n = 0; n < pTbl->nCount; ++n )
+      {
+         if( pTbl->pItems[ n ].pSrc == pSrc )
+            return pTbl->pItems[ n ].pPat;
+      }
+   }
+
+   return NULL;
+}
 
 /* free the tracking records: called from hb_pp_reset() so each compiled
    module starts a fresh table (matching the per-module AST dump) and
@@ -1038,7 +1132,7 @@ static void hb_pp_ruleTokAdd( HB_PP_RULETOKEN ** pToksPtr, int * piCount,
                               int * piAlloc, const char * szText,
                               HB_SIZE nLen, HB_USHORT type, HB_USHORT marker,
                               char cRole, PHB_PP_POSITEM pPos,
-                              PHB_PP_DRVITEM pDrv )
+                              PHB_PP_DRVITEM pDrv, const void * pKey )
 {
    PHB_PP_RULETOKEN pTok;
 
@@ -1059,6 +1153,7 @@ static void hb_pp_ruleTokAdd( HB_PP_RULETOKEN ** pToksPtr, int * piCount,
    pTok->fMainFile = pPos ? pPos->fMainFile : HB_FALSE;
    pTok->pFrom     = NULL;
    pTok->iFromCount = 0;
+   pTok->pKey      = pKey;      /* ast-15: identity of the pattern token */
    if( pDrv && pDrv->iFromCount > 0 )
    {
       pTok->iFromCount = pDrv->iFromCount;
@@ -1093,17 +1188,18 @@ static void hb_pp_ruleTokWalk( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
       if( type == HB_PP_MMARKER_OPTIONAL || type == HB_PP_RMARKER_OPTIONAL )
       {
          hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, NULL, 0, type, 0,
-                           '[', NULL, NULL );
+                           '[', NULL, NULL, NULL );
          hb_pp_ruleTokWalk( pState, pToken->pMTokens, fResult,
                             pToksPtr, piCount, piAlloc );
          hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, NULL, 0, type, 0,
-                           ']', NULL, NULL );
+                           ']', NULL, NULL, NULL );
       }
       else if( ! fResult && type >= HB_PP_MMARKER_REGULAR &&
                type <= HB_PP_MMARKER_NAME )
       {
          hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, pToken->value,
-                           pToken->len, type, pToken->index, 'm', pPos, pDrv );
+                           pToken->len, type, pToken->index, 'm', pPos, pDrv,
+                           pToken );
          if( type == HB_PP_MMARKER_RESTRICT )
          {
             PHB_PP_TOKEN pAlt = pToken->pMTokens;
@@ -1114,7 +1210,7 @@ static void hb_pp_ruleTokWalk( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                                  pAlt->len, HB_PP_TOKEN_TYPE( pAlt->type ),
                                  pToken->index, 'r',
                                  hb_pp_posFind( pState, pAlt ),
-                                 hb_pp_drvFind( pState, pAlt ) );
+                                 hb_pp_drvFind( pState, pAlt ), pAlt );
                pAlt = pAlt->pNext;
             }
          }
@@ -1124,12 +1220,13 @@ static void hb_pp_ruleTokWalk( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                type != HB_PP_RMARKER_OPTIONAL )
       {
          hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, pToken->value,
-                           pToken->len, type, pToken->index, 'm', pPos, pDrv );
+                           pToken->len, type, pToken->index, 'm', pPos, pDrv,
+                           pToken );
       }
       else
       {
          hb_pp_ruleTokAdd( pToksPtr, piCount, piAlloc, pToken->value,
-                           pToken->len, type, 0, 'l', pPos, pDrv );
+                           pToken->len, type, 0, 'l', pPos, pDrv, pToken );
       }
       pToken = pToken->pNext;
    }
@@ -1196,9 +1293,10 @@ static void hb_pp_trackApply( PHB_PP_STATE pState, PHB_PP_RULE pRule,
    PHB_PP_APPREC pApp;
    PHB_PP_TOKEN pTok, * pTokens;
    HB_USHORT * pMarkers;
+   int * pLits;
    HB_SIZE nCount = 0, n;
    HB_USHORT m;
-   int iRule = -1;
+   int iRule = -1, i;
 
    /* until this application is recorded there is nothing the derivation
       entries of its result tokens could reference */
@@ -1227,9 +1325,14 @@ static void hb_pp_trackApply( PHB_PP_STATE pState, PHB_PP_RULE pRule,
    pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
 
    /* which consumed tokens fill which match marker: everything not
-      covered by a marker result is a literal word of the rule itself */
+      covered by a marker result is a literal word of the rule itself -
+      and ast-15 (pLits) says WHICH literal, instead of leaving it to be
+      guessed from the token text */
    pTokens = ( PHB_PP_TOKEN * ) hb_xgrab( nCount * sizeof( PHB_PP_TOKEN ) );
    pMarkers = ( HB_USHORT * ) hb_xgrabz( nCount * sizeof( HB_USHORT ) );
+   pLits = ( int * ) hb_xgrab( nCount * sizeof( int ) );
+   for( n = 0; n < nCount; ++n )
+      pLits[ n ] = -1;
    for( pTok = pFirst, n = 0; n < nCount; pTok = pTok->pNext )
       pTokens[ n++ ] = pTok;
    for( m = 0; m < pRule->markers && pRule->pMarkers; ++m )
@@ -1260,6 +1363,32 @@ static void hb_pp_trackApply( PHB_PP_STATE pState, PHB_PP_RULE pRule,
       pTbl->pApps = ( HB_PP_APPREC * ) hb_xrealloc( pTbl->pApps,
                               pTbl->nAppAlloc * sizeof( HB_PP_APPREC ) );
    }
+   /* ast-15: the pairing the matcher remembered (source token -> pattern token)
+      becomes the INDEX of that token in the rule's match[] snapshot - the same
+      index the dump exposes.  Only meaningful for a literal (marker 0). */
+   if( pState->fTrackPos )
+   {
+      for( n = 0; n < nCount; ++n )
+      {
+         if( pMarkers[ n ] == 0 )
+         {
+            const void * pPat = hb_pp_litGet( pState, pTokens[ n ] );
+
+            if( pPat )
+            {
+               for( i = 0; i < pTbl->pRules[ iRule ].iMatchCount; ++i )
+               {
+                  if( pTbl->pRules[ iRule ].pMatchToks[ i ].pKey == pPat )
+                  {
+                     pLits[ n ] = i;
+                     break;
+                  }
+               }
+            }
+         }
+      }
+   }
+
    pApp = &pTbl->pApps[ pTbl->nAppCount++ ];
    pApp->iRule     = iRule;
    pApp->iLine     = pState->pFile ? pState->pFile->iCurrentLine : 0;
@@ -1286,6 +1415,7 @@ static void hb_pp_trackApply( PHB_PP_STATE pState, PHB_PP_RULE pRule,
       pRec->nLen   = pTokens[ n ]->len;
       pRec->type   = HB_PP_TOKEN_TYPE( pTokens[ n ]->type );
       pRec->marker = pMarkers[ n ];
+      pRec->iRuleTok = pLits[ n ];
       if( pPos )
       {
          pRec->iLine     = pPos->iLine;
@@ -1314,6 +1444,8 @@ static void hb_pp_trackApply( PHB_PP_STATE pState, PHB_PP_RULE pRule,
 
    hb_xfree( pTokens );
    hb_xfree( pMarkers );
+   hb_xfree( pLits );
+   hb_pp_litClear( pState );   /* ast-15: the pairing dies with the application */
 }
 
 static PHB_PP_TOKEN hb_pp_tokenAdd( PHB_PP_TOKEN ** pTokenPtr,
@@ -2977,6 +3109,7 @@ static void hb_pp_stateFree( PHB_PP_STATE pState )
    hb_pp_posTblFree( pState );
    hb_pp_ruleTblFree( pState );
    hb_pp_drvTblFree( pState );
+   hb_pp_litFree( pState );
 
    hb_xfree( pState );
 }
@@ -4811,7 +4944,8 @@ static HB_BOOL hb_pp_tokenMatch( PHB_PP_TOKEN pMatch, PHB_PP_TOKEN * pTokenPtr,
    return fMatch;
 }
 
-static HB_BOOL hb_pp_patternMatch( PHB_PP_TOKEN pMatch, PHB_PP_TOKEN * pTokenPtr,
+static HB_BOOL hb_pp_patternMatch( PHB_PP_STATE pState,
+                                   PHB_PP_TOKEN pMatch, PHB_PP_TOKEN * pTokenPtr,
                                    PHB_PP_TOKEN pStop,
                                    HB_USHORT mode, PHB_PP_RULE pRule )
 {
@@ -4832,10 +4966,10 @@ static HB_BOOL hb_pp_patternMatch( PHB_PP_TOKEN pMatch, PHB_PP_TOKEN * pTokenPtr
          {
             pLast = pOptional;
             pFirst = pToken;
-            if( hb_pp_patternMatch( pOptional->pMTokens, &pToken, pNewStop, mode, NULL ) &&
+            if( hb_pp_patternMatch( pState, pOptional->pMTokens, &pToken, pNewStop, mode, NULL ) &&
                 pFirst != pToken )
             {
-               if( pRule && ! hb_pp_patternMatch( pOptional->pMTokens, &pFirst, pNewStop, mode, pRule ) )
+               if( pRule && ! hb_pp_patternMatch( pState, pOptional->pMTokens, &pFirst, pNewStop, mode, pRule ) )
                {
                   fOverflow = HB_TRUE;
                   break;
@@ -4862,6 +4996,16 @@ static HB_BOOL hb_pp_patternMatch( PHB_PP_TOKEN pMatch, PHB_PP_TOKEN * pTokenPtr
                   break;
                }
             }
+            /* ast-15 (gated by fTrackPos): the pattern token has no marker
+               index - it is a LITERAL word of the rule, and this is the only
+               moment the pp knows WHICH literal the source token matched.
+               Until now the pairing was simply dropped and the tracking tables
+               reported a bare "marker 0" for every literal, leaving a consumer
+               to guess the literal from the text.  Remember it instead; a
+               default build (fTrackPos off) is untouched. */
+            else if( pState->fTrackPos && pRule && ! pMatch->index &&
+                     pFirst != pToken )
+               hb_pp_litAdd( pState, pFirst, pMatch );
          }
          else
             break;
@@ -4885,21 +5029,27 @@ static HB_BOOL hb_pp_patternMatch( PHB_PP_TOKEN pMatch, PHB_PP_TOKEN * pTokenPtr
    return HB_FALSE;
 }
 
-static HB_BOOL hb_pp_patternCmp( PHB_PP_RULE pRule, PHB_PP_TOKEN pToken,
-                                 HB_BOOL fCommand )
+static HB_BOOL hb_pp_patternCmp( PHB_PP_STATE pState, PHB_PP_RULE pRule,
+                                 PHB_PP_TOKEN pToken, HB_BOOL fCommand )
 {
    PHB_PP_TOKEN pFirst = pToken;
 
-   if( hb_pp_patternMatch( pRule->pMatch, &pToken, NULL,
+   if( hb_pp_patternMatch( pState, pRule->pMatch, &pToken, NULL,
                            HB_PP_CMP_MODE( pRule->mode ), NULL ) )
    {
       if( ! fCommand || HB_PP_TOKEN_ISEOC( pToken ) )
       {
-         if( hb_pp_patternMatch( pRule->pMatch, &pFirst, NULL,
+         /* the recording pass starts here (ast-15: and only here are the
+            literal pairings of THIS match worth keeping) */
+         hb_pp_litClear( pState );
+         if( hb_pp_patternMatch( pState, pRule->pMatch, &pFirst, NULL,
                                  HB_PP_CMP_MODE( pRule->mode ), pRule ) )
             return HB_TRUE;
          else
+         {
             hb_pp_patternClearResults( pRule );
+            hb_pp_litClear( pState );
+         }
       }
    }
    return HB_FALSE;
@@ -5428,7 +5578,7 @@ static HB_BOOL hb_pp_processDefine( PHB_PP_STATE pState, PHB_PP_TOKEN * pFirstPt
             PHB_PP_RULE pRule = hb_pp_defineFind( pState, *pFirstPtr );
             if( pRule )
             {
-               if( hb_pp_patternCmp( pRule, *pFirstPtr, HB_FALSE ) )
+               if( hb_pp_patternCmp( pState, pRule, *pFirstPtr, HB_FALSE ) )
                {
                   hb_pp_patternReplace( pState, pRule, pFirstPtr, "define" );
                   fSubst = fRepeat = HB_TRUE;
@@ -5471,7 +5621,7 @@ static HB_BOOL hb_pp_processTranslate( PHB_PP_STATE pState, PHB_PP_TOKEN * pFirs
             PHB_PP_RULE pRule = pState->pTranslations;
             while( pRule )
             {
-               if( hb_pp_patternCmp( pRule, *pTokenPtr, HB_FALSE ) )
+               if( hb_pp_patternCmp( pState, pRule, *pTokenPtr, HB_FALSE ) )
                {
                   hb_pp_patternReplace( pState, pRule, pTokenPtr, "translate" );
                   fSubst = fRepeat = HB_TRUE;
@@ -5510,7 +5660,7 @@ static HB_BOOL hb_pp_processCommand( PHB_PP_STATE pState, PHB_PP_TOKEN * pFirstP
       pRule = pState->pCommands;
       while( pRule )
       {
-         if( hb_pp_patternCmp( pRule, *pFirstPtr, HB_TRUE ) )
+         if( hb_pp_patternCmp( pState, pRule, *pFirstPtr, HB_TRUE ) )
          {
             hb_pp_patternReplace( pState, pRule, pFirstPtr, "command" );
             fSubst = fRepeat = HB_TRUE;
@@ -6601,7 +6751,8 @@ HB_BOOL hb_pp_trackApplyGet( PHB_PP_STATE pState, int iApply,
 HB_BOOL hb_pp_trackApplyToken( PHB_PP_STATE pState, int iApply, int iToken,
                                const char ** pszText, HB_SIZE * pnLen,
                                int * piType, int * piMarker, int * piLine,
-                               int * piCol, HB_BOOL * pfMainFile )
+                               int * piCol, HB_BOOL * pfMainFile,
+                               int * piRuleTok )
 {
    PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
 
@@ -6625,6 +6776,8 @@ HB_BOOL hb_pp_trackApplyToken( PHB_PP_STATE pState, int iApply, int iToken,
          *piCol = pRec->iCol;
       if( pfMainFile )
          *pfMainFile = pRec->fMainFile;
+      if( piRuleTok )        /* ast-15: WHICH literal of the rule, -1 = none */
+         *piRuleTok = pRec->iRuleTok;
       return HB_TRUE;
    }
    return HB_FALSE;
@@ -6848,6 +7001,7 @@ void hb_pp_reset( PHB_PP_STATE pState )
       entries could ghost-match recycled pointers in the next module */
    hb_pp_ruleTblFree( pState );
    hb_pp_drvTblFree( pState );
+   hb_pp_litFree( pState );
    hb_pp_posTblFree( pState );
    pState->iDrvApp = -1;
 }
