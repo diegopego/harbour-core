@@ -1290,21 +1290,51 @@ static void hb_compAstWriteFromItem( FILE * file, HB_BOOL fFirst, int iApp,
             nAt, nLen );
 }
 
-/* ast-12: does the value the programmer wrote at match marker <iMarker> of
-   application <iApp> feed a PASTE or STRINGIFY derivation - i.e. does it
-   GENERATE an artifact (a keyword concatenated from it, or a string dumped
-   from it) that otherwise loses any connection to that name?  'c'lone
-   (the value copied through as-is, e.g. an argument passed to the expanded
-   call) is NOT generation.  The whole derivation graph already lives on the
-   AST tokens (pFrom, ast-3), so this is a pure reverse scan - no pp API.
-   A consumer that must rename/track the site uses this to tell "the name
-   that GENERATES code" (rename it and its artifacts) from "a bound symbol
-   that merely flows into a command" (rename it as the local/param it is). */
-static HB_BOOL hb_compAstMarkerGenerates( PHB_ASTDUMP pAst, PHB_PP_STATE pPP,
-                                          int iApp, int iMarker )
+/* remember that the value written at marker <iMarker> of application <iApp>
+   feeds a paste/stringify.  Pairs are collected first and indexed after,
+   because the widest marker number is only known once the scan is over */
+static void hb_compAstGenPairAdd( int ** ppPairs, HB_SIZE * pnPairs,
+                                  HB_SIZE * pnAlloc, int iApp, int iMarker )
 {
-   HB_SIZE n;
-   int iAppCount, iA;
+   if( *pnPairs == *pnAlloc )
+   {
+      *pnAlloc = *pnAlloc ? *pnAlloc << 1 : 64;
+      *ppPairs = ( int * ) hb_xrealloc( *ppPairs, *pnAlloc * 2 * sizeof( int ) );
+   }
+   ( *ppPairs )[ *pnPairs * 2 ]     = iApp;
+   ( *ppPairs )[ *pnPairs * 2 + 1 ] = iMarker;
+   ++( *pnPairs );
+}
+
+/* ast-12: does the value the programmer wrote at a match marker of an
+   application feed a PASTE or STRINGIFY derivation - i.e. does it GENERATE an
+   artifact (a keyword concatenated from it, or a string dumped from it) that
+   otherwise loses any connection to that name?  'c'lone (the value copied
+   through as-is, e.g. an argument passed to the expanded call) is NOT
+   generation.  The whole derivation graph already lives on the AST tokens
+   (pFrom, ast-3), so this needs no pp API - it is a scan of what is already
+   recorded.  A consumer that must rename/track the site uses this to tell
+   "the name that GENERATES code" (rename it and its artifacts) from "a bound
+   symbol that merely flows into a command" (rename it as the local/param it
+   is).
+
+   The answer is a property of the (application, marker) PAIR, so the whole
+   set of generating pairs is built ONCE per module, here, and every token
+   then answers by lookup.  It used to be a reverse scan run per consumed
+   marker token, each run walking the entire token stream AND every
+   application: O(markers x module), quadratic in module size.  Measured on
+   the stock branch, a module of 16k expanded command lines needed over a
+   minute to dump what takes a fraction of a second to compile; the same
+   module now dumps in about a second.  Both sources below are the sources
+   the old scan walked, so the answer is unchanged - only the number of times
+   it is computed is. */
+static HB_BYTE * hb_compAstGenSet( PHB_ASTDUMP pAst, PHB_PP_STATE pPP,
+                                   int iAppCount, int * piWidth )
+{
+   int * piPairs = NULL;
+   HB_BYTE * pSet = NULL;
+   HB_SIZE nPairs = 0, nAlloc = 0, n;
+   int iWidth = 1, iA, i;
 
    /* (1) the surviving token stream: a paste/stringify artifact that reached
       the compiler as-is (e.g. a generated FUNCTION name that is not consumed
@@ -1312,14 +1342,14 @@ static HB_BOOL hb_compAstMarkerGenerates( PHB_ASTDUMP pAst, PHB_PP_STATE pPP,
    for( n = 0; n < pAst->nTokenCount; ++n )
    {
       PHB_ASTTOKEN pTok = &pAst->pTokens[ n ];
-      int i;
 
       for( i = 0; i < pTok->iFromCount; ++i )
       {
-         if( pTok->pFrom[ i ].iApp == iApp &&
-             pTok->pFrom[ i ].iMarker == iMarker &&
+         if( pTok->pFrom[ i ].iMarker >= 1 &&
              ( pTok->pFrom[ i ].cOp == 'p' || pTok->pFrom[ i ].cOp == 's' ) )
-            return HB_TRUE;
+            hb_compAstGenPairAdd( &piPairs, &nPairs, &nAlloc,
+                                  pTok->pFrom[ i ].iApp,
+                                  pTok->pFrom[ i ].iMarker );
       }
    }
 
@@ -1328,10 +1358,9 @@ static HB_BOOL hb_compAstMarkerGenerates( PHB_ASTDUMP pAst, PHB_PP_STATE pPP,
       by an OUTER expansion.  `? EVENTO x` (EVENTO stringifies x, then the `?`
       command clones EVENTO's result): tokens[] shows the outer 'clone', but
       the `?` application's consumed token still records the inner 'stringify'
-      that ties x to the generated string.  Without this pass a marker whose
+      that ties x to the generated string.  Without this source a marker whose
       artifact is re-consumed reads as non-generating (bug found on a pure
       #xtranslate stringify inside a command). */
-   iAppCount = pPP ? hb_pp_trackApplyCount( pPP ) : 0;
    for( iA = 0; iA < iAppCount; ++iA )
    {
       int iRule, iLine, iTokens, iTok;
@@ -1350,13 +1379,35 @@ static HB_BOOL hb_compAstMarkerGenerates( PHB_ASTDUMP pAst, PHB_PP_STATE pPP,
 
             hb_pp_trackApplyTokenFromGet( pPP, iA, iTok, iFrom, &iFApp, &iFMk,
                                           &cOp, &nAt, &nFLen );
-            if( iFApp == iApp && iFMk == iMarker &&
-                ( cOp == 'p' || cOp == 's' ) )
-               return HB_TRUE;
+            if( iFMk >= 1 && ( cOp == 'p' || cOp == 's' ) )
+               hb_compAstGenPairAdd( &piPairs, &nPairs, &nAlloc, iFApp, iFMk );
          }
       }
    }
-   return HB_FALSE;
+
+   for( n = 0; n < nPairs; ++n )
+   {
+      if( piPairs[ n * 2 + 1 ] >= iWidth )
+         iWidth = piPairs[ n * 2 + 1 ] + 1;
+   }
+
+   if( nPairs > 0 && iAppCount > 0 )
+   {
+      pSet = ( HB_BYTE * ) hb_xgrabz( ( HB_SIZE ) iAppCount * iWidth );
+      for( n = 0; n < nPairs; ++n )
+      {
+         int iApp = piPairs[ n * 2 ], iMk = piPairs[ n * 2 + 1 ];
+
+         if( iApp >= 0 && iApp < iAppCount && iMk >= 1 && iMk < iWidth )
+            pSet[ ( HB_SIZE ) iApp * iWidth + iMk ] = 1;
+      }
+   }
+
+   if( piPairs )
+      hb_xfree( piPairs );
+
+   *piWidth = iWidth;
+   return pSet;
 }
 
 /* marker kind vocabulary of the PP pattern parse (hbpp.h): the match
@@ -1603,7 +1654,8 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
       never reach the parser, so they exist only here */
    {
       PHB_PP_STATE pPP = HB_COMP_PARAM->pLex ? HB_COMP_PARAM->pLex->pPP : NULL;
-      int iCount, i;
+      HB_BYTE * pGenSet;
+      int iCount, i, iGenWidth = 1;
 
       fprintf( file, "\n  \"ppRules\": [" );
       iCount = pPP ? hb_pp_trackRuleCount( pPP ) : 0;
@@ -1664,6 +1716,8 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
 
       fprintf( file, "\n  \"ppApplications\": [" );
       iCount = pPP ? hb_pp_trackApplyCount( pPP ) : 0;
+      /* ast-12: the generating (application, marker) pairs, computed once */
+      pGenSet = pPP ? hb_compAstGenSet( pAst, pPP, iCount, &iGenWidth ) : NULL;
       for( i = 0; i < iCount; ++i )
       {
          int iRule, iLine, iTokens, iTok;
@@ -1729,13 +1783,17 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
                paste/stringify (it GENERATES an artifact - the rename target
                is the marker and its derivatives, not a homonym local the
                expansion may also fabricate). Absent = does not generate. */
-            if( iMarker >= 1 && hb_compAstMarkerGenerates( pAst, pPP, i, iMarker ) )
+            if( iMarker >= 1 && pGenSet && iMarker < iGenWidth &&
+                pGenSet[ ( HB_SIZE ) i * iGenWidth + iMarker ] )
                fprintf( file, ", \"generates\": true" );
             fprintf( file, " }" );
          }
          fprintf( file, "%s ] }", iTokens ? "\n    " : "" );
       }
       fprintf( file, "%s ],", iCount ? "\n  " : "" );
+
+      if( pGenSet )
+         hb_xfree( pGenSet );
    }
 
    /* the DECLARE subsystem tables (language-level type declarations:

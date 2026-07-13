@@ -135,6 +135,21 @@ generates:
 - `_HB_INLINESELF` — declare the class of the `Self` your directive generates for an
   inline block. **Informative only**: `-kt` never enforces it.
 
+### 2026-07-13 — `-x` on a big module stops crawling
+
+Dumping a large module used to get **quadratic**: doubling its size quadrupled the
+dump time. A module of 16 000 expanded command lines — the kind a real application
+has — needed **over a minute** to dump what the compiler compiles in a fraction of a
+second, so on a big project `-x` felt broken rather than slow.
+
+It is now **linear**, and the same module dumps in **a fifth of a second**. Nothing
+you read changed: the dump a given source produces is **byte for byte the one the
+previous build produced** — this was the compiler asking itself the same question
+over and over, and it now asks it once.
+
+If a dump still feels heavy, what is left is its **size** (a 64 000-line module
+produces a dump of ~107 MB) — `hbmk2 -inc` gives you incremental dumps.
+
 ---
 
 ## Guarantees
