@@ -167,7 +167,7 @@
   <div class="wrap bar">
     <div class="brand"><b>harbour</b> / <b>core</b> &nbsp;·&nbsp; branch <b>feature/compiler-ast-dump</b></div>
     <div class="links">
-      <a href="https://github.com/diegopego/harbour-core/blob/feature/compiler-ast-dump/NEWS.md">NEWS.md</a>
+      <a href="NEWS.md">NEWS.md</a>
       <a href="https://github.com/diegopego/hbrefactor">the consumer</a>
       <button id="themeToggle" class="icon-btn" aria-label="Toggle light / dark theme" title="Toggle theme">◐</button>
     </div>
@@ -255,8 +255,8 @@ divergent modules                             <span class="ok">none</span>
   <section>
     <div class="col">
       <h2>The consolidated shape</h2>
-      <p>The dump grew through <span data-metric="schema-count">16</span> schema versions, but that is not <span data-metric="schema-count">16</span> ideas — it is four
-      channels. (The version-by-version record lives in <a href="https://github.com/diegopego/harbour-core/blob/feature/compiler-ast-dump/NEWS.md">NEWS.md</a>; git has the
+      <p>The dump grew one schema version at a time, but the versions are not the ideas: there are four
+      channels. (The version-by-version record lives in <a href="NEWS.md">NEWS.md</a>; git has the
       rest.)</p>
     </div>
 
@@ -352,9 +352,10 @@ src/vm/classes.c          <span class="dim">the runtime helper the -kt checks ca
     twenty-year-old segfault surfaced, and how the preprocessor stopped discarding things it already
     knew.</p>
     <div class="verdict">
-      <span class="num" data-metric="suite-checks">913</span>
-      <span class="txt">assertions across <span data-metric="suite-cases">112</span> executable cases in the consumer's suite — the proof
-      that these channels carry real, usable facts.</span>
+      <span class="num">make test</span>
+      <span class="txt">the consumer's suite, executable, green against this branch — every channel
+      here is exercised by real cases. Run it: that is the proof these facts are usable, and it does
+      not go stale the way a number on a page does.</span>
     </div>
   </section>
 
@@ -392,10 +393,10 @@ src/vm/classes.c          <span class="dim">the runtime helper the -kt checks ca
     <p>This page is the <b>concept</b>, kept consolidated on purpose — it is not a log, and it does not
     grow a new section every commit.</p>
     <ul style="margin:0 0 1.05rem; padding-left:1.15rem">
-      <li><a href="https://github.com/diegopego/harbour-core/blob/feature/compiler-ast-dump/NEWS.md"><b>NEWS.md</b></a> — what changed, for the Harbour programmer.
+      <li><a href="NEWS.md"><b>NEWS.md</b></a> — what changed, for the Harbour programmer.
       <span class="dim">(GNU convention: <code>ChangeLog</code> is the developer's log, <code>NEWS</code>
       is the user's.)</span></li>
-      <li><a href="https://github.com/diegopego/harbour-core/blob/feature/compiler-ast-dump/ChangeLog.txt"><b>ChangeLog.txt</b></a> — the project's own technical log, untouched.</li>
+      <li><a href="ChangeLog.txt"><b>ChangeLog.txt</b></a> — the project's own technical log, untouched.</li>
       <li><b>git</b> — the how. Every commit says which fact was missing, why the consumer could not
       work around it, and what it cost to keep it.</li>
       <li><a href="https://github.com/diegopego/hbrefactor"><b>hbrefactor</b></a> — the why. Each
