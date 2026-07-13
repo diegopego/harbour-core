@@ -1440,6 +1440,7 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
    LOCAL lAcceptIFlag := .F.
    LOCAL lHarbourInfo := .F.
    LOCAL lDumpInfoNested := .F.
+   LOCAL lDumpProject := .F.
 
    LOCAL nHarbourPPO := 0
    LOCAL cHarbourOutputExt
@@ -1529,7 +1530,8 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
            cParamL == "--hbdirdyn" .OR. ;
            cParamL == "--hbdirlib" .OR. ;
            cParamL == "--hbdirinc" .OR. ;
-           Left( cParamL, Len( "--hbinfo" ) ) == "--hbinfo"
+           Left( cParamL, Len( "--hbinfo" ) ) == "--hbinfo" .OR. ;
+           Left( cParamL, Len( "--hbproject" ) ) == "--hbproject"
 
          hbmk[ _HBMK_lQuiet ] := .T.
          hbmk[ _HBMK_lInfo ] := .F.
@@ -2924,6 +2926,22 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
       CASE cParamL == "--hbdirinc"       ; hbmk[ _HBMK_lStopAfterInit ] := .T.
 
          OutStd( hbmk[ _HBMK_cHB_INSTALL_INC ] )
+
+      CASE Left( cParamL, Len( "--hbproject" ) ) == "--hbproject"
+
+         /* Same plumbing as --hbinfo (answer, then stop before any build), but
+            a separate option with its own JSON: --hbinfo describes the BUILD
+            (platform, compiler, target type), while this describes what the
+            target is MADE OF. Kept apart on purpose, so that the output of
+            --hbinfo stays exactly what it has always been. */
+
+         hbmk[ _HBMK_lDumpInfo ] := .T.
+         lDumpProject := .T.
+         lDumpInfoNested := ( SubStr( cParamL, Len( "--hbproject" ) + 1 ) == "=nested" )
+
+         hbmk[ _HBMK_lQuiet ] := .T.
+         hbmk[ _HBMK_lInfo ] := .F.
+         hbmk[ _HBMK_lTRACE ] := .F.
 
       CASE Left( cParamL, Len( "--hbinfo" ) ) == "--hbinfo"
 
@@ -6118,6 +6136,73 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
    IF hbmk[ _HBMK_lDumpInfo ]
 
       IF ! lDumpInfoNested .AND. nLevel > 1
+         RETURN _EXIT_OK
+      ENDIF
+
+      IF lDumpProject
+
+         /* What the target is MADE OF: the sources, header search paths and
+            Harbour compiler options left after every .hbp/.hbc/.hbm, -i option,
+            ${macro} and {filter} has been resolved by the builder.
+
+            Why this cannot be answered by scraping -traceonly: the "Harbour
+            compiler command" line is a side effect of *building*. It lists the
+            sources that need (re)compiling -- not the sources of the target --
+            and in incremental mode with an up-to-date target it is not printed
+            at all. A question about the project must not depend on the state of
+            the build directory, so it is answered here, before any build. */
+
+         /* The flags must be the ones the Harbour compiler ACTUALLY receives for
+            this target, not just _HBMK_aOPTPRG: the command assembled for the
+            compiler below also carries -n1/-n2, the -u+ headers coming from the
+            .hbc files, -j/-gd, the platform flags and HB_USER_PRGFLAGS. Handing
+            out a subset would make a consumer compile the target differently
+            from the way hbmk2 does -- which is the whole thing it is asking about.
+            Mutating aOPTPRG here is safe: this branch returns right after. */
+
+         IF ! Empty( hbmk[ _HBMK_cPO ] )
+            AAdd( hbmk[ _HBMK_aOPTPRG ], "-j" )
+         ENDIF
+         IF hbmk[ _HBMK_nHEAD ] == _HEAD_DEP
+            AAdd( hbmk[ _HBMK_aOPTPRG ], "-gd" )
+         ENDIF
+         FOR EACH tmp1 IN hbmk[ _HBMK_aCH ]
+            AAdd( hbmk[ _HBMK_aOPTPRG ], "-u+" + tmp1 )
+         NEXT
+
+         PlatformPRGFlags( hbmk, hbmk[ _HBMK_aOPTPRG ] )
+
+         tmp := { ;
+            "targetname" => hbmk_TARGETNAME( hbmk ), ;
+            "targettype" => hbmk_TARGETTYPE( hbmk ), ;
+            "sources"    => {}, ;
+            "incpaths"   => {}, ;
+            "prgflags"   => {} }
+
+         FOR EACH tmp1 IN hbmk[ _HBMK_aPRG ]
+            AAdd( tmp[ "sources" ], PathSepToForward( hb_PathNormalize( tmp1 ) ) )
+         NEXT
+         FOR EACH tmp1 IN hbmk[ _HBMK_aINCPATH ]
+            AAdd( tmp[ "incpaths" ], PathSepToForward( hb_PathNormalize( tmp1 ) ) )
+         NEXT
+
+         /* -o (where hbmk2 decided to put the generated files) and -q (how noisy
+            hbmk2 decided to be) are hbmk2's own build plumbing, not part of what
+            the target is MADE OF -- and a consumer sets its own output anyway.
+            They are left out HERE, at the source, so that no consumer has to
+            classify option strings by hand to get rid of them. */
+         FOR EACH tmp1 IN ArrayAJoin( { ;
+               { iif( hbmk[ _HBMK_lCreateLib ] .OR. hbmk[ _HBMK_lCreateDyn ], "-n1", "-n2" ) }, ;
+               iif( hbmk[ _HBMK_lBLDFLGP ], { hb_Version( HB_VERSION_FLAG_PRG ) }, {} ), ;
+               ListToArray( iif( Empty( GetEnv( "HB_USER_PRGFLAGS" ) ), "", " " + GetEnv( "HB_USER_PRGFLAGS" ) ) ), ;
+               hbmk[ _HBMK_aOPTPRG ] } )
+            IF ! Left( tmp1, 2 ) == "-o" .AND. ! Left( tmp1, 2 ) == "-q"
+               AAdd( tmp[ "prgflags" ], tmp1 )
+            ENDIF
+         NEXT
+
+         OutStd( hb_jsonEncode( tmp ) + Chr( 10 ) )
+
          RETURN _EXIT_OK
       ENDIF
 
@@ -16186,6 +16271,7 @@ STATIC PROCEDURE ShowHelp( hbmk, lMore, lLong )
       { "--hbdirlib"         , H_( "output Harbour static library directory to stdout" ) }, ;
       { "--hbdirinc"         , H_( "output Harbour header directory to stdout" ) }, ;
       { "--hbinfo[=nested]"  , I_( "output Harbour build information to stdout. Output is in JSON format. The included paths always contain forward slashes. Each JSON block is followed by an 0x0A byte." ) }, ;
+      { "--hbproject[=nested]", I_( "output the resolved content of the target to stdout: sources, header search paths and Harbour compiler options, after all .hbp/.hbc/.hbm files, macros and filters have been resolved. No build is performed. Output is in JSON format, one block per target, each followed by an 0x0A byte." ) }, ;
       , ;
       { "-plat=<platform>"   , I_( "override default target platform (default: automatic)" ) }, ;
       { "-cpu=<cpu>"         , I_( "override default target CPU (default: automatic) (EXPERIMENTAL)" ) }, ;

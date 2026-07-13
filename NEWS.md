@@ -31,6 +31,53 @@ compiled program is **identical, byte for byte**, to the one stock Harbour produ
 
 ---
 
+## 2026-07-13 — `hbmk2 --hbproject`: ask what a project is made of, and get an answer
+
+Write a tool that has to work on a Harbour project — an IDE, a linter, a refactorer, a
+build dashboard — and the first thing you need is the most basic thing there is: **which
+files does this project actually consist of?** Until now there was no way to *ask*. You
+could only **watch hbmk2 build** and scrape the compiler command line out of `-traceonly`.
+
+That line was never meant to answer this question, and it doesn't:
+
+- it lists the sources that need **(re)compiling** — not the sources of the target. Turn on
+  incremental mode with an up-to-date target and it is **not printed at all**;
+- so the tool has to force a full rebuild just to find out what the project contains;
+- and the line is written for a human to read, so you get to re-implement quoting rules to
+  take it apart again.
+
+Now you ask:
+
+```
+$ hbmk2 myapp.hbp --hbproject
+{"targetname":"myapp.hbp","targettype":"hbexe",
+ "sources":["src/main.prg","src/util.prg"],
+ "incpaths":["/opt/harbour/include","./include"],
+ "prgflags":["-n2","-w3","-es2","-i/opt/harbour/include","-i./include"]}
+```
+
+One JSON block, everything already **resolved** — your `.hbp`, `.hbc` and `.hbm` files, the
+`-i` paths, the `${macros}`, the `{filters}`: hbmk2 has expanded all of it, exactly as it
+would for a real build. `sources` carries the `.hbx` inputs alongside the `.prg` ones, the
+same way the compiler receives them. `prgflags` is the **complete** set of options the
+Harbour compiler gets for that target — so a tool can compile a module the way hbmk2 would,
+not an approximation of it.
+
+For a project with several targets (a container, or `-target=`), add `=nested` and you get
+one block per target, each on its own line:
+
+```
+$ hbmk2 all.hbp --hbproject=nested
+```
+
+**It does not build anything.** The question is answered and hbmk2 exits — which also means
+it answers for a project that does not currently compile, and that the answer never depends
+on whatever happens to be sitting in your work directory.
+
+**`--hbinfo` is untouched.** It describes the *build* (platform, compiler, target type); this
+describes what the target is *made of*. They are separate options with separate output, so
+nothing that reads `--hbinfo` today notices this at all.
+
 ## 2026-07-09 → 07-12 — `-kt`: your `AS` annotations stop being decoration
 
 You have been able to write this for years:
