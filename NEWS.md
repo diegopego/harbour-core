@@ -158,12 +158,13 @@ question the compiler had already answered. Double the expansions, quadruple the
 It is **linear** now — the compiler asks the question once per module instead of once
 per word.
 
-**What that is worth, measured, not guessed.** On real Harbour code the gain is
-noticeable but not dramatic: dumping the whole of `contrib/gtwvg` or `xhb`, the way a
-tool consuming `-x` does, got roughly a **third faster**. The dramatic case is
-pathological — a module dense in expansions, where the old cost curve turned a
-fraction of a second into more than a minute. Whether your code has such a module is
-something only your code can say; time it and see.
+**What that is worth, honestly.** On real Harbour code the gain is noticeable but not
+dramatic — dumping a whole project the way a tool consuming `-x` does, roughly a
+**third faster**. The dramatic case is pathological: a module dense in expansions,
+where the old cost curve turned a fraction of a second into more than a minute.
+Whether your code has such a module is something only your code can say — time
+`harbour -x<dir>/` on your biggest one and see. That number is worth more than ours:
+it is about your code, on your machine.
 
 Nothing you read changed: the dump a given source produces is **byte for byte the one
 the previous build produced**, verified across the whole corpus of the consumer that
