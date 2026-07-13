@@ -135,6 +135,21 @@ generates:
 - `_HB_INLINESELF` — declare the class of the `Self` your directive generates for an
   inline block. **Informative only**: `-kt` never enforces it.
 
+### 2026-07-13 — the dump now tells you the truth about its own version
+
+The `"schema"` field is the one thing this file tells you to check before you consume
+a dump — and it was **lying**. The rule-lifetime channel (the `"un"` directives,
+`undoes`, `removed`, and the family prefix on `kind`) shipped while the dump still
+declared the *previous* version. A tool that trusted the field would have concluded
+those fields were not there.
+
+The dump now declares the version it actually emits. **If you gate on `"schema"`, gate
+on a minimum, never on a list of known versions** — the schema is additive (each one
+is the previous plus a channel), and a list silently rejects every dump we ship after
+you wrote it. We learned this the hard way: fixing the number above made the tool that
+consumes this branch reject every module it was handed, because it carried exactly
+such a list.
+
 ### 2026-07-13 — `-x` stops getting quadratic on a big module
 
 Dumping a module used to cost **more than proportionally** to its size: what drove the
