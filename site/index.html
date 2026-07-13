@@ -380,8 +380,15 @@ src/vm/classes.c          <span class="dim">the runtime helper the -kt checks ca
       <h3>What we do not have good answers for</h3>
       <p style="margin-bottom:.6rem">Said plainly, because you would find them anyway:</p>
       <p style="margin-bottom:.6rem"><b>The dump's cost is not free at compile time</b> when
-      <code>-x</code> is on — the tracking tables grow with the module. It is off by default and off in
-      every normal build, but we have not profiled a very large project with it on.</p>
+      <code>-x</code> is on. We profiled it, and the first answer was bad: one derivation fact was
+      recomputed for every word that asked for it, so the cost grew as the <b>square</b> of a module's
+      expansions. That is fixed — it is linear now, and the dump a source produces is byte for byte
+      the one it produced before. On real Harbour code that bought about a third; the pathological
+      module is where it mattered. What we still have no good answer for is the <b>size</b> of what
+      gets written: a large module writes a large dump. It is off by default and off in every normal
+      build, and you can measure your own worst case — time
+      <code>harbour -x&lt;dir&gt;/ &lt;your biggest module&gt;</code> against the same compile without
+      <code>-x</code>.</p>
       <p style="margin-bottom:0"><b><code>-kt</code> emits real checks that really run.</b> It is a
       development and CI mode. We are not proposing it as a default, and it should probably never be
       one.</p>

@@ -135,20 +135,27 @@ generates:
 - `_HB_INLINESELF` — declare the class of the `Self` your directive generates for an
   inline block. **Informative only**: `-kt` never enforces it.
 
-### 2026-07-13 — `-x` on a big module stops crawling
+### 2026-07-13 — `-x` stops getting quadratic on a big module
 
-Dumping a large module used to get **quadratic**: doubling its size quadrupled the
-dump time. A module of 16 000 expanded command lines — the kind a real application
-has — needed **over a minute** to dump what the compiler compiles in a fraction of a
-second, so on a big project `-x` felt broken rather than slow.
+Dumping a module used to cost **more than proportionally** to its size: what drove the
+cost was the number of preprocessor expansions in it, and each one was re-answering a
+question the compiler had already answered. Double the expansions, quadruple the time.
+It is **linear** now — the compiler asks the question once per module instead of once
+per word.
 
-It is now **linear**, and the same module dumps in **a fifth of a second**. Nothing
-you read changed: the dump a given source produces is **byte for byte the one the
-previous build produced** — this was the compiler asking itself the same question
-over and over, and it now asks it once.
+**What that is worth, measured, not guessed.** On real Harbour code the gain is
+noticeable but not dramatic: dumping the whole of `contrib/gtwvg` or `xhb`, the way a
+tool consuming `-x` does, got roughly a **third faster**. The dramatic case is
+pathological — a module dense in expansions, where the old cost curve turned a
+fraction of a second into more than a minute. Whether your code has such a module is
+something only your code can say; time it and see.
 
-If a dump still feels heavy, what is left is its **size** (a 64 000-line module
-produces a dump of ~107 MB) — `hbmk2 -inc` gives you incremental dumps.
+Nothing you read changed: the dump a given source produces is **byte for byte the one
+the previous build produced**, verified across the whole corpus of the consumer that
+uses this branch.
+
+What is left is **linear and dominated by writing the dump out** — a large module
+writes a large file. `hbmk2 -inc` re-dumps only the modules you touched.
 
 ---
 
