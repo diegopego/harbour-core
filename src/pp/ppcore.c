@@ -1638,7 +1638,22 @@ static void hb_pp_tokenAddStreamFunc( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
       {
          if( value )
          {
-            hb_pp_tokenAdd( &pState->pNextTokenPtr, value, nLen, pToken->spaces, HB_PP_TOKEN_STRING );
+            PHB_PP_TOKEN pStr = hb_pp_tokenAdd( &pState->pNextTokenPtr, value, nLen,
+                                                pToken->spaces, HB_PP_TOKEN_STRING );
+
+            /* The stream line is the user's own source text turned into DATA
+               (TEXT/ENDTEXT, #pragma __text|__stream|__cstream).  Record where
+               it came from: without this the string reaches the compiler with
+               no position at all, so a tool cannot even REPORT that a name also
+               occurs as data - it can only stay silent about it.
+               In the line-by-line mode (Cl*pper TEXT/ENDTEXT) this is exactly
+               the line the text sits on; in the joined modes (__stream/__cstream)
+               the whole block is emitted as ONE string at the closing line, so
+               the position is that of the terminator. */
+            if( pState->fTrackPos )
+               hb_pp_posRecord( pState, pStr,
+                                pState->pFile ? pState->pFile->iCurrentLine : 0, 0,
+                                pState->pFile == NULL || pState->pFile->pPrev == NULL );
             pState->pFile->iTokens++;
          }
       }

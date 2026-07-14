@@ -31,6 +31,49 @@ compiled program is **identical, byte for byte**, to the one stock Harbour produ
 
 ---
 
+## 2026-07-13 — `-x`: a `TEXT … ENDTEXT` line is data, and now it says *where it came from*
+
+Inside a `TEXT … ENDTEXT` block your source stops being code. Every raw line leaves the
+preprocessor as a **string**, exactly as you typed it, spaces and all:
+
+```harbour
+LOCAL cSaldo := "1.234,00"
+
+TEXT
+Relatorio mensal
+cSaldo apurado no periodo
+ENDTEXT
+```
+
+becomes, for the compiler:
+
+```harbour
+QOut( "   Relatorio mensal" )
+QOut( "   cSaldo apurado no periodo" )
+```
+
+That second line is the interesting one. The word `cSaldo` in it is **not your variable** —
+it is text that merely *looks* like it. And that is exactly how it should be treated: no
+tool has any business editing it, because nothing can prove what it means.
+
+But there is a second half to that duty, and it was impossible until now: **telling you it
+is there.** The strings a stream block produces used to reach the dump with **no position at
+all** — no line, no column, no origin — even though the preprocessor had just read them from
+a concrete line of your file. So you would rename `cSaldo` to `cValor`, a tool would do the
+rename correctly, verify it correctly, and your `TEXT` block would keep printing *"cSaldo
+apurado no periodo"* — **silently**, with nothing in the world able to warn you.
+
+Now those lines carry the source line they came from, like any other token, so a tool can
+**report** the occurrence and let *you* decide. It still must not touch it — data has no
+proof — but you get told.
+
+What does *not* change: the code your program compiles to. This is position bookkeeping,
+recorded only while the dump is being produced. Without `-x` nothing at all is different.
+
+The line-by-line form (the Cl*pper `TEXT … ENDTEXT`) is exact — every line reports its own
+line. The forms that glue the whole block into a single string report the closing line, since
+that is what the string honestly is.
+
 ## 2026-07-13 — `hbmk2 --hbproject`: ask what a project is made of, and get an answer
 
 Write a tool that has to work on a Harbour project — an IDE, a linter, a refactorer, a
