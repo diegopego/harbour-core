@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-17"
+#define HB_AST_SCHEMA         "ast-18"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -1276,19 +1276,79 @@ static void hb_compAstWriteDeclared( FILE * file, PHB_HDECLARED pDeclared,
    fprintf( file, "%s] }", pDeclared->iParamCount ? " " : "" );
 }
 
+/* ast-18: the memvar names a STRING literal macro-references (macrotext,
+   "&<name>").  When macrotext substitution is enabled (the default; -kM
+   turns it off) a string literal that contains "&<name>" is re-expanded at
+   RUN TIME to the value of that memvar - the string is DATA whose behaviour
+   depends on the memvar.  A consumer renaming a memvar must know which
+   strings follow it; without this the fact is buried in the HB_P_MACROTEXT
+   pcode and the consumer would have to re-scan the string text itself.
+   The "&" extraction mirrors hb_compPushMacroText() exactly (the same rule
+   the compiler uses to decide the pcode): "&" followed by [_A-Za-z] starts a
+   name, [_A-Za-z0-9] continues it; "&(" and a trailing "&" are ignored.
+   Names are upcased (memvars are case-insensitive).  Emits nothing when
+   macrotext is off or no name is found. */
+static void hb_compAstWriteMacroVars( FILE * file, const char * szText,
+                                      HB_SIZE nLen )
+{
+   HB_SIZE n = 0;
+   HB_BOOL fFirst = HB_TRUE;
+
+   while( n < nLen )
+   {
+      if( szText[ n++ ] == '&' )
+      {
+         char szName[ HB_SYMBOL_NAME_LEN + 1 ];
+         int iSize = 0;
+
+         while( n < nLen && iSize < HB_SYMBOL_NAME_LEN )
+         {
+            char ch = szText[ n ];
+            if( ch >= 'a' && ch <= 'z' )
+               szName[ iSize++ ] = ch - ( 'a' - 'A' );
+            else if( ch == '_' || ( ch >= 'A' && ch <= 'Z' ) ||
+                     ( iSize > 0 && ch >= '0' && ch <= '9' ) )
+               szName[ iSize++ ] = ch;
+            else
+               break;
+            ++n;
+         }
+         if( iSize )
+         {
+            szName[ iSize ] = '\0';
+            fprintf( file, "%s", fFirst ? ", \"macrovars\": [ " : ", " );
+            hb_compAstWriteStr( file, szName );
+            fFirst = HB_FALSE;
+         }
+      }
+   }
+   if( ! fFirst )
+      fprintf( file, " ]" );
+}
+
 /* one derivation fact inside a "from" list (ast-3): which match marker
    of which application the byte range [at, at+len) of the token text
-   derives from */
+   derives from.  ast-18: "app" is null when there is no application to
+   point at (op "stream": the stream machinery, entered by a directive,
+   fabricated the token from a raw source line); op "dynval" carries
+   "axis" ("line"/"file") - the position axis the pp read the value from,
+   recorded at the expansion branch itself */
 static void hb_compAstWriteFromItem( FILE * file, HB_BOOL fFirst, int iApp,
                                      int iMarker, char cOp, HB_SIZE nAt,
                                      HB_SIZE nLen )
 {
-   fprintf( file, "%s{ \"app\": %d, \"marker\": %d, \"op\": \"%s\", "
-            "\"at\": %" HB_PFS "u, \"len\": %" HB_PFS "u }",
-            fFirst ? "" : ", ", iApp, iMarker,
+   fprintf( file, "%s{ ", fFirst ? "" : ", " );
+   if( iApp >= 0 )
+      fprintf( file, "\"app\": %d, ", iApp );
+   else
+      fprintf( file, "\"app\": null, " );
+   fprintf( file, "\"marker\": %d, \"op\": \"%s\", ", iMarker,
             cOp == 'c' ? "clone" : cOp == 'p' ? "paste" :
-            cOp == 'd' ? "dynval" : "stringify",
-            nAt, nLen );
+            cOp == 'm' ? "stream" :
+            ( cOp == 'd' || cOp == 'D' ) ? "dynval" : "stringify" );
+   if( cOp == 'd' || cOp == 'D' )
+      fprintf( file, "\"axis\": \"%s\", ", cOp == 'd' ? "line" : "file" );
+   fprintf( file, "\"at\": %" HB_PFS "u, \"len\": %" HB_PFS "u }", nAt, nLen );
 }
 
 /* remember that the value written at marker <iMarker> of application <iApp>
@@ -1645,6 +1705,13 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
                                      pTok->pFrom[ i ].nLen );
          fprintf( file, " ]" );
       }
+      /* ast-18: a string literal that macro-references a memvar ("&<name>")
+         re-expands at RUN TIME - list those names so a consumer renaming a
+         memvar knows which data strings follow it.  Only when macrotext is
+         enabled (-kM off), matching the compiler's own pcode decision */
+      if( HB_PP_TOKEN_TYPE( pTok->type ) == HB_PP_TOKEN_STRING &&
+          HB_SUPPORT_MACROTEXT )
+         hb_compAstWriteMacroVars( file, pTok->szText, pTok->nLen );
       fprintf( file, " }" );
    }
    fprintf( file, "%s ],", pAst->nTokenCount ? "\n  " : "" );

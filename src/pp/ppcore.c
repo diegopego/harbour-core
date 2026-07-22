@@ -642,18 +642,22 @@ static void hb_pp_posTrack( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
 /* token derivation table (see hb_pp_trackPos()): open addressing hash
    keyed by token pointer; records, for tokens synthesized during rule
    application, which match marker of which application each byte range
-   of the token text derives from.  The three synthesis operations are
+   of the token text derives from.  The synthesis operations are
    'c'lone (marker result copied into the rule result), 'p'aste (keyword
-   concatenation of rule result tokens) and 's'tringify (marker result
-   dumped into a string) - the paste and stringify artifacts are the
-   ones that otherwise lose any connection to the name the programmer
-   wrote.  Identity is checked like in the position table: an entry only
-   counts while the token still holds the recorded value/len */
+   concatenation of rule result tokens), 's'tringify (marker result
+   dumped into a string), 'd'/'D' (a DYNVAL literal synthesized from the
+   pp's own position state - lowercase for the LINE axis, uppercase for
+   the FILE axis) and 'm' (a raw source line turned into a string by the
+   strea'm' machinery; no application - iApp is -1 there) - the paste and
+   stringify artifacts are the ones that otherwise lose any connection to
+   the name the programmer wrote.  Identity is checked like in the
+   position table: an entry only counts while the token still holds the
+   recorded value/len */
 typedef struct
 {
-   int       iApp;            /* application record index (hb_pp_trackApply()) */
+   int       iApp;            /* application record index (hb_pp_trackApply()); -1 = none */
    HB_USHORT usMarker;        /* 1-based match marker number */
-   char      cOp;             /* 'c'lone, 'p'aste, 's'tringify */
+   char      cOp;             /* 'c', 'p', 's', 'd'/'D', 'm' - see above */
    HB_SIZE   nAt;             /* byte offset inside the token text */
    HB_SIZE   nLen;            /* byte length inside the token text */
 } HB_PP_FROMITEM, * PHB_PP_FROMITEM;
@@ -791,11 +795,15 @@ static void hb_pp_drvAdd1( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
 
 /* a DYNVAL literal (__LINE__/__FILE__) has no source marker to derive from -
    the pp SYNTHESIZES it from its own state at the point of expansion.  Record
-   a 'd'ynval from-item (marker 0) so a consumer can tell the value is
+   a dynval from-item (marker 0) so a consumer can tell the value is
    position-sensitive - and to WHICH application it belongs - without joining
-   ppApplications by line.  Kept out of the ast-12 generating pairs by the same
-   iMarker >= 1 && (p|s) filter that guards clone. */
-static void hb_pp_drvAddDyn( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
+   ppApplications by line.  cOp carries the AXIS the value was read from,
+   recorded at the expansion branch itself: 'd' = the current LINE, 'D' = the
+   current FILE.  A consumer that shifts lines only cares about the line
+   axis - exporting the axis here keeps it from re-deriving the builtin's
+   meaning from its name.  Kept out of the ast-12 generating pairs by the
+   same iMarker >= 1 && (p|s) filter that guards clone. */
+static void hb_pp_drvAddDyn( PHB_PP_STATE pState, PHB_PP_TOKEN pToken, char cOp )
 {
    if( pState->iDrvApp >= 0 )
    {
@@ -803,11 +811,31 @@ static void hb_pp_drvAddDyn( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
 
       pFrom->iApp     = pState->iDrvApp;
       pFrom->usMarker = 0;
-      pFrom->cOp      = 'd';
+      pFrom->cOp      = cOp;
       pFrom->nAt      = 0;
       pFrom->nLen     = pToken->len;
       hb_pp_drvSet( pState, pToken, pFrom, 1 );
    }
+}
+
+/* the string fabricated by the STREAM machinery (TEXT/ENDTEXT, #pragma
+   __text|__stream|__cstream) is the user's own source line turned into
+   DATA.  Record a 'm' from-item (marker 0, iApp -1: stream mode is entered
+   by a directive, not by a rule application) so a consumer can tell DATA
+   from a written string literal by DECLARED fact - without inferring it
+   from the position shape (a written literal starts after its delimiter,
+   a raw line at column 0: true, but that is grammar knowledge, and the
+   pp is the one who fabricated the token and can simply say so). */
+static void hb_pp_drvAddStream( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
+{
+   PHB_PP_FROMITEM pFrom = ( PHB_PP_FROMITEM ) hb_xgrab( sizeof( HB_PP_FROMITEM ) );
+
+   pFrom->iApp     = -1;
+   pFrom->usMarker = 0;
+   pFrom->cOp      = 'm';
+   pFrom->nAt      = 0;
+   pFrom->nLen     = pToken->len;
+   hb_pp_drvSet( pState, pToken, pFrom, 1 );
 }
 
 /* derivation of a keyword concatenation (see hb_pp_concatenateKeywords()):
@@ -1672,9 +1700,15 @@ static void hb_pp_tokenAddStreamFunc( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                the whole block is emitted as ONE string at the closing line, so
                the position is that of the terminator. */
             if( pState->fTrackPos )
+            {
                hb_pp_posRecord( pState, pStr,
                                 pState->pFile ? pState->pFile->iCurrentLine : 0, 0,
                                 pState->pFile == NULL || pState->pFile->pPrev == NULL );
+               /* and SAY it is data: the 'm' from-item is the declared
+                  fact a consumer needs to tell this string from a written
+                  literal (report it, never edit it) */
+               hb_pp_drvAddStream( pState, pStr );
+            }
             pState->pFile->iTokens++;
          }
       }
@@ -5530,7 +5564,7 @@ static PHB_PP_TOKEN *  hb_pp_patternStuff( PHB_PP_STATE pState,
             *pResultPtr = hb_pp_tokenNew( szFileName, strlen( szFileName ), 0,
                                           HB_PP_TOKEN_STRING );
             if( pState->fTrackPos )
-               hb_pp_drvAddDyn( pState, *pResultPtr );
+               hb_pp_drvAddDyn( pState, *pResultPtr, 'D' );   /* FILE axis */
             pResultPtr = &( *pResultPtr )->pNext;
          }
          else if( hb_pp_tokenValueCmp( pResultPattern, "__LINE__", HB_PP_CMP_CASE ) )
@@ -5541,7 +5575,7 @@ static PHB_PP_TOKEN *  hb_pp_patternStuff( PHB_PP_STATE pState,
             *pResultPtr = hb_pp_tokenNew( line, strlen( line ), 0,
                                           HB_PP_TOKEN_NUMBER );
             if( pState->fTrackPos )
-               hb_pp_drvAddDyn( pState, *pResultPtr );
+               hb_pp_drvAddDyn( pState, *pResultPtr, 'd' );   /* LINE axis */
             pResultPtr = &( *pResultPtr )->pNext;
          }
       }
