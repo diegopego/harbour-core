@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-16"
+#define HB_AST_SCHEMA         "ast-17"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -1286,7 +1286,8 @@ static void hb_compAstWriteFromItem( FILE * file, HB_BOOL fFirst, int iApp,
    fprintf( file, "%s{ \"app\": %d, \"marker\": %d, \"op\": \"%s\", "
             "\"at\": %" HB_PFS "u, \"len\": %" HB_PFS "u }",
             fFirst ? "" : ", ", iApp, iMarker,
-            cOp == 'c' ? "clone" : cOp == 'p' ? "paste" : "stringify",
+            cOp == 'c' ? "clone" : cOp == 'p' ? "paste" :
+            cOp == 'd' ? "dynval" : "stringify",
             nAt, nLen );
 }
 

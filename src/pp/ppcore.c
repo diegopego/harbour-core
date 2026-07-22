@@ -789,6 +789,27 @@ static void hb_pp_drvAdd1( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
    }
 }
 
+/* a DYNVAL literal (__LINE__/__FILE__) has no source marker to derive from -
+   the pp SYNTHESIZES it from its own state at the point of expansion.  Record
+   a 'd'ynval from-item (marker 0) so a consumer can tell the value is
+   position-sensitive - and to WHICH application it belongs - without joining
+   ppApplications by line.  Kept out of the ast-12 generating pairs by the same
+   iMarker >= 1 && (p|s) filter that guards clone. */
+static void hb_pp_drvAddDyn( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
+{
+   if( pState->iDrvApp >= 0 )
+   {
+      PHB_PP_FROMITEM pFrom = ( PHB_PP_FROMITEM ) hb_xgrab( sizeof( HB_PP_FROMITEM ) );
+
+      pFrom->iApp     = pState->iDrvApp;
+      pFrom->usMarker = 0;
+      pFrom->cOp      = 'd';
+      pFrom->nAt      = 0;
+      pFrom->nLen     = pToken->len;
+      hb_pp_drvSet( pState, pToken, pFrom, 1 );
+   }
+}
+
 /* derivation of a keyword concatenation (see hb_pp_concatenateKeywords()):
    the merged token inherits the marker origins of both parts as 'paste'
    ranges - the second part's offsets shifted past the first - while rule
@@ -5508,6 +5529,8 @@ static PHB_PP_TOKEN *  hb_pp_patternStuff( PHB_PP_STATE pState,
                szFileName = "";
             *pResultPtr = hb_pp_tokenNew( szFileName, strlen( szFileName ), 0,
                                           HB_PP_TOKEN_STRING );
+            if( pState->fTrackPos )
+               hb_pp_drvAddDyn( pState, *pResultPtr );
             pResultPtr = &( *pResultPtr )->pNext;
          }
          else if( hb_pp_tokenValueCmp( pResultPattern, "__LINE__", HB_PP_CMP_CASE ) )
@@ -5517,6 +5540,8 @@ static PHB_PP_TOKEN *  hb_pp_patternStuff( PHB_PP_STATE pState,
                          pState->pFile ? pState->pFile->iCurrentLine : 0 );
             *pResultPtr = hb_pp_tokenNew( line, strlen( line ), 0,
                                           HB_PP_TOKEN_NUMBER );
+            if( pState->fTrackPos )
+               hb_pp_drvAddDyn( pState, *pResultPtr );
             pResultPtr = &( *pResultPtr )->pNext;
          }
       }
