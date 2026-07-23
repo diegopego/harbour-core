@@ -1,6 +1,6 @@
-<!-- changelog-baseline: harbour-core@f8b2c9ab31 (feature/compiler-ast-dump) -->
+<!-- changelog-baseline: harbour-core@4c02f40f44 (feature/compiler-ast-dump) -->
 <!-- Delta pointer. Everything after this commit is NOT yet described here.
-     To catch up:  git log f8b2c9ab31..HEAD   (see § Maintaining this file). -->
+     To catch up:  git log 4c02f40f44..HEAD   (see § Maintaining this file). -->
 
 # NEWS — `feature/compiler-ast-dump`
 
@@ -31,6 +31,51 @@ compiled program is **identical, byte for byte**, to the one stock Harbour produ
 
 ---
 
+## 2026-07-22 — `-x`: three facts the dump used to throw away
+
+Almost everything the preprocessor synthesizes already records where it came from — a
+marker's content cloned into a result, two words pasted together, a marker turned into a
+string. Three things did not, and each of them is something a tool must be able to *report*
+about your code without ever editing it.
+
+**A value built out of its own position.** `__LINE__` and `__FILE__` are the preprocessor's
+two dynamic defines: what they expand to is not text sitting somewhere, it is a value the
+preprocessor invents at expansion time out of the line it is on and the file it is reading.
+That literal used to reach the compiler looking exactly like a number you typed. A tool
+walking your program saw `247` with no way to know `__LINE__` had produced it — the only
+tie back to the origin was to match things up **by line number**, which is precisely the
+thing that moves the moment anything edits the file.
+
+Now the value keeps a link back to the rule that expanded it, and that link does not depend
+on the line. A tool that shifts your lines — extracting a function, inlining a variable —
+can see that a value here follows the position, and tell you. It must not freeze the old
+number: after the edit the *new* number is the correct one. What was missing was the ability
+to say so.
+
+**Which axis that value follows.** `__LINE__` follows the line; `__FILE__` follows the file.
+They are otherwise the same kind of value and arrive the same way, so a tool that only knew
+"this is position-built" would have to warn about both when editing lines — and the warning
+about `__FILE__` would be wrong. The dump now says which axis each one reads.
+
+**A string that re-expands at run time.** `"modelo &cLayout do relatorio"` is not just text:
+at run time Harbour expands `&cLayout` to the value of the memvar it names. A tool renaming
+that memvar changes what the string does. Such a string now carries the list of memvar names
+it will expand, so a tool matches the name it is renaming against that **list** — rather than
+going hunting for it inside the text of the string, which is guessing dressed up as
+searching.
+
+The honest limit, said where it bites: that list is the names **as written**, extracted with
+the compiler's own rule for finding them. The compiler then checks each name's scope, and
+only a memvar or an undeclared name really becomes a run-time expansion — under `-kd` a
+declared local is taken apart at compile time instead, so there the list can name one string
+too many. In a default build there is no divergence, since `&<local>` is a compile error to
+begin with. And the failure mode is **one warning too many, never an edit**: nothing in this
+channel authorizes touching a string. Under `-kM` the field is absent, exactly as the
+compiler's own decision is.
+
+None of this changes the code your program compiles to: it is bookkeeping done only while
+the dump is being written. Without `-x`, nothing at all is different.
+
 ## 2026-07-13 — `-x`: a `TEXT … ENDTEXT` line is data, and now it says *where it came from*
 
 Inside a `TEXT … ENDTEXT` block your source stops being code. Every raw line leaves the
@@ -56,16 +101,22 @@ That second line is the interesting one. The word `cSaldo` in it is **not your v
 it is text that merely *looks* like it. And that is exactly how it should be treated: no
 tool has any business editing it, because nothing can prove what it means.
 
-But there is a second half to that duty, and it was impossible until now: **telling you it
-is there.** The strings a stream block produces used to reach the dump with **no position at
-all** — no line, no column, no origin — even though the preprocessor had just read them from
-a concrete line of your file. So you would rename `cSaldo` to `cValor`, a tool would do the
-rename correctly, verify it correctly, and your `TEXT` block would keep printing *"cSaldo
-apurado no periodo"* — **silently**, with nothing in the world able to warn you.
+The hard part is not deciding to leave it alone. It is **being able to tell**. Those strings
+used to reach the dump with **no position at all** — no line, no column, no origin — even
+though the preprocessor had just read them from a concrete line of your file. A tool could
+not line them up against your source, and could not tell this fabricated line from a string
+you actually wrote that happens to read the same.
 
-Now those lines carry the source line they came from, like any other token, so a tool can
-**report** the occurrence and let *you* decide. It still must not touch it — data has no
-proof — but you get told.
+That difference decides whether a tool should speak. A string **you wrote** whose contents
+equal a name can be a call by name — `&()`, `__mvGet` — so a tool may reasonably point at it
+and let you judge. A stream-block line has no such mechanism: it is printed data, and a word
+in it matching one of your variables is a **coincidence**, not an occurrence. There is
+nothing to report, and reporting it would be noise.
+
+Now the line carries its source position like any other token, and it is **sealed as
+stream-produced**. So a tool stays silent about it because it was *told* the string is data —
+not because it guessed from the shape of the token, and not by matching names inside your
+text. Either way it is never edited.
 
 What does *not* change: the code your program compiles to. This is position bookkeeping,
 recorded only while the dump is being produced. Without `-x` nothing at all is different.
