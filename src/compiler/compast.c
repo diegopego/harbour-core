@@ -1283,11 +1283,21 @@ static void hb_compAstWriteDeclared( FILE * file, PHB_HDECLARED pDeclared,
    depends on the memvar.  A consumer renaming a memvar must know which
    strings follow it; without this the fact is buried in the HB_P_MACROTEXT
    pcode and the consumer would have to re-scan the string text itself.
-   The "&" extraction mirrors hb_compPushMacroText() exactly (the same rule
-   the compiler uses to decide the pcode): "&" followed by [_A-Za-z] starts a
-   name, [_A-Za-z0-9] continues it; "&(" and a trailing "&" are ignored.
-   Names are upcased (memvars are case-insensitive).  Emits nothing when
-   macrotext is off or no name is found. */
+   The "&" NAME EXTRACTION matches hb_compPushMacroText() byte for byte: "&"
+   followed by [_A-Za-z] starts a name, [_A-Za-z0-9] continues it; "&(" and a
+   trailing "&" are ignored.  Names are upcased (memvars are case-insensitive).
+   Emits nothing when macrotext is off or no name is found.
+
+   What this does NOT replicate: hb_compPushMacroText() then tests the name's
+   scope (hb_compVariableScope) and only a MEMVAR/undeclared name becomes a
+   runtime HB_P_MACROTEXT - a declared LOCAL under -kd is decomposed at compile
+   time ("prefix" + var) instead.  This list is the LEXICAL &names only, so
+   under -kd it can over-list a declared local.  In the default mode there is
+   no divergence (&<local> is the compile error E0042).  The consumer treats
+   the list as a REPORT candidate and never edits the string, so the cost of
+   the over-list is one extra warning, never a wrong edit.  If a consumer ever
+   needs the exact runtime-macrotext set, the fact must be recorded at the
+   scope decision in hb_compPushMacroText, not re-derived here. */
 static void hb_compAstWriteMacroVars( FILE * file, const char * szText,
                                       HB_SIZE nLen )
 {

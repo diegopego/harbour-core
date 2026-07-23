@@ -1693,8 +1693,9 @@ static void hb_pp_tokenAddStreamFunc( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
             /* The stream line is the user's own source text turned into DATA
                (TEXT/ENDTEXT, #pragma __text|__stream|__cstream).  Record where
                it came from: without this the string reaches the compiler with
-               no position at all, so a tool cannot even REPORT that a name also
-               occurs as data - it can only stay silent about it.
+               no position at all, so a tool cannot line it up against the
+               source at all - it cannot tell this data line from a written
+               literal that happens to read the same.
                In the line-by-line mode (Cl*pper TEXT/ENDTEXT) this is exactly
                the line the text sits on; in the joined modes (__stream/__cstream)
                the whole block is emitted as ONE string at the closing line, so
@@ -1704,9 +1705,14 @@ static void hb_pp_tokenAddStreamFunc( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                hb_pp_posRecord( pState, pStr,
                                 pState->pFile ? pState->pFile->iCurrentLine : 0, 0,
                                 pState->pFile == NULL || pState->pFile->pPrev == NULL );
-               /* and SAY it is data: the 'm' from-item is the declared
-                  fact a consumer needs to tell this string from a written
-                  literal (report it, never edit it) */
+               /* and SEAL it as data: the 'm' from-item is the declared fact
+                  a consumer needs to tell this string from a written literal.
+                  A written string equal to a symbol name can be a call by name
+                  (&()/__mvGet), so a tool may report it; a stream-block line
+                  has no such mechanism - it is printed data.  The seal lets the
+                  consumer stay silent about the data line by FACT, instead of
+                  guessing data-ness from shape or matching the name inside the
+                  text.  Never edited either way. */
                hb_pp_drvAddStream( pState, pStr );
             }
             pState->pFile->iTokens++;
