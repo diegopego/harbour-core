@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-18"
+#define HB_AST_SCHEMA         "ast-19"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -1789,6 +1789,55 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
          fprintf( file, ",\n      \"result\": " );
          hb_compAstWriteRuleToks( file, pPP, i, HB_TRUE );
          fprintf( file, " }" );
+      }
+      fprintf( file, "%s ],", iCount ? "\n  " : "" );
+
+      /* ast-19: what conditional compilation SKIPPED.  Every other channel of
+         this dump describes the program that WAS built; this one describes the
+         part of the file that was NOT, and it exists so a consumer can tell how
+         far its own verification reached.  A rename that edits the branch that
+         compiled, verifies that branch and reports success is telling the truth
+         about a scope it never states - while the other configuration is left
+         calling a name that no longer exists.
+         REPORT ONLY - nothing here may be edited: this text never became a
+         symbol, so a word in it that spells like one is not known to BE one.
+         Proving that would mean compiling the other branch, i.e. another
+         program. */
+      fprintf( file, "\n  \"ppSkipped\": [" );
+      iCount = pPP ? hb_pp_trackSkipCount( pPP ) : 0;
+      for( i = 0; i < iCount; ++i )
+      {
+         const char * szFile, * szCond;
+         int iFrom, iTo, iToks, j;
+
+         hb_pp_trackSkipGet( pPP, i, &szFile, &szCond, &iFrom, &iTo, &iToks );
+         fprintf( file, "%s\n    { \"file\": ", i ? "," : "" );
+         if( szFile )
+            hb_compAstWriteStr( file, szFile );
+         else
+            fprintf( file, "null" );
+         fprintf( file, ", \"from\": %d, \"to\": %d, \"cond\": ", iFrom, iTo );
+         if( szCond )
+            hb_compAstWriteStr( file, szCond );
+         else
+            fprintf( file, "null" );
+         fprintf( file, ",\n      \"tokens\": [" );
+         for( j = 0; j < iToks; ++j )
+         {
+            const char * szText = NULL;
+            int iLine = 0, iCol = -1;
+
+            hb_pp_trackSkipToken( pPP, i, j, &szText, &iLine, &iCol );
+            fprintf( file, "%s { \"text\": ", j ? "," : "" );
+            hb_compAstWriteStr( file, szText ? szText : "" );
+            fprintf( file, ", \"line\": %d, \"col\": ", iLine );
+            if( iCol >= 0 )
+               fprintf( file, "%d", iCol );
+            else
+               fprintf( file, "null" );
+            fprintf( file, " }" );
+         }
+         fprintf( file, "%s] }", iToks ? " " : "" );
       }
       fprintf( file, "%s ],", iCount ? "\n  " : "" );
 

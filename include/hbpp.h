@@ -703,6 +703,23 @@ extern HB_EXPORT void    hb_pp_trackPos( PHB_PP_STATE pState, HB_BOOL fEnable );
 extern HB_EXPORT HB_BOOL hb_pp_tokenPos( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                                          int * piLine, int * piCol, HB_BOOL * pfMainFile );
 extern HB_EXPORT int     hb_pp_trackRuleCount( PHB_PP_STATE pState );
+/* ast-19: the regions conditional compilation SKIPPED, and the identifiers the
+   tokenizer had already cut from them.  Until this channel existed a skipped
+   branch left no trace anywhere - not in the .ppo, where it becomes blank
+   lines, not in the .ppt, not in the dump - so a tool could not even know that
+   its verification had stopped short of part of the file.  pszCond is the name
+   tested by the innermost #if[n]def, NULL when the region was opened by an
+   #if <expr>.  Report only: that text is not part of this program, and nothing
+   can prove what it means. */
+extern HB_EXPORT int     hb_pp_trackSkipCount( PHB_PP_STATE pState );
+extern HB_EXPORT HB_BOOL hb_pp_trackSkipGet( PHB_PP_STATE pState, int iSkip,
+                                             const char ** pszFile,
+                                             const char ** pszCond,
+                                             int * piFrom, int * piTo,
+                                             int * piTokens );
+extern HB_EXPORT HB_BOOL hb_pp_trackSkipToken( PHB_PP_STATE pState, int iSkip,
+                                               int iToken, const char ** pszText,
+                                               int * piLine, int * piCol );
 /* ast-16: piMode is the rule's HB_PP_CMP_* comparison mode (it replaces a bool
    that could not tell the #y... family from #command); pfDel says this record
    is an #un... directive, piDelOf is the rule it removed (-1 = it removed

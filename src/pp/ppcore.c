@@ -1039,6 +1039,35 @@ typedef struct
    int       iTokCount;
 } HB_PP_APPREC, * PHB_PP_APPREC;
 
+/* ast-19: a REGION the pp skipped by conditional compilation.
+   The pp reads those lines - the tokenizer cuts every one of them into tokens,
+   positions included - and then frees the list without a trace: the region
+   vanishes from the .ppo (it becomes blank lines), the .ppt says nothing about
+   it, and the dump never mentions it.  So a consumer that renames a symbol
+   edits only the branch that compiled, verifies THAT branch, and reports
+   success while the other configuration is left referring to the old name.
+   Nothing is computed anew here: this records what was already computed and
+   thrown away.  Gated by fTrackPos, like the rest of the tracking. */
+typedef struct
+{
+   char *    szText;
+   int       iLine;
+   int       iCol;            /* -1 = no source column */
+} HB_PP_SKIPTOKEN, * PHB_PP_SKIPTOKEN;
+
+typedef struct
+{
+   char *            szFile;
+   char *            szCond;  /* name tested by the innermost #if[n]def; NULL
+                                 when the region was opened by #if <expr>,
+                                 whose truth is not a single name */
+   int               iFrom;
+   int               iTo;
+   HB_PP_SKIPTOKEN * pToks;
+   int               iTokCount;
+   int               iTokAlloc;
+} HB_PP_SKIPREC, * PHB_PP_SKIPREC;
+
 typedef struct
 {
    HB_PP_RULEREC *  pRules;
@@ -1050,6 +1079,15 @@ typedef struct
    HB_PP_APPTOKEN * pToks;
    HB_SIZE          nTokCount;
    HB_SIZE          nTokAlloc;
+   /* ast-19: skipped regions, and the stack of tested names kept in step with
+      pState->pCondStack (pushed/popped from the same places, so it needs no
+      field in the public state struct) */
+   HB_PP_SKIPREC *  pSkips;
+   HB_SIZE          nSkipCount;
+   HB_SIZE          nSkipAlloc;
+   char **          pCondNames;
+   int              iCondNameCount;
+   int              iCondNameAlloc;
 } HB_PP_RULETBL, * PHB_PP_RULETBL;
 
 /* ast-15: while matching, the pp pairs each source token with the pattern
@@ -1176,6 +1214,33 @@ static void hb_pp_ruleTblFree( PHB_PP_STATE pState )
          if( pTbl->pToks[ n ].pFrom )
             hb_xfree( pTbl->pToks[ n ].pFrom );
       }
+      /* ast-19 */
+      for( n = 0; n < pTbl->nSkipCount; ++n )
+      {
+         int i;
+
+         if( pTbl->pSkips[ n ].szFile )
+            hb_xfree( pTbl->pSkips[ n ].szFile );
+         if( pTbl->pSkips[ n ].szCond )
+            hb_xfree( pTbl->pSkips[ n ].szCond );
+         for( i = 0; i < pTbl->pSkips[ n ].iTokCount; ++i )
+            hb_xfree( pTbl->pSkips[ n ].pToks[ i ].szText );
+         if( pTbl->pSkips[ n ].pToks )
+            hb_xfree( pTbl->pSkips[ n ].pToks );
+      }
+      {
+         int i;
+
+         for( i = 0; i < pTbl->iCondNameCount; ++i )
+         {
+            if( pTbl->pCondNames[ i ] )
+               hb_xfree( pTbl->pCondNames[ i ] );
+         }
+      }
+      if( pTbl->pSkips )
+         hb_xfree( pTbl->pSkips );
+      if( pTbl->pCondNames )
+         hb_xfree( pTbl->pCondNames );
       if( pTbl->pRules )
          hb_xfree( pTbl->pRules );
       if( pTbl->pApps )
@@ -1295,6 +1360,112 @@ static void hb_pp_ruleTokWalk( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
                            pToken->len, type, 0, 'l', pPos, pDrv, pToken );
       }
       pToken = pToken->pNext;
+   }
+}
+
+/* ast-19: the conditional-compilation bookkeeping.  The name stack is pushed
+   and popped from exactly the places that push and pop pState->pCondStack, so
+   the two stay in step without a field in the public state struct. */
+static PHB_PP_RULETBL hb_pp_trackTbl( PHB_PP_STATE pState )
+{
+   if( ! pState->pRuleTbl )
+      pState->pRuleTbl = hb_xgrabz( sizeof( HB_PP_RULETBL ) );
+
+   return ( PHB_PP_RULETBL ) pState->pRuleTbl;
+}
+
+static void hb_pp_skipCondPush( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
+{
+   PHB_PP_RULETBL pTbl = hb_pp_trackTbl( pState );
+
+   if( pTbl->iCondNameCount == pTbl->iCondNameAlloc )
+   {
+      pTbl->iCondNameAlloc += 16;
+      pTbl->pCondNames = ( char ** ) hb_xrealloc( pTbl->pCondNames,
+                                 pTbl->iCondNameAlloc * sizeof( char * ) );
+   }
+   pTbl->pCondNames[ pTbl->iCondNameCount++ ] =
+      ( pToken && HB_PP_TOKEN_TYPE( pToken->type ) == HB_PP_TOKEN_KEYWORD ) ?
+      hb_strdup( pToken->value ) : NULL;
+}
+
+static void hb_pp_skipCondPop( PHB_PP_STATE pState )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && pTbl->iCondNameCount > 0 )
+   {
+      char * szName = pTbl->pCondNames[ --pTbl->iCondNameCount ];
+      if( szName )
+         hb_xfree( szName );
+   }
+}
+
+/* the innermost tested name; NULL when it was an #if <expr> or nothing is open */
+static const char * hb_pp_skipCondTop( PHB_PP_STATE pState )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   return ( pTbl && pTbl->iCondNameCount > 0 ) ?
+          pTbl->pCondNames[ pTbl->iCondNameCount - 1 ] : NULL;
+}
+
+/* record one skipped physical line: its identifier tokens (the tokenizer has
+   already cut them, positions and all - see hb_pp_posTrack) go to the current
+   region, and consecutive lines of the same file under the same condition
+   extend it instead of opening a new one */
+static void hb_pp_skipLine( PHB_PP_STATE pState, PHB_PP_TOKEN pTokenList )
+{
+   PHB_PP_RULETBL pTbl;
+   PHB_PP_SKIPREC pRec;
+   PHB_PP_TOKEN pToken;
+   const char * szFile = pState->pFile ? pState->pFile->szFileName : NULL;
+   const char * szCond = hb_pp_skipCondTop( pState );
+   int iLine = pState->pFile ? pState->pFile->iCurrentLine : 0;
+
+   if( iLine <= 0 )
+      return;
+
+   pTbl = hb_pp_trackTbl( pState );
+   pRec = pTbl->nSkipCount > 0 ? &pTbl->pSkips[ pTbl->nSkipCount - 1 ] : NULL;
+
+   if( pRec == NULL || pRec->iTo + 1 < iLine ||
+       ( szFile == NULL ) != ( pRec->szFile == NULL ) ||
+       ( szFile && pRec->szFile && strcmp( szFile, pRec->szFile ) != 0 ) ||
+       ( szCond == NULL ) != ( pRec->szCond == NULL ) ||
+       ( szCond && pRec->szCond && strcmp( szCond, pRec->szCond ) != 0 ) )
+   {
+      if( pTbl->nSkipCount == pTbl->nSkipAlloc )
+      {
+         pTbl->nSkipAlloc += 32;
+         pTbl->pSkips = ( HB_PP_SKIPREC * ) hb_xrealloc( pTbl->pSkips,
+                                 pTbl->nSkipAlloc * sizeof( HB_PP_SKIPREC ) );
+      }
+      pRec = &pTbl->pSkips[ pTbl->nSkipCount++ ];
+      memset( pRec, 0, sizeof( HB_PP_SKIPREC ) );
+      pRec->szFile = szFile ? hb_strdup( szFile ) : NULL;
+      pRec->szCond = szCond ? hb_strdup( szCond ) : NULL;
+      pRec->iFrom  = iLine;
+   }
+   pRec->iTo = iLine;
+
+   for( pToken = pTokenList; pToken; pToken = pToken->pNext )
+   {
+      PHB_PP_POSITEM pPos;
+
+      if( HB_PP_TOKEN_TYPE( pToken->type ) != HB_PP_TOKEN_KEYWORD )
+         continue;
+      if( pRec->iTokCount == pRec->iTokAlloc )
+      {
+         pRec->iTokAlloc += 16;
+         pRec->pToks = ( HB_PP_SKIPTOKEN * ) hb_xrealloc( pRec->pToks,
+                                 pRec->iTokAlloc * sizeof( HB_PP_SKIPTOKEN ) );
+      }
+      pPos = hb_pp_posFind( pState, pToken );
+      pRec->pToks[ pRec->iTokCount ].szText = hb_strdup( pToken->value );
+      pRec->pToks[ pRec->iTokCount ].iLine  = pPos ? pPos->iLine : iLine;
+      pRec->pToks[ pRec->iTokCount ].iCol   = pPos ? pPos->iCol : -1;
+      pRec->iTokCount++;
    }
 }
 
@@ -6285,6 +6456,8 @@ static void hb_pp_condCompile( PHB_PP_STATE pState, PHB_PP_TOKEN pToken,
             fCond = ! fCond;
       }
       hb_pp_conditionPush( pState, fCond );
+      if( pState->fTrackPos )
+         hb_pp_skipCondPush( pState, pToken );   /* ast-19: the tested NAME */
    }
 }
 
@@ -6295,6 +6468,9 @@ static void hb_pp_condCompileIf( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
    hb_pp_processDefine( pState, &pToken->pNext );
    hb_pp_conditionPush( pState, hb_pp_calculateValue( pState, pToken->pNext,
                                              pState->iCondCompile != 0 ) != 0 );
+   /* ast-19: an #if <expr> has no single name to report */
+   if( pState->fTrackPos )
+      hb_pp_skipCondPush( pState, NULL );
 }
 
 static void hb_pp_condCompileElif( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
@@ -6491,7 +6667,11 @@ static void hb_pp_preprocessToken( PHB_PP_STATE pState )
          else if( hb_pp_tokenValueCmp( pToken, "ENDIF", HB_PP_CMP_DBASE ) )
          {
             if( pState->iCondCount )
+            {
                pState->iCondCompile = pState->pCondStack[ --pState->iCondCount ];
+               if( pState->fTrackPos )
+                  hb_pp_skipCondPop( pState );      /* ast-19 */
+            }
             else
                hb_pp_error( pState, 'E', HB_PP_ERR_DIRECTIVE_ENDIF, NULL );
          }
@@ -6510,7 +6690,12 @@ static void hb_pp_preprocessToken( PHB_PP_STATE pState )
          }
          else if( pState->iCondCompile )
          {
-            /* conditional compilation - other preprocessing and output disabled */
+            /* conditional compilation - other preprocessing and output disabled.
+               ast-19: the directive line IS tokenized before arriving here (the
+               rival #xcommand of the disabled branch is right in front of us);
+               record it instead of dropping it silently. */
+            if( pState->fTrackPos )
+               hb_pp_skipLine( pState, pState->pFile->pTokenList );
          }
          else if( hb_pp_tokenValueCmp( pToken, "INCLUDE", HB_PP_CMP_DBASE ) )
          {
@@ -6643,6 +6828,11 @@ static void hb_pp_preprocessToken( PHB_PP_STATE pState )
       }
       else if( pState->iCondCompile )
       {
+         /* ast-19: an ORDINARY line of the disabled branch - already cut into
+            tokens, about to be freed.  This is the call the rename of a plain
+            function needs: its hidden call site lives here. */
+         if( pState->fTrackPos )
+            hb_pp_skipLine( pState, pState->pFile->pTokenList );
          pState->pFile->iCurrentLine += hb_pp_tokenListFreeCmd( &pState->pFile->pTokenList );
       }
       else
@@ -6759,6 +6949,65 @@ int hb_pp_trackRuleCount( PHB_PP_STATE pState )
    PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
 
    return pTbl ? ( int ) pTbl->nRuleCount : 0;
+}
+
+/* ast-19: the regions conditional compilation skipped, and the identifiers
+   inside them.  A consumer must never EDIT what is in here - that text is not
+   part of this program and nothing can prove what it means - but it is what
+   lets the consumer know its own verification stopped short of it. */
+int hb_pp_trackSkipCount( PHB_PP_STATE pState )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   return pTbl ? ( int ) pTbl->nSkipCount : 0;
+}
+
+HB_BOOL hb_pp_trackSkipGet( PHB_PP_STATE pState, int iSkip,
+                            const char ** pszFile, const char ** pszCond,
+                            int * piFrom, int * piTo, int * piTokens )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && iSkip >= 0 && ( HB_SIZE ) iSkip < pTbl->nSkipCount )
+   {
+      PHB_PP_SKIPREC pRec = &pTbl->pSkips[ iSkip ];
+
+      if( pszFile )
+         *pszFile = pRec->szFile;
+      if( pszCond )
+         *pszCond = pRec->szCond;
+      if( piFrom )
+         *piFrom = pRec->iFrom;
+      if( piTo )
+         *piTo = pRec->iTo;
+      if( piTokens )
+         *piTokens = pRec->iTokCount;
+      return HB_TRUE;
+   }
+   return HB_FALSE;
+}
+
+HB_BOOL hb_pp_trackSkipToken( PHB_PP_STATE pState, int iSkip, int iToken,
+                              const char ** pszText, int * piLine, int * piCol )
+{
+   PHB_PP_RULETBL pTbl = ( PHB_PP_RULETBL ) pState->pRuleTbl;
+
+   if( pTbl && iSkip >= 0 && ( HB_SIZE ) iSkip < pTbl->nSkipCount )
+   {
+      PHB_PP_SKIPREC pRec = &pTbl->pSkips[ iSkip ];
+
+      if( iToken >= 0 && iToken < pRec->iTokCount )
+      {
+         if( pszText )
+            *pszText = pRec->pToks[ iToken ].szText;
+         if( piLine )
+            *piLine = pRec->pToks[ iToken ].iLine;
+         if( piCol )
+            *piCol = pRec->pToks[ iToken ].iCol;
+         return HB_TRUE;
+      }
+   }
+   return HB_FALSE;
 }
 
 /* ast-16: piMode replaces the old fX bool (which collapsed the #y... family
