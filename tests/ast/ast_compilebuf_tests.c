@@ -13,6 +13,20 @@
 #include "hbcomp.h"
 #include "hbasttrace.h"
 
+#if defined( _WIN32 )
+   #include <windows.h>
+   #include <direct.h>
+   #include <process.h>
+#else
+   #include <unistd.h>
+   #include <sys/stat.h>
+   #include <sys/types.h>
+#endif
+
+#ifndef PATH_MAX
+   #define PATH_MAX 4096
+#endif
+
 typedef struct
 {
    HB_SIZE tokenCount;
@@ -24,6 +38,67 @@ typedef struct
    bool sawExpectedModule;
    char * firstTokenModule;
 } HB_TRACE_CAPTURE;
+
+static void hb_trace_make_temp_dir( char * buffer, size_t size )
+{
+#if defined( _WIN32 )
+   char tempPath[ MAX_PATH ];
+    char tempName[ MAX_PATH ];
+    DWORD dwLen;
+    unsigned long attempt = 0;
+
+    assert_non_null( buffer );
+    dwLen = GetTempPathA( ( DWORD ) sizeof( tempPath ), tempPath );
+    assert_true( dwLen > 0 && dwLen < sizeof( tempPath ) );
+
+    do
+    {
+       unsigned long tick = GetTickCount();
+       DWORD pid = _getpid();
+
+       _snprintf( tempName, sizeof( tempName ), "%shb_ast_compilebuf_%lu_%lu", tempPath, ( unsigned long ) pid, ( unsigned long ) ( tick + attempt ) );
+       ++attempt;
+    }
+    while( !CreateDirectoryA( tempName, NULL ) && attempt < 1000 );
+
+    assert_true( attempt < 1000 );
+    assert_true( strlen( tempName ) + 1 <= size );
+    memcpy( buffer, tempName, strlen( tempName ) + 1 );
+#else
+   char tmpl[] = "/tmp/hb_ast_compilebuf_XXXXXX";
+   char * dir = mkdtemp( tmpl );
+
+   assert_non_null( dir );
+   assert_true( strlen( dir ) + 1 <= size );
+   memcpy( buffer, dir, strlen( dir ) + 1 );
+#endif
+}
+
+static void hb_trace_remove_temp_dir( const char * dir )
+{
+   if( dir && dir[ 0 ] )
+   {
+      const char * base = strrchr( dir, '/' );
+#if defined( _WIN32 )
+      const char * backslash = strrchr( dir, '\\' );
+      if( !base || ( backslash && backslash > base ) )
+         base = backslash;
+#endif
+      if( base )
+         ++base;
+      else
+         base = dir;
+
+      if( strncmp( base, "hb_ast", 6 ) != 0 )
+         return;
+
+#if defined( _WIN32 )
+      RemoveDirectoryA( dir );
+#else
+      rmdir( dir );
+#endif
+   }
+}
 
 static void hb_trace_capture_finish( PHB_COMP pComp, void * cargo )
 {
@@ -88,6 +163,50 @@ static void hb_trace_capture_finish( PHB_COMP pComp, void * cargo )
          pCapture->nodeKinds[ i ] = pNode->kind;
          pCapture->nodePhases[ i ] = pNode->phase;
       }
+   }
+}
+
+static void hb_trace_cleanup_outputs( const char * module, const char * tempDir )
+{
+   char base[ 256 ];
+   const char * pszName = module;
+   char * pExt;
+
+   if( module == NULL )
+      return;
+
+   if( ( pszName = strrchr( module, '/' ) ) != NULL )
+      ++pszName;
+#if defined( _WIN32 )
+   {
+      const char * pszAlt = strrchr( module, '\\' );
+      if( pszAlt && pszAlt[ 1 ] != '\0' )
+         pszName = pszAlt + 1;
+   }
+#endif
+
+   hb_snprintf( base, sizeof( base ), "%s", pszName );
+   pExt = strrchr( base, '.' );
+   if( pExt )
+      *pExt = '\0';
+
+   if( tempDir && tempDir[ 0 ] )
+   {
+      char tmpFile[ PATH_MAX ];
+
+      hb_snprintf( tmpFile, sizeof( tmpFile ), "%s/%s.c", tempDir, base );
+      remove( tmpFile );
+#if defined( _WIN32 )
+      hb_snprintf( tmpFile, sizeof( tmpFile ), "%s/%s.obj", tempDir, base );
+      remove( tmpFile );
+      hb_snprintf( tmpFile, sizeof( tmpFile ), "%s/%s.exe", tempDir, base );
+      remove( tmpFile );
+#else
+      hb_snprintf( tmpFile, sizeof( tmpFile ), "%s/%s.o", tempDir, base );
+      remove( tmpFile );
+#endif
+      hb_snprintf( tmpFile, sizeof( tmpFile ), "%s/%s.ppo", tempDir, base );
+      remove( tmpFile );
    }
 }
 
@@ -254,6 +373,12 @@ static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
    int iResult;
    const char * source = pCase->source;
    char * loadedSource = NULL;
+   char tempDir[ PATH_MAX ];
+   char tempSwitch[ PATH_MAX + 3 ];
+   const char * localArgv[ 16 ];
+   size_t localArgc = 0;
+   char moduleBase[ 256 ];
+   const char * moduleName = pCase->module;
 
    memset( &capture, 0, sizeof( capture ) );
    capture.expectedModule = pCase->module;
@@ -261,6 +386,27 @@ static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
 
    remove( pCase->outputFinal );
    remove( pCase->outputTemp );
+
+   hb_trace_make_temp_dir( tempDir, sizeof( tempDir ) );
+   hb_snprintf( tempSwitch, sizeof( tempSwitch ), "-o%s/", tempDir );
+
+   if( moduleName )
+   {
+      const char * slash = strrchr( moduleName, '/' );
+#if defined( _WIN32 )
+      const char * backslash = strrchr( moduleName, '\\' );
+      if( backslash && ( !slash || backslash > slash ) )
+         slash = backslash;
+#endif
+      if( slash && slash[ 1 ] != '\0' )
+         moduleName = slash + 1;
+   }
+   hb_snprintf( moduleBase, sizeof( moduleBase ), "%s", moduleName ? moduleName : "module" );
+   {
+      char * pExt = strrchr( moduleBase, '.' );
+      if( pExt )
+         *pExt = '\0';
+   }
 
    if( !source && pCase->sourcePath )
    {
@@ -270,7 +416,11 @@ static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
 
    assert_non_null( source );
 
-   iResult = hb_compMainExtModule( ( int ) argc, argv,
+   for( i = 0; i < argc; ++i )
+      localArgv[ localArgc++ ] = argv[ i ];
+   localArgv[ localArgc++ ] = tempSwitch;
+
+   iResult = hb_compMainExtModule( ( int ) localArgc, localArgv,
                                    NULL, NULL,
                                    pCase->module, source, 0,
                                    NULL, NULL, NULL,
@@ -293,19 +443,13 @@ static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
    }
    assert_true( capture.sawExpectedModule );
 
-   if( rename( pCase->outputTemp, pCase->outputFinal ) != 0 )
    {
-      int err = errno;
-
-      fail_msg( "rename(%s,%s) failed: %s",
-                pCase->outputTemp, pCase->outputFinal,
-                strerror( err ) );
-   }
-
-   {
-      FILE * fp = fopen( pCase->outputFinal, "r" );
+      char tempOutputPath[ PATH_MAX ];
+      FILE * fp;
       char buffer[ 64 ];
 
+      hb_snprintf( tempOutputPath, sizeof( tempOutputPath ), "%s/%s.c", tempDir, moduleBase );
+      fp = fopen( tempOutputPath, "r" );
       assert_non_null( fp );
       assert_non_null( fgets( buffer, sizeof( buffer ), fp ) );
       fclose( fp );
@@ -333,6 +477,8 @@ static void compilebuf_expect_trace( const HB_COMPILEBUF_CASE * pCase,
 
    hb_trace_capture_release( &capture );
    free( loadedSource );
+   hb_trace_cleanup_outputs( pCase->module, tempDir );
+   hb_trace_remove_temp_dir( tempDir );
 }
 
 static void compilebuf_generates_trace_events( void ** state )

@@ -11,6 +11,8 @@
 - Introduced `tests/ast/fixture_inline_real.prg`, a hbmk2-clean source demonstrating class INLINE methods alongside `INIT`/`EXIT` procedures, and wired it into the compile-buffer harness so INLINE node events are exercised against real-world code.
 - Updated `tests/ast/ast_compilebuf_tests.c` to load the new fixture, assert `HB_COMP_AST_NODE_INLINE` emission, and avoid hard-coded snippets by reading the `.prg` file directly.
 - Documented fixture regeneration and coverage expectations in `doc/agents/ast/README-AST.md` and `doc/agents/ast/instrumentation-plan.md`; status board reflects the new permanent test asset.
+- Extended the CLI/JSON regression harness (`tests/ast/ast_hbmk_ast_tests.c`) with the same fixture and checked in the golden dump at `tests/ast/fixtures/fixture_inline_real.ast.json` to keep trace parity visible across runs.
+- Reworked the CLI regression harness to compile via `hbmk2` in a temp workdir and then stream AST JSON from the compiler with `HB_AST_TRACE`/`HB_AST_TRACE_DUMP`, keeping the workflow close to developer usage without leaving temporary artefacts.
 - Validation: `hbmk2 -w3 tests/ast/fixture_inline_real.prg`.
 
 ## 2025-10-26 Planning session (Compiler Instrumentation Agent)

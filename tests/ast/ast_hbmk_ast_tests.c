@@ -9,17 +9,68 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
+#include <limits.h>
+
 #if defined( _WIN32 )
-   #include <io.h>
-   #define HB_DUP   _dup
-   #define HB_DUP2  _dup2
-   #define HB_CLOSE _close
+   #include <direct.h>
+   #define HB_GETCWD _getcwd
 #else
    #include <unistd.h>
-   #define HB_DUP   dup
-   #define HB_DUP2  dup2
-   #define HB_CLOSE close
+   #define HB_GETCWD getcwd
 #endif
+
+#ifndef PATH_MAX
+   #define PATH_MAX 4096
+#endif
+
+static const char * hb_astRootPrefix( void )
+{
+   static char prefix[ PATH_MAX * 2 ];
+   static int initialized = 0;
+
+   if( !initialized )
+   {
+      if( HB_GETCWD( prefix, sizeof( prefix ) - 2 ) != NULL )
+      {
+         size_t len;
+
+         for( len = 0; prefix[ len ] != '\0'; ++len )
+         {
+            if( prefix[ len ] == '\\' )
+               prefix[ len ] = '/';
+         }
+
+         len = strlen( prefix );
+         if( len > 0 && prefix[ len - 1 ] != '/' )
+         {
+            prefix[ len ] = '/';
+            prefix[ len + 1 ] = '\0';
+         }
+      }
+      else
+         prefix[ 0 ] = '\0';
+
+      initialized = 1;
+   }
+
+   return prefix;
+}
+
+static void hb_astStripRootPrefix( char * text )
+{
+   const char * prefix = hb_astRootPrefix();
+   size_t prefixLen = strlen( prefix );
+   char * pos;
+
+   if( prefixLen == 0 )
+      return;
+
+   while( ( pos = strstr( text, prefix ) ) != NULL )
+   {
+      memmove( pos, pos + prefixLen, strlen( pos + prefixLen ) + 1 );
+   }
+}
 
 static char * hb_astLoadFile( const char * path )
 {
@@ -44,112 +95,63 @@ static char * hb_astLoadFile( const char * path )
    return buffer;
 }
 
-static char * hb_astReadStream( FILE * fp )
-{
-   size_t nLen;
-   char * buffer;
-
-   assert_return_code( fseek( fp, 0, SEEK_END ), 0 );
-   nLen = ( size_t ) ftell( fp );
-   assert_return_code( fseek( fp, 0, SEEK_SET ), 0 );
-
-   buffer = ( char * ) malloc( nLen + 1 );
-   assert_non_null( buffer );
-   if( nLen )
-   {
-      size_t nRead = fread( buffer, 1, nLen, fp );
-      assert_int_equal( nRead, nLen );
-   }
-   buffer[ nLen ] = '\0';
-   return buffer;
-}
-
-static void hb_astCleanupArtifacts( const char * prgPath )
-{
-   char base[256];
-   char * pExt;
-   const char * pszBase = strrchr( prgPath, '/' );
-   char staged[512];
-   char local[256];
-
-   if( pszBase )
-      pszBase++;
-   else
-      pszBase = prgPath;
-
-   hb_strncpy( base, pszBase, sizeof( base ) - 1 );
-   pExt = strrchr( base, '.' );
-   if( pExt )
-      *pExt = '\0';
-
-   hb_snprintf( local, sizeof( local ), "%s.c", base );
-   hb_snprintf( staged, sizeof( staged ), "tests/ast/%s.c", base );
-
-   remove( local );
-   remove( staged );
-}
-
 static char * hb_astCaptureFixtureDump( const char * prgPath, HB_BOOL fSingleModule )
 {
-   const char * argv[6];
-   size_t argc = 0;
-   char * actualRaw;
-   char * actual;
+   char command[ PATH_MAX * 2 ];
+   FILE * pipe;
+   char buffer[ 512 ];
+   char * output = NULL;
+   size_t total = 0;
+   int status;
    char * jsonStart;
-   FILE * capture;
-   int savedStdout;
-   int iStatus;
+   char * actual;
 
-   argv[ argc++ ] = "hb_comp";
    if( fSingleModule )
-      argv[ argc++ ] = "-m";
-   argv[ argc++ ] = "-iinclude";
-   argv[ argc++ ] = "--ast-trace";
-   argv[ argc++ ] = "--ast-trace-dump=-";
-   argv[ argc++ ] = prgPath;
+      snprintf( command, sizeof( command ),
+                "bin/linux/gcc/hbmk2 -w3 -q -incpath=include "
+                "-prgflag=-m -prgflag=--ast-trace -prgflag=--ast-trace-dump=- \"%s\" 2>&1",
+                prgPath );
+   else
+      snprintf( command, sizeof( command ),
+                "bin/linux/gcc/hbmk2 -w3 -q -incpath=include "
+                "-prgflag=--ast-trace -prgflag=--ast-trace-dump=- \"%s\" 2>&1",
+                prgPath );
 
-   hb_astCleanupArtifacts( prgPath );
+   pipe = popen( command, "r" );
+   assert_non_null( pipe );
 
-   capture = tmpfile();
-   assert_non_null( capture );
-   fflush( stdout );
-   savedStdout = HB_DUP( fileno( stdout ) );
-   assert_true( savedStdout >= 0 );
-   assert_true( HB_DUP2( fileno( capture ), fileno( stdout ) ) >= 0 );
-
-   iStatus = hb_compMainExtModule( ( int ) argc, argv,
-                                   NULL, NULL,
-                                   NULL, NULL, 0,
-                                   NULL, NULL, NULL, NULL, NULL );
-
-   fflush( stdout );
-   assert_true( HB_DUP2( savedStdout, fileno( stdout ) ) >= 0 );
-   HB_CLOSE( savedStdout );
-
-   if( iStatus != EXIT_SUCCESS )
+   while( fgets( buffer, sizeof( buffer ), pipe ) != NULL )
    {
-      char * dump = hb_astReadStream( capture );
+      size_t len = strlen( buffer );
+      char * tmp = ( char * ) realloc( output, total + len + 1 );
 
-      fprintf( stderr, "%s", dump );
-      free( dump );
-      fclose( capture );
-      hb_astCleanupArtifacts( prgPath );
-      fail_msg( "hb_compMainExtModule() returned %d", iStatus );
+      assert_non_null( tmp );
+      output = tmp;
+      memcpy( output + total, buffer, len );
+      total += len;
+      output[ total ] = '\0';
    }
 
-   actualRaw = hb_astReadStream( capture );
-   fclose( capture );
+   status = pclose( pipe );
+#if defined( WIFEXITED ) && defined( WEXITSTATUS )
+   assert_true( WIFEXITED( status ) );
+   assert_int_equal( WEXITSTATUS( status ), 0 );
+#else
+   assert_int_equal( status, 0 );
+#endif
 
-   jsonStart = strchr( actualRaw, '{' );
+   assert_non_null( output );
+
+   jsonStart = strchr( output, '{' );
    assert_non_null( jsonStart );
    actual = ( char * ) malloc( strlen( jsonStart ) + 1 );
    assert_non_null( actual );
    memcpy( actual, jsonStart, strlen( jsonStart ) + 1 );
-   free( actualRaw );
 
-   hb_astCleanupArtifacts( prgPath );
+   hb_astStripRootPrefix( actual );
 
-    /* expected will be handled by callers */
+   free( output );
+
    return actual;
 }
 
@@ -183,7 +185,8 @@ static const HB_AST_FIXTURE s_cases[] =
    { "tests/ast/fixture_includes.prg", "tests/ast/fixtures/fixture_includes.ast.json" },
    { "tests/ast/fixture_compat_clipper.prg", "tests/ast/fixtures/fixture_compat_clipper.ast.json" },
    { "tests/ast/fixture_compat_harbour.prg", "tests/ast/fixtures/fixture_compat_harbour.ast.json" },
-   { "tests/ast/fixture_macro_expansion.prg", "tests/ast/fixtures/fixture_macro_expansion.ast.json" }
+   { "tests/ast/fixture_macro_expansion.prg", "tests/ast/fixtures/fixture_macro_expansion.ast.json" },
+   { "tests/ast/fixture_inline_real.prg", "tests/ast/fixtures/fixture_inline_real.ast.json" }
 };
 
 static void hb_astCompileFixture_default( void ** state )

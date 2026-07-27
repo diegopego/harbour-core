@@ -13,6 +13,8 @@
   - Delivered differentiated node kinds for `FUNCTION`/`INIT`/`EXIT` via `hb_compAstTraceFunctionKind()`, updated parser actions, and emitted INLINE node events from `hb_compInlineAdd()`.
   - Extended cmocka coverage (function scope mapping, inline node naming) and compile-buffer tests with INIT/EXIT fixtures; regenerated `tests/ast/compilebuf_init_exit.c`.
   - Added `tests/ast/fixture_inline_real.prg` to exercise class-level INLINE methods alongside `INIT`/`EXIT` procedures; compile-buffer harness now asserts INLINE node emission against the real source.
+  - Folded the same fixture into the CLI/JSON comparison harness (`tests/ast/ast_hbmk_ast_tests.c`) with a golden dump (`tests/ast/fixtures/fixture_inline_real.ast.json`).
+  - Refreshed the CLI regression harness to run `hbmk2` in a throwaway workspace before capturing JSON via the compiler with `HB_AST_TRACE`/`HB_AST_TRACE_DUMP`, mirroring developer builds while keeping the tree clean.
   - Docs refreshed (`instrumentation-plan.md`) to document new helpers; recorded results in `progress.md`.
 - **Session 2 – Macro ancestry propagation for statements**
   - Thread `HB_PP_TRACEINFO` from macro-expanded reductions into node events, adding `expansionId`/`parent`/`depth` to `HB_COMP_AST_TRACE_NODE_EVENT` and JSON output.

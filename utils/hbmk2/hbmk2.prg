@@ -527,7 +527,9 @@ EXTERNAL hbmk_KEYW
 #define _HBMK_lShellMode        157
 #define _HBMK_bOut              158
 
-#define _HBMK_MAX_              158
+#define _HBMK_aOPTPRG_AST       159
+
+#define _HBMK_MAX_              159
 
 #define _HBMK_DEP_CTRL_MARKER   ".control."  /* must be an invalid path */
 
@@ -1036,6 +1038,7 @@ STATIC PROCEDURE hbmk_init_stage2( hbmk )
    hbmk[ _HBMK_aCPP ] := {}
    hbmk[ _HBMK_hDEPTS ] := { => }
    hbmk[ _HBMK_aOPTPRG ] := {}
+   hbmk[ _HBMK_aOPTPRG_AST ] := {}
    hbmk[ _HBMK_aOPTC ] := {}
    hbmk[ _HBMK_aOPTCUSER ] := {}
    hbmk[ _HBMK_aOPTCX ] := {}
@@ -1402,6 +1405,10 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
 
    LOCAL cCommand
    LOCAL aCommand
+   LOCAL aUserFlags
+   LOCAL aUserAstFlags
+   LOCAL aAllFlags
+   LOCAL aFlagSets
    LOCAL cOpt_CompC
    LOCAL cOpt_CompCPass
    LOCAL cOpt_CompCLoop
@@ -3238,12 +3245,17 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
 
          cParam := MacroProc( hbmk, SubStr( cParam, Len( "-prgflag=" ) + 1 ), aParam[ _PAR_cFileName ] )
          IF Left( cParam, 1 ) $ cOptPrefix
-            IF SubStr( cParamL, 2 ) == "gh"
-               hbmk[ _HBMK_lStopAfterHarbour ] := .T.
-               hbmk[ _HBMK_lCreateHRB ] := .T.
-            ENDIF
-            IF !( SubStr( cParamL, 2, 1 ) == "o" )
-               AAddNewNotEmpty( hbmk[ _HBMK_aOPTPRG ], hbmk_hb_DirSepToOS( cParam, 2 ) )
+            IF hbmk_isAstTraceFlag( cParam )
+               hbmk_appendAstFlag( hbmk, hbmk_hb_DirSepToOS( cParam, 2 ) )
+            ELSE
+               cParamL := Lower( cParam )
+               IF SubStr( cParamL, 2 ) == "gh"
+                  hbmk[ _HBMK_lStopAfterHarbour ] := .T.
+                  hbmk[ _HBMK_lCreateHRB ] := .T.
+               ENDIF
+               IF !( SubStr( cParamL, 2, 1 ) == "o" )
+                  AAddNewNotEmpty( hbmk[ _HBMK_aOPTPRG ], hbmk_hb_DirSepToOS( cParam, 2 ) )
+               ENDIF
             ENDIF
          ENDIF
 
@@ -3500,6 +3512,14 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
 
       CASE Left( cParam, 1 ) $ cOptPrefix
 
+         cParam := MacroProc( hbmk, cParam, aParam[ _PAR_cFileName ] )
+         cParamL := Lower( cParam )
+
+         IF hbmk_isAstTraceFlag( cParam )
+            hbmk_appendAstFlag( hbmk, hbmk_hb_DirSepToOS( cParam, 2 ) )
+            LOOP
+         ENDIF
+
          DO CASE
          CASE lAcceptLDFlag
             AAddWithWarning( hbmk, hbmk[ _HBMK_aOPTL ], hbmk_hb_DirSepToOS( cParam, 2 ), aParam, .F. )
@@ -3532,7 +3552,7 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
             IF nHarbourPPO >= 2
                hbmk[ _HBMK_lCreatePPO ] := .T.
             ENDIF
-            AAddNewNotEmpty( hbmk[ _HBMK_aOPTPRG ], hbmk_hb_DirSepToOS( MacroProc( hbmk, cParam, aParam[ _PAR_cFileName ] ), 2 ) )
+            AAddNewNotEmpty( hbmk[ _HBMK_aOPTPRG ], hbmk_hb_DirSepToOS( cParam, 2 ) )
          ENDCASE
 
       CASE hbmk[ _HBMK_lCreateImpLib ]
@@ -3736,14 +3756,18 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
    ENDIF
 
    IF lHarbourInfo
+      aFlagSets := hbmk_userHarbourFlagsSplit()
+      aUserFlags := aFlagSets[ 1 ]
+      aUserAstFlags := aFlagSets[ 2 ]
+      aAllFlags := ArrayAJoin( { aUserFlags, hbmk[ _HBMK_aOPTPRG ], hbmk[ _HBMK_aOPTPRG_AST ], aUserAstFlags } )
       IF hbmk[ _HBMK_nHBMODE ] == _HBMODE_NATIVE
          /* Use integrated compiler */
-         hbmk_hb_compile( hbmk, "harbour", hbmk[ _HBMK_aOPTPRG ] )
+         hbmk_hb_compile( hbmk, "harbour", aAllFlags )
       ELSE
          /* Use external compiler */
          cCommand := ;
             FNameEscape( hb_DirSepAdd( hb_DirSepToOS( hbmk[ _HBMK_cHB_INSTALL_BIN ] ) ) + cBin_CompPRG + cBinExt, hbmk[ _HBMK_nCmd_Esc ] ) + ;
-            iif( Empty( hbmk[ _HBMK_aOPTPRG ] ), "", " " + ArrayToList( hbmk[ _HBMK_aOPTPRG ] ) )
+            iif( Empty( aAllFlags ), "", " " + ArrayToList( aAllFlags ) )
          hb_processRun( AllTrim( cCommand ) )
       ENDIF
       RETURN _EXIT_OK
@@ -6112,12 +6136,18 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
          aThreads := {}
          FOR EACH aTO_DO IN ArraySplit( l_aPRG_TO_DO, l_nJOBS )
 
-            aCommand := ArrayAJoin( { ;
-               { iif( hbmk[ _HBMK_lCreateLib ] .OR. hbmk[ _HBMK_lCreateDyn ], "-n1", "-n2" ) }, ;
+         aFlagSets := hbmk_userHarbourFlagsSplit()
+         aUserFlags := aFlagSets[ 1 ]
+         aUserAstFlags := aFlagSets[ 2 ]
+
+         aCommand := ArrayAJoin( { ;
+                { iif( hbmk[ _HBMK_lCreateLib ] .OR. hbmk[ _HBMK_lCreateDyn ], "-n1", "-n2" ) }, ;
                aTO_DO, ;
                iif( hbmk[ _HBMK_lBLDFLGP ], { hb_Version( HB_VERSION_FLAG_PRG ) }, {} ), ;
-               ListToArray( iif( Empty( GetEnv( "HB_USER_PRGFLAGS" ) ), "", " " + GetEnv( "HB_USER_PRGFLAGS" ) ) ), ;
-               hbmk[ _HBMK_aOPTPRG ] } )
+               aUserFlags, ;
+               hbmk[ _HBMK_aOPTPRG ], ;
+               hbmk[ _HBMK_aOPTPRG_AST ], ;
+               aUserAstFlags } )
 
             IF hbmk[ _HBMK_lTRACE ]
                IF ! hbmk[ _HBMK_lQuiet ]
@@ -6190,13 +6220,17 @@ STATIC FUNCTION __hbmk( aArgs, nArgTarget, nLevel, /* @ */ lPause, /* @ */ lExit
 
          FOR EACH tmp IN tmp1
 
+            aFlagSets := hbmk_userHarbourFlagsSplit()
+            aUserFlags := aFlagSets[ 1 ]
+            aUserAstFlags := aFlagSets[ 2 ]
+            aAllFlags := ArrayAJoin( { aUserFlags, hbmk[ _HBMK_aOPTPRG ], hbmk[ _HBMK_aOPTPRG_AST ], aUserAstFlags } )
+
             cCommand := ;
                FNameEscape( hb_DirSepAdd( hb_DirSepToOS( hbmk[ _HBMK_cHB_INSTALL_BIN ] ) ) + cBin_CompPRG + cBinExt, hbmk[ _HBMK_nCmd_Esc ] ) + ;
                " " + iif( hbmk[ _HBMK_lCreateLib ] .OR. hbmk[ _HBMK_lCreateDyn ], "-n1", iif( hbmk[ _HBMK_nHBMODE ] != _HBMODE_NATIVE, "-n", "-n2" ) ) + ;
                " " + iif( _HBMODE_IS_XHB( hbmk[ _HBMK_nHBMODE ] ), FNameEscape( tmp, hbmk[ _HBMK_nCmd_Esc ], hbmk[ _HBMK_nCmd_FNF ] ), tmp ) + ;
                iif( hbmk[ _HBMK_lBLDFLGP ], " " + hb_Version( HB_VERSION_FLAG_PRG ), "" ) + ;
-               iif( Empty( GetEnv( "HB_USER_PRGFLAGS" ) ), "", " " + GetEnv( "HB_USER_PRGFLAGS" ) ) + ;
-               iif( Empty( hbmk[ _HBMK_aOPTPRG ] ), "", " " + ArrayToList( hbmk[ _HBMK_aOPTPRG ] ) )
+               iif( Empty( aAllFlags ), "", " " + ArrayToList( aAllFlags ) )
 
             cCommand := AllTrim( cCommand )
 
@@ -8462,6 +8496,9 @@ STATIC FUNCTION FindNewerHeaders( hbmk, cFileName, tTimeParent, lCMode, cBin_Com
    LOCAL cModule
    LOCAL cDependency
    LOCAL aCommand
+   LOCAL aFlagSets
+   LOCAL aUserFlags
+   LOCAL aUserAstFlags
 
    THREAD STATIC t_pRegexInclude := NIL
    THREAD STATIC t_hExclStd := NIL
@@ -8500,11 +8537,16 @@ STATIC FUNCTION FindNewerHeaders( hbmk, cFileName, tTimeParent, lCMode, cBin_Com
          _hbmk_OutStd( hbmk, hb_StrFormat( "debuginc: Calling Harbour compiler to detect dependencies of %1$s", cFileName ) )
       ENDIF
 
+      aFlagSets := hbmk_userHarbourFlagsSplit()
+      aUserFlags := aFlagSets[ 1 ]
+      aUserAstFlags := aFlagSets[ 2 ]
+      HB_SYMBOL_UNUSED( aUserAstFlags )
+
       aCommand := ArrayAJoin( { { "-q0", "-sm" }, ;
                                 { iif( hbmk[ _HBMK_lCreateLib ] .OR. hbmk[ _HBMK_lCreateDyn ], "-n1", "-n2" ) }, ;
                                 { cFileName }, ;
                                 iif( hbmk[ _HBMK_lBLDFLGP ], { hb_Version( HB_VERSION_FLAG_PRG ) }, {} ), ;
-                                ListToArray( iif( Empty( GetEnv( "HB_USER_PRGFLAGS" ) ), "", " " + GetEnv( "HB_USER_PRGFLAGS" ) ) ), ;
+                                aUserFlags, ;
                                 hbmk[ _HBMK_aOPTPRG ] } )
 
       IF ! HB_ISSTRING( tmp := hbmk_hb_compileBuf( hbmk, "harbour", aCommand ) )
@@ -10174,6 +10216,55 @@ STATIC FUNCTION AAddNewNotEmpty( array, xItem )
    ENDIF
 
    RETURN array
+
+STATIC FUNCTION hbmk_isAstTraceFlag( cFlag )
+
+   LOCAL cLower
+
+   IF ! HB_ISSTRING( cFlag ) .OR. Empty( cFlag )
+      RETURN .F.
+   ENDIF
+
+   cLower := Lower( cFlag )
+
+   IF Left( cLower, 2 ) == "--"
+      cLower := SubStr( cLower, 3 )
+   ELSEIF Left( cLower, 1 ) == "-" .OR. Left( cLower, 1 ) == "/"
+      cLower := SubStr( cLower, 2 )
+   ELSE
+      RETURN .F.
+   ENDIF
+
+   RETURN hb_LeftEq( cLower, "ast-trace" ) .OR. ;
+          hb_LeftEq( cLower, "no-ast-trace" ) .OR. ;
+          hb_LeftEq( cLower, "ast-trace-dump" ) .OR. ;
+          hb_LeftEq( cLower, "ast-trace-diagnostics" ) .OR. ;
+          hb_LeftEq( cLower, "no-ast-trace-diagnostics" )
+
+STATIC PROCEDURE hbmk_appendAstFlag( hbmk, cFlag )
+
+   AAddNewNotEmpty( hbmk[ _HBMK_aOPTPRG_AST ], cFlag )
+
+STATIC FUNCTION hbmk_userHarbourFlagsSplit()
+
+   LOCAL cEnv := GetEnv( "HB_USER_PRGFLAGS" )
+   LOCAL aGeneral := {}
+   LOCAL aAst := {}
+   LOCAL aFlags
+   LOCAL cFlag
+
+   IF ! Empty( cEnv )
+      aFlags := ListToArray( " " + cEnv )
+      FOR EACH cFlag IN aFlags
+         IF hbmk_isAstTraceFlag( cFlag )
+            AAddNewNotEmpty( aAst, cFlag )
+         ELSE
+            AAdd( aGeneral, cFlag )
+         ENDIF
+      NEXT
+   ENDIF
+
+   RETURN { aGeneral, aAst }
 
 #if 0
 STATIC FUNCTION AAddNewAtTop( array, xItem )
