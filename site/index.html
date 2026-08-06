@@ -310,14 +310,16 @@ src/compiler/compast.c    <span class="ok">a NEW file</span>  <span class="dim">
 src/pp/ppcore.c           <span class="ok">the tracking tables</span>  <span class="dim">— positions, rules, derivation.
                           THE BIGGEST INTRUSION, and the one we most want reviewed.</span>
 src/compiler/hbmain.c     <span class="dim">the -kt check generation, plus one-line dump hooks</span>
-src/compiler/harbour.y    <span class="dim">block params keep their declared class; two productions</span>
+src/compiler/harbour.y    <span class="dim">block params keep their declared class; two productions.
+                          Also turns on bison locations, carrying the token index
+                          a site was written as - no $N changed type.</span>
 src/vm/classes.c          <span class="dim">the runtime helper the -kt checks call</span>
 <span class="dim">…and a handful of headers.</span>
 </pre>
     </div>
     <p class="col" style="font-size:.86rem;color:var(--text-dim)">Regenerated parser output
-    (<code>.yyc</code>/<code>.yyh</code>) excluded — it is bison's, not ours. <b>Ninety lines removed
-    in total</b>: this branch adds, it does not rearrange.</p>
+    (<code>.yyc</code>/<code>.yyh</code>) excluded — it is bison's, not ours. <b>A hundred and thirty lines removed
+    in total</b>, against five thousand added: this branch adds, it does not rearrange.</p>
   </section>
 
   <section class="col">
