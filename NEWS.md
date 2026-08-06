@@ -1,6 +1,6 @@
-<!-- changelog-baseline: harbour-core@4c02f40f44 (feature/compiler-ast-dump) -->
+<!-- changelog-baseline: harbour-core@c37f8b7c93 (feature/compiler-ast-dump) -->
 <!-- Delta pointer. Everything after this commit is NOT yet described here.
-     To catch up:  git log 4c02f40f44..HEAD   (see § Maintaining this file). -->
+     To catch up:  git log c37f8b7c93..HEAD   (see § Maintaining this file). -->
 
 # NEWS — `feature/compiler-ast-dump`
 
@@ -30,6 +30,62 @@ regexes. Neither costs you anything if you don't ask for it: without the switch,
 compiled program is **identical, byte for byte**, to the one stock Harbour produces.
 
 ---
+
+## 2026-08-06 — `-x`: a recorded use now carries the token it was written as
+
+Every variable use, function call and message send the dump records already told you which
+line it was on. It could not tell you **which word**, and on a line where the same name
+appears more than once that is the whole question:
+
+```harbour
+nTotal := 0 + Eval( {| x | nTotal += x }, 1 ) + nTotal
+```
+
+Three words, three columns. A consumer had a line and four records, and no way to pair
+them up. Pairing them **by counting** — the second record must be the second word — looks
+reasonable and is wrong: records come out in the order the compiler walks the expression,
+words come in the order you typed them, and for an assignment the target is walked last.
+
+Now each of the three site channels carries the position of the token the parser actually
+built that node from, and it is carried, not reconstructed: the scanner stamps every
+symbol it hands over with the index of the token that starts it, the parser keeps the
+stamps on its location stack in step with the semantic values, and the rule action reads
+it back. Nothing counts and nothing searches the token stream for a matching name.
+
+Two consequences worth naming:
+
+- **a statement continued with `;`** reports the line the name is written on. The line
+  the compiler was standing on when it recorded — the last physical line of the statement
+  — is still there and still means the same thing; the written line appears beside it
+  only when the two differ, so its mere presence tells a consumer "this is not where the
+  other field says".
+- **an optimisation no longer erases a word you wrote.** `var := var + expr` is rewritten
+  to `var += expr`, and the node for the middle `var` is released before code generation
+  ever sees it. The pcode is right; the record of your source was missing an occurrence.
+  It is recorded now, before the rewrite discards it.
+
+**What stays absent, deliberately.** A name written in an `.ch` — anything a
+`#command`/`#xcommand` produced — has no column, because a column in another file is not
+a column in this one. Measured on `tbrowse.prg` in this tree, that is 40% of all sites:
+in Harbour it is not a corner case, it is how real code is written. Absent is the honest
+answer; the next step is to publish which directive application a site came from, so a
+tool can point at the line you actually wrote.
+
+## 2026-07-27 — `-x`: the regions conditional compilation skipped
+
+A branch the preprocessor skips used to leave no trace anywhere — the `.ppo` shows blank
+lines, the `.ppt` says nothing, the dump never mentioned it. The preprocessor does read
+those lines and then frees them without recording anything.
+
+That silence has a cost for any tool acting on the dump: it renames what compiled,
+verifies what compiled, and reports success — while the *other* configuration is left
+calling a name that no longer exists. The verification was never wrong; it had no way to
+state the scope it covered.
+
+The dump now records what had already been computed: the region (file, line range, and
+the name the innermost `#if[n]def` tested) and the identifiers inside it. **Report only**
+— that text never became a symbol, so a word spelled like one is not known to *be* one.
+Proving otherwise would mean compiling the other branch, which is a different program.
 
 ## 2026-07-22 — `-x`: three facts the dump used to throw away
 
