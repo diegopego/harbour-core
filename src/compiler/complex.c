@@ -53,6 +53,9 @@
 #ifdef HB_COMP_YYSTYPE_IS_DECLARED
 #  define YYSTYPE HB_COMP_YYSTYPE
 #endif
+#ifdef HB_COMP_YYLTYPE_IS_DECLARED
+#  define YYLTYPE HB_COMP_YYLTYPE
+#endif
 
 #define HB_PP_LEX_SELF(t)     ( HB_PP_TOKEN_TYPE((t)->type) == HB_PP_TOKEN_SEND && \
                                 (t)->pNext && (t)->pNext->spaces == 0 && \
@@ -510,7 +513,7 @@ static int hb_comp_funcStart( HB_COMP_DECL, YYSTYPE * yylval_ptr )
    return HB_COMP_PARAM->pLex->iState;
 }
 
-extern int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL );
+extern int hb_comp_yylex( YYSTYPE * yylval_ptr, YYLTYPE * yylloc_ptr, HB_COMP_DECL );
 
 /* pull the next preprocessed token, recording it (with its source
    position) in the AST dump when -x is active */
@@ -524,10 +527,20 @@ static PHB_PP_TOKEN hb_comp_tokenGet( PHB_COMP_LEX pLex, HB_COMP_DECL )
    return pToken;
 }
 
-int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
+int hb_comp_yylex( YYSTYPE * yylval_ptr, YYLTYPE * yylloc_ptr, HB_COMP_DECL )
 {
    PHB_COMP_LEX pLex = HB_COMP_PARAM->pLex;
    PHB_PP_TOKEN pToken;
+
+   /* ast-21: stamp the symbol about to be returned with the index of the
+      token that starts it.  Everything the parser later needs to know about
+      WHERE a name was written travels from here: bison carries the stamp on
+      its location stack, and a rule action reads it back as @N.
+
+      A yylex call that returns a synthesized symbol (the function opener, the
+      closing ';' of a block) consumes no token; it keeps the index of the last
+      real one, which is where the compiler in fact stands. */
+   hb_compAstTokMark( HB_COMP_PARAM, yylloc_ptr );
 
    if( ! HB_COMP_PARAM->fExit )
    {
@@ -554,6 +567,11 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
    }
 
    pToken = hb_comp_tokenGet( pLex, HB_COMP_PARAM );
+
+   /* ast-21: THIS is the token that starts the symbol being returned.  The
+      switch below may pull further tokens (a compound operator, an alias, a
+      macro); the stamp stays on the first, which is where the name is written */
+   hb_compAstTokMark( HB_COMP_PARAM, yylloc_ptr );
 
    if( pLex->fEol )
    {
@@ -1415,6 +1433,7 @@ int hb_comp_yylex( YYSTYPE * yylval_ptr, HB_COMP_DECL )
 void hb_compParserRun( HB_COMP_DECL )
 {
    YYSTYPE yylval;
+   YYLTYPE yylloc;   /* ast-21: the scanner stamps it; this scan discards it */
    int iToken;
 
    while( ! HB_COMP_PARAM->fExit && HB_COMP_PARAM->iErrorCount == 0 )
@@ -1427,14 +1446,14 @@ void hb_compParserRun( HB_COMP_DECL )
       }
       else
       {
-         iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
+         iToken = hb_comp_yylex( &yylval, &yylloc, HB_COMP_PARAM );
          if( iToken == 0 )
             break;
          if( iToken == DOIDENT )
             hb_compModuleAdd( HB_COMP_PARAM, yylval.string, HB_FALSE );
          else if( iToken == PROCREQ )
          {
-            iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
+            iToken = hb_comp_yylex( &yylval, &yylloc, HB_COMP_PARAM );
             if( iToken == LITERAL )
             {
                const char * szFile, * szExt = NULL;
@@ -1443,10 +1462,10 @@ void hb_compParserRun( HB_COMP_DECL )
                   szFile = hb_compIdentifierNew( HB_COMP_PARAM, yylval.valChar.string, HB_IDENT_FREE );
                else
                   szFile = yylval.valChar.string;
-               iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
+               iToken = hb_comp_yylex( &yylval, &yylloc, HB_COMP_PARAM );
                if( iToken == '+' )
                {
-                  iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
+                  iToken = hb_comp_yylex( &yylval, &yylloc, HB_COMP_PARAM );
                   if( iToken == LITERAL )
                   {
                      if( yylval.valChar.dealloc )
@@ -1454,7 +1473,7 @@ void hb_compParserRun( HB_COMP_DECL )
                      else
                         szExt = yylval.valChar.string;
                   }
-                  iToken = hb_comp_yylex( &yylval, HB_COMP_PARAM );
+                  iToken = hb_comp_yylex( &yylval, &yylloc, HB_COMP_PARAM );
                }
                if( iToken == ')' )
                {

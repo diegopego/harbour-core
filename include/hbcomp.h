@@ -352,6 +352,13 @@ extern void hb_compAstFree( HB_COMP_DECL );
 extern HB_BOOL hb_compAstSave( HB_COMP_DECL );
 extern void hb_compAstToken( HB_COMP_DECL, PHB_PP_TOKEN pToken );
 extern void hb_compAstNodeBorn( HB_COMP_DECL, PHB_EXPR pExpr );
+/* ast-21: the token chain - the lexer stamps, a rule action hands over, code
+   generation marks the node it is walking.  See compast.c for the whole of it */
+extern void hb_compAstTokMark( HB_COMP_DECL, HB_COMP_YYLTYPE * pLoc );
+extern PHB_EXPR hb_compAstNodeAt( HB_COMP_DECL, PHB_EXPR pExpr, HB_COMP_YYLTYPE loc );
+extern PHB_HVAR hb_compAstVarFind( HB_COMP_DECL, PHB_EXPR pNode, int * piVar, int * piScope );
+extern void hb_compAstFoldedRead( HB_COMP_DECL, PHB_EXPR pNode );
+
 extern void hb_compAstStatement( HB_COMP_DECL, PHB_EXPR pExpr, int iKind );
 extern void hb_compAstFuncBegin( HB_COMP_DECL );
 extern void hb_compAstDecl( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType );

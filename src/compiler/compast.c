@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-19"
+#define HB_AST_SCHEMA         "ast-21"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -86,6 +86,10 @@ typedef struct
    int       iFromCount;
 } HB_ASTTOKEN, * PHB_ASTTOKEN;
 
+/* "this node has no token of its own" - and it stays that way rather than
+   borrowing one from a neighbour (ast-21) */
+#define HB_AST_TOK_NONE       ( ( HB_SIZE ) -1 )
+
 /* birth record of an expression node: the pointer is only ever looked up
    while the node is alive (during hb_compAstStatement() serialization of
    the still-live tree), so entries of freed nodes are never reached */
@@ -94,6 +98,11 @@ typedef struct
    const void * pKey;         /* PHB_EXPR at birth */
    int          iLine;
    HB_SIZE      nBirthTok;    /* token counter value at birth */
+   /* ast-21: the token that spells this node's NAME, handed over by the
+      parser (@N) - unlike nBirthTok, which is only where the token counter
+      happened to stand when the node was allocated, and is off by whatever
+      lookahead the parser needed */
+   HB_SIZE      nNameTok;
 } HB_ASTNODE, * PHB_ASTNODE;
 
 typedef struct
@@ -137,6 +146,10 @@ typedef struct
    HB_BOOL      fBlock;       /* reference made inside a codeblock body */
    HB_BOOL      fChk;         /* -kt post-store check emitted right after
                                  this write (ast-8) */
+   /* ast-21: the token that spells this site's name, as the parser handed it
+      over.  HB_AST_TOK_NONE when the chain does not reach - a name the
+      compiler made up, or one that arrived through a macro */
+   HB_SIZE      nTok;
 } HB_ASTUSE, * PHB_ASTUSE;
 
 typedef struct
@@ -145,6 +158,7 @@ typedef struct
    PHB_HFUNC    pFunc;
    int          iLine;
    HB_BOOL      fBlock;
+   HB_SIZE      nTok;         /* ast-21, same as HB_ASTUSE */
 } HB_ASTCALL, * PHB_ASTCALL;
 
 /* control block event emitted by the grammar actions */
@@ -207,6 +221,10 @@ typedef struct _HB_ASTDUMP
    HB_SIZE       nStmtAlloc;
 
    HB_BOOL       fRetPending; /* next pushed expression is a RETURN value */
+
+   /* ast-21: the node whose pcode is being generated, marked by HB_EXPR_USE()
+      so the site recorders can reach the token the parser gave it */
+   PHB_EXPR      pCurNode;
 
    char *        szModule;    /* source module name captured at parse time */
 } HB_ASTDUMP, * PHB_ASTDUMP;
@@ -362,6 +380,9 @@ static void hb_compAstNodeInsert( PHB_ASTDUMP pAst, const void * pKey,
    pAst->pNodes[ nAt ].pKey = pKey;
    pAst->pNodes[ nAt ].iLine = iLine;
    pAst->pNodes[ nAt ].nBirthTok = nBirthTok;
+   /* a fresh birth on a recycled pointer must not inherit the name token of
+      the dead node that used to live there */
+   pAst->pNodes[ nAt ].nNameTok = HB_AST_TOK_NONE;
 }
 
 static PHB_ASTNODE hb_compAstNodeFind( PHB_ASTDUMP pAst, const void * pKey )
@@ -397,6 +418,185 @@ void hb_compAstNodeBorn( HB_COMP_DECL, PHB_EXPR pExpr )
                          pAst->nTokenCount ? pAst->nTokenCount - 1 : 0 );
 }
 
+/* ast-21: the lexer stamping the symbol it is about to hand to the parser.
+   Called for EVERY symbol, including when -x is off - so it does the least
+   work possible and never allocates: the dump may not even exist yet. */
+void hb_compAstTokMark( HB_COMP_DECL, HB_COMP_YYLTYPE * pLoc )
+{
+   PHB_ASTDUMP pAst = ( PHB_ASTDUMP ) HB_COMP_PARAM->pAst;
+
+   pLoc->nTok = ( HB_COMP_PARAM->fAst && pAst && pAst->nTokenCount )
+                ? pAst->nTokenCount - 1 : HB_AST_TOK_NONE;
+}
+
+/* ast-21: a rule action handing over the token of the name it just read.
+   Returns the node so it can wrap the constructor in place:
+
+      $$ = hb_compAstNodeAt( HB_COMP_PARAM, hb_compExprNewVar( $1, ... ), @1 );
+
+   This is the ONLY way a node acquires a name token.  A node built somewhere
+   the parser cannot reach - a variable the compiler synthesizes, a name that
+   arrived through a macro - keeps HB_AST_TOK_NONE and is reported without a
+   column, which is the truth about it. */
+PHB_EXPR hb_compAstNodeAt( HB_COMP_DECL, PHB_EXPR pExpr, HB_COMP_YYLTYPE loc )
+{
+   if( HB_COMP_PARAM->fAst && pExpr )
+   {
+      PHB_ASTNODE pNode = hb_compAstNodeFind( hb_compAstDump( HB_COMP_PARAM ), pExpr );
+
+      if( pNode )
+         pNode->nNameTok = loc.nTok;
+   }
+   return pExpr;
+}
+
+/* ast-21: the expression walk, saying which node it is on.
+
+   The three site recorders below run deep inside code generation, where the
+   only thing in hand is a name - by then the tree walk is several calls away.
+   Every walk step goes through here (HB_EXPR_USE), so this is where a recorder
+   can ask "which node am I generating for?" and read the token the parser gave
+   that node.
+
+   It saves and restores rather than just assigning because expressions nest:
+   generating a send evaluates the object expression first, and that inner walk
+   moves the mark to nodes of its own before the send records its site. */
+PHB_EXPR hb_compAstExprUse( PHB_EXPR pSelf, HB_EXPR_MESSAGE iMessage, HB_COMP_DECL )
+{
+   PHB_ASTDUMP pAst = hb_compAstDump( HB_COMP_PARAM );
+   PHB_EXPR pSave = pAst->pCurNode, pRet;
+
+   pAst->pCurNode = pSelf;
+   pRet = hb_comp_ExprTable[ pSelf->ExprType ]( pSelf, iMessage, HB_COMP_PARAM );
+   pAst->pCurNode = pSave;
+
+   return pRet;
+}
+
+/* ast-21: mark/unmark the node a piece of generated pcode belongs to.  See
+   HB_AST_SITE_BEGIN in hbexprop.h for why the walk alone is not enough */
+PHB_EXPR hb_compAstNodeOn( HB_COMP_DECL, PHB_EXPR pNode )
+{
+   PHB_ASTDUMP pAst = hb_compAstDump( HB_COMP_PARAM );
+   PHB_EXPR pSave = pAst->pCurNode;
+
+   pAst->pCurNode = pNode;
+
+   return pSave;
+}
+
+void hb_compAstNodeOff( HB_COMP_DECL, PHB_EXPR pSave )
+{
+   ( ( PHB_ASTDUMP ) HB_COMP_PARAM->pAst )->pCurNode = pSave;
+}
+
+/* ast-21: the read the assignment optimizer is about to throw away.
+
+   `var := var <op> exp` is rewritten to `var <op>= exp` and the node of the
+   middle operand - the second `var` AS THE PROGRAMMER WROTE IT - is freed at
+   reduce time, so code generation never walks it and no site is ever recorded
+   for it.  The pcode is right; the record of the source is not, and a tool
+   answering "where is this name used" would leave out an occurrence that is
+   plainly there in the file.
+
+   The scope comes from a scope-only query (piPos NULL), which by contract of
+   hb_compVariableFind() records nothing - the site written here is the only
+   one this adds. */
+void hb_compAstFoldedRead( HB_COMP_DECL, PHB_EXPR pNode )
+{
+   int iScope;
+   PHB_EXPR pSave;
+
+   if( ! HB_COMP_PARAM->fAst || ! pNode || pNode->ExprType != HB_ET_VARIABLE )
+      return;
+
+   hb_compVariableFind( HB_COMP_PARAM, pNode->value.asSymbol.name, NULL, &iScope );
+
+   pSave = hb_compAstNodeOn( HB_COMP_PARAM, pNode );
+   hb_compAstUse( HB_COMP_PARAM, pNode->value.asSymbol.name, iScope, 'r' );
+   hb_compAstNodeOff( HB_COMP_PARAM, pSave );
+}
+
+/* ast-21: resolve the variable a NODE names, recording the site against THAT
+   node instead of against whatever the walk is standing on.
+
+   The operator optimizations in hbexprb.c (n += 1, n++, n[ i ] := v ...) read
+   the name straight out of their left operand while the walk is marked on the
+   operator itself.  The operand is the node the parser gave a token to, so
+   without saying which node the name came from the site would come out with
+   no position at all - the capture of `nTotal` by a codeblock in
+   `nTotal += x` was exactly that. */
+PHB_HVAR hb_compAstVarFind( HB_COMP_DECL, PHB_EXPR pNode, int * piVar, int * piScope )
+{
+   PHB_ASTDUMP pAst;
+   PHB_EXPR pSave;
+   PHB_HVAR pVar;
+
+   if( ! HB_COMP_PARAM->fAst )
+      return hb_compVariableFind( HB_COMP_PARAM, pNode->value.asSymbol.name,
+                                  piVar, piScope );
+
+   pAst = hb_compAstDump( HB_COMP_PARAM );
+   pSave = pAst->pCurNode;
+   pAst->pCurNode = pNode;
+   pVar = hb_compVariableFind( HB_COMP_PARAM, pNode->value.asSymbol.name,
+                               piVar, piScope );
+   pAst->pCurNode = pSave;
+
+   return pVar;
+}
+
+/* ast-21: the source token of the site being recorded, or HB_AST_TOK_NONE.
+
+   The name is checked against the marked node because code generation does
+   not always flow through the node that owns the name: the compiler pushes
+   variables of its own making (a FOR enumerator, an implicit Self), and those
+   sites must come out WITHOUT a position rather than with the position of
+   whatever node happens to be marked.  Identifiers are interned, so this is a
+   pointer comparison, not a text one. */
+/* the interned name a node spells, for the nodes that spell one */
+static const char * hb_compAstNodeName( PHB_EXPR pExpr )
+{
+   switch( pExpr->ExprType )
+   {
+      case HB_ET_VARIABLE:
+      case HB_ET_VARREF:
+      case HB_ET_FUNNAME:
+      case HB_ET_ALIAS:
+         return pExpr->value.asSymbol.name;
+      case HB_ET_SEND:
+         return pExpr->value.asMessage.szMessage;
+      default:
+         return NULL;
+   }
+}
+
+static HB_SIZE hb_compAstSiteTok( PHB_ASTDUMP pAst, const char * szName )
+{
+   PHB_ASTNODE pNode;
+   const char * szNode;
+
+   if( ! pAst->pCurNode || ! szName )
+      return HB_AST_TOK_NONE;
+
+   pNode = hb_compAstNodeFind( pAst, pAst->pCurNode );
+   if( ! pNode || pNode->nNameTok == HB_AST_TOK_NONE )
+      return HB_AST_TOK_NONE;
+
+   szNode = hb_compAstNodeName( pAst->pCurNode );
+   if( ! szNode )
+      return HB_AST_TOK_NONE;
+
+   /* an assignment to a member is generated under the underscore name this
+      compiler makes up for it (o:X := v -> _X) while the node - and the
+      source - spell X.  Undoing our own mangling is reading our own record */
+   if( szNode != szName &&
+       ! ( szName[ 0 ] == '_' && strcmp( szName + 1, szNode ) == 0 ) )
+      return HB_AST_TOK_NONE;
+
+   return pNode->nNameTok;
+}
+
 /* --- parity records (declarations resolved at parse time) --------------- */
 
 void hb_compAstFuncBegin( HB_COMP_DECL )
@@ -430,6 +630,40 @@ void hb_compAstFuncBegin( HB_COMP_DECL )
    named after its own AS CLASS class the nearest match is the class
    name token - szSkipClass skips exactly that one */
 #define HB_AST_NAMEPOS_WINDOW  16
+
+/* ast-21: write the position of a site from the token the parser handed
+   over, and say WHERE it is when that is not the line the record carries.
+
+   `line` is the line the compiler was ON when the site was recorded.  For a
+   statement continued with ';' that is the LAST physical line of it, so a
+   site written earlier in the statement - `OutStd( "x" + ;` / `cMsg + ;` /
+   `"y" )` - carries a line its token is not on.  `tokLine` is emitted only
+   when the two differ, so its mere presence tells a consumer "this site is
+   not where `line` says", and its absence keeps the common record as short
+   as it always was.  `line` NEVER changes meaning - consumers correlating
+   sites with other channels by it keep working.
+
+   A site whose token is not plain source of this module gets NO position.
+   That is the honest answer and not a shortcut: the name of such a site is
+   written in a header or produced by a directive, so there is no place in
+   this file to point at - and the `from` and `ppApplications` channels are
+   what describe where it really comes from. */
+static void hb_compAstWriteSitePos( FILE * file, PHB_ASTDUMP pAst,
+                                    HB_SIZE nTok, int iLine )
+{
+   PHB_ASTTOKEN pTok;
+
+   if( nTok == HB_AST_TOK_NONE || nTok >= pAst->nTokenCount )
+      return;
+
+   pTok = &pAst->pTokens[ nTok ];
+   if( pTok->cProv != 's' || pTok->iCol < 0 || pTok->iLine <= 0 )
+      return;
+
+   if( pTok->iLine != iLine )
+      fprintf( file, ", \"tokLine\": %d", pTok->iLine );
+   fprintf( file, ", \"col\": %d", pTok->iCol );
+}
 
 static void hb_compAstNamePos( PHB_ASTDUMP pAst, const char * szName,
                                const char * szSkipClass,
@@ -576,6 +810,7 @@ void hb_compAstUse( HB_COMP_DECL, const char * szVarName, int iScope, int iAcces
    pUse->iAccess = iAccess;
    pUse->fBlock  = fBlock;
    pUse->fChk    = HB_FALSE;
+   pUse->nTok = hb_compAstSiteTok( pAst, szVarName );
 }
 
 /* refine the access mode of the reference just recorded by
@@ -657,6 +892,7 @@ void hb_compAstCallAdd( HB_COMP_DECL, const char * szFunName )
    pCall->pFunc  = hb_compAstOwner( HB_COMP_PARAM, &fBlock );
    pCall->iLine  = HB_COMP_PARAM->currLine;
    pCall->fBlock = fBlock;
+   pCall->nTok = hb_compAstSiteTok( pAst, szFunName );
 }
 
 void hb_compAstSendAdd( HB_COMP_DECL, const char * szMsgName )
@@ -680,6 +916,7 @@ void hb_compAstSendAdd( HB_COMP_DECL, const char * szMsgName )
    pSend->pFunc  = hb_compAstOwner( HB_COMP_PARAM, &fBlock );
    pSend->iLine  = HB_COMP_PARAM->currLine;
    pSend->fBlock = fBlock;
+   pSend->nTok = hb_compAstSiteTok( pAst, szMsgName );
 }
 
 /* --- control block events ------------------------------------------------ */
@@ -2029,9 +2266,10 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             fFirst = HB_FALSE;
             fprintf( file, "\n      { \"sym\": " );
             hb_compAstWriteStr( file, pUse->szSym );
-            fprintf( file, ", \"scope\": \"%s\", \"line\": %d, \"access\": \"%s\", \"block\": %s%s%s }",
-                     hb_compAstScopeName( pUse->iScope ),
-                     pUse->iLine,
+            fprintf( file, ", \"scope\": \"%s\", \"line\": %d",
+                     hb_compAstScopeName( pUse->iScope ), pUse->iLine );
+            hb_compAstWriteSitePos( file, pAst, pUse->nTok, pUse->iLine );
+            fprintf( file, ", \"access\": \"%s\", \"block\": %s%s%s }",
                      hb_compAstAccessName( pUse->iAccess ),
                      pUse->fBlock ? "true" : "false",
                      ( pUse->iScope & HB_VS_FILEWIDE ) ? ", \"filewide\": true" : "",
@@ -2053,8 +2291,9 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             fFirst = HB_FALSE;
             fprintf( file, "\n      { \"sym\": " );
             hb_compAstWriteStr( file, pCall->szSym );
-            fprintf( file, ", \"line\": %d, \"block\": %s }",
-                     pCall->iLine, pCall->fBlock ? "true" : "false" );
+            fprintf( file, ", \"line\": %d", pCall->iLine );
+            hb_compAstWriteSitePos( file, pAst, pCall->nTok, pCall->iLine );
+            fprintf( file, ", \"block\": %s }", pCall->fBlock ? "true" : "false" );
          }
       }
       fprintf( file, "%s ],", fFirst ? "" : "\n   " );
@@ -2072,8 +2311,9 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             fFirst = HB_FALSE;
             fprintf( file, "\n      { \"sym\": " );
             hb_compAstWriteStr( file, pSend->szSym );
-            fprintf( file, ", \"line\": %d, \"block\": %s }",
-                     pSend->iLine, pSend->fBlock ? "true" : "false" );
+            fprintf( file, ", \"line\": %d", pSend->iLine );
+            hb_compAstWriteSitePos( file, pAst, pSend->nTok, pSend->iLine );
+            fprintf( file, ", \"block\": %s }", pSend->fBlock ? "true" : "false" );
          }
       }
       fprintf( file, "%s ],", fFirst ? "" : "\n   " );

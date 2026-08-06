@@ -2110,6 +2110,7 @@ static HB_EXPR_FUNC( hb_compExprUseFunCall )
       {
          HB_BOOL fArgsList = HB_FALSE;
          HB_USHORT usCount = 0;
+         PHB_EXPR pAstSave;   /* ast-21, see HB_AST_SITE_BEGIN below */
 
          /* NOTE: pParms will be NULL in 'DO procname' (if there is
           * no WITH keyword)
@@ -2152,8 +2153,8 @@ static HB_EXPR_FUNC( hb_compExprUseFunCall )
                   PHB_HFUNC pFunc = HB_COMP_PARAM->functions.pLast;
                   int iVar, iScope;
 
-                  hb_compVariableFind( HB_COMP_PARAM, pSelf->value.asFunCall.pParms->value.asList.pExprList->value.asSymbol.name,
-                                       &iVar, &iScope );
+                  hb_compAstVarFind( HB_COMP_PARAM, pSelf->value.asFunCall.pParms->value.asList.pExprList,
+                                     &iVar, &iScope );
 
                   if( pFunc->wParamCount && ( pFunc->funFlags & HB_FUNF_USES_LOCAL_PARAMS ) != 0 &&
                       iScope == HB_VS_LOCAL_VAR && ( HB_USHORT ) iVar <= pFunc->wParamCount )
@@ -2166,8 +2167,10 @@ static HB_EXPR_FUNC( hb_compExprUseFunCall )
                }
 #endif
             }
+            HB_AST_SITE_BEGIN( pSelf->value.asFunCall.pFunName, pAstSave );
             HB_GEN_FUNC2( PushFunCall, pSelf->value.asFunCall.pFunName->value.asSymbol.name,
                                        pSelf->value.asFunCall.pFunName->value.asSymbol.flags );
+            HB_AST_SITE_END( pAstSave );
          }
          else
          {
@@ -2198,6 +2201,7 @@ static HB_EXPR_FUNC( hb_compExprUseFunCall )
       {
          HB_BOOL fArgsList = HB_FALSE;
          HB_USHORT usCount = 0;
+         PHB_EXPR pAstSave;   /* ast-21, see HB_AST_SITE_BEGIN below */
 
          if( pSelf->value.asFunCall.pParms )
          {
@@ -2215,8 +2219,10 @@ static HB_EXPR_FUNC( hb_compExprUseFunCall )
                HB_GEN_FUNC1( PCode1, HB_P_POPALIAS );
                break;
             }
+            HB_AST_SITE_BEGIN( pSelf->value.asFunCall.pFunName, pAstSave );
             HB_GEN_FUNC2( PushFunCall, pSelf->value.asFunCall.pFunName->value.asSymbol.name,
                                        pSelf->value.asFunCall.pFunName->value.asSymbol.flags );
+            HB_AST_SITE_END( pAstSave );
          }
          else
          {
@@ -2935,6 +2941,11 @@ static HB_EXPR_FUNC( hb_compExprUseAssign )
             }
             pSelf->value.asOperator.pRight = pExpr->value.asOperator.pRight;
             pExpr->value.asOperator.pRight = NULL;
+#if ! defined( HB_MACRO_SUPPORT )
+            /* ast-21: the operand about to be freed is a read the programmer
+               wrote - record it before the tree loses it */
+            hb_compAstFoldedRead( HB_COMP_PARAM, pExpr->value.asOperator.pLeft );
+#endif
             HB_COMP_EXPR_FREE( pExpr );
          }
          break;
@@ -4932,7 +4943,7 @@ static void hb_compExprPushOperEq( PHB_EXPR pSelf, HB_BYTE bOpEq, HB_COMP_DECL )
 #else
          int iVar, iScope;
 
-         hb_compVariableFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft->value.asSymbol.name, &iVar, &iScope );
+         hb_compAstVarFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft, &iVar, &iScope );
          if( iScope != HB_VS_LOCAL_FIELD && iScope != HB_VS_GLOBAL_FIELD &&
              iScope != HB_VS_UNDECLARED )
          {
@@ -5086,7 +5097,7 @@ static void hb_compExprUseOperEq( PHB_EXPR pSelf, HB_BYTE bOpEq, HB_COMP_DECL )
 #else
          int iVar, iScope;
 
-         hb_compVariableFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft->value.asSymbol.name, &iVar, &iScope );
+         hb_compAstVarFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft, &iVar, &iScope );
          if( iScope != HB_VS_LOCAL_FIELD && iScope != HB_VS_GLOBAL_FIELD &&
              iScope != HB_VS_UNDECLARED )
          {
@@ -5197,7 +5208,7 @@ static void hb_compExprPushPreOp( PHB_EXPR pSelf, HB_BYTE bOper, HB_COMP_DECL )
       {
          int iVar, iScope;
 
-         hb_compVariableFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft->value.asSymbol.name, &iVar, &iScope );
+         hb_compAstVarFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft, &iVar, &iScope );
          if( iScope != HB_VS_LOCAL_FIELD && iScope != HB_VS_GLOBAL_FIELD &&
              iScope != HB_VS_UNDECLARED )
          {
@@ -5312,7 +5323,7 @@ static void hb_compExprPushPostOp( PHB_EXPR pSelf, HB_BYTE bOper, HB_COMP_DECL )
       {
          int iVar, iScope;
 
-         hb_compVariableFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft->value.asSymbol.name, &iVar, &iScope );
+         hb_compAstVarFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft, &iVar, &iScope );
          if( iScope != HB_VS_LOCAL_FIELD && iScope != HB_VS_GLOBAL_FIELD &&
              iScope != HB_VS_UNDECLARED )
          {
@@ -5412,7 +5423,7 @@ static void hb_compExprUsePreOp( PHB_EXPR pSelf, HB_BYTE bOper, HB_COMP_DECL )
       {
          int iVar, iScope;
 
-         hb_compVariableFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft->value.asSymbol.name, &iVar, &iScope );
+         hb_compAstVarFind( HB_COMP_PARAM, pSelf->value.asOperator.pLeft, &iVar, &iScope );
          if( iScope != HB_VS_LOCAL_FIELD && iScope != HB_VS_GLOBAL_FIELD &&
              iScope != HB_VS_UNDECLARED )
          {

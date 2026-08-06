@@ -1,7 +1,16 @@
 %define api.pure
+%locations
 %parse-param { PHB_COMP pComp }
 %lex-param   { PHB_COMP pComp }
 %define api.prefix {hb_comp_yy}
+
+%code requires {
+/* ast-21: the "location" of a grammar symbol is the index of the preprocessed
+   token that STARTS it - HB_COMP_YYLTYPE, declared in hbcompdf.h because the
+   compiler passes it around well outside this parser.  Telling bison it is
+   already declared keeps it from emitting its own four-field default. */
+#define HB_COMP_YYLTYPE_IS_DECLARED  1
+}
 
 %{
 /*
@@ -73,6 +82,16 @@
 /* NOTE: these symbols are defined explicitly to pacify warnings */
 #define YYENABLE_NLS          0
 #define YYLTYPE_IS_TRIVIAL    0
+
+/* ast-21: a symbol starts where its first component starts.  An empty
+   production has no token of its own and inherits the position bison keeps
+   for the symbol before it, which is bison's own convention (YYRHSLOC 0). */
+#define YYLLOC_DEFAULT( Cur, Rhs, N )  \
+        ( ( Cur ) = ( N ) ? YYRHSLOC( Rhs, 1 ) : YYRHSLOC( Rhs, 0 ) )
+
+/* ast-21: hand the token of a name over to the node built from it.  A no-op
+   when -x is off (hb_compAstNodeAt returns the node untouched) */
+#define HB_AST_AT( expr, loc )  hb_compAstNodeAt( HB_COMP_PARAM, ( expr ), ( loc ) )
 
 /* NOTE: increase the maximum size of bison stack size */
 #define YYMAXDEPTH 100000
@@ -166,8 +185,13 @@ static void hb_compDebugStart( void ) { }
 /* This must be placed after the above union - the union is
  * typedef-ined to YYSTYPE
  */
-extern int  yylex( YYSTYPE *, HB_COMP_DECL );    /* main lex token function, called by yyparse() */
-extern void yyerror( HB_COMP_DECL, const char * );     /* parsing error management function */
+/* main lex token function, called by yyparse().  The location is where the
+   scanner stamps the token index the AST dump needs (ast-21) */
+extern int  yylex( YYSTYPE *, HB_COMP_YYLTYPE *, HB_COMP_DECL );
+/* parsing error management function - the leading location is bison's own
+   calling convention once %locations is on; this parser reports through the
+   lexer state, not through it */
+extern void yyerror( HB_COMP_YYLTYPE *, HB_COMP_DECL, const char * );
 %}
 
 
@@ -648,7 +672,7 @@ HashList : Expression HASHOP EmptyExpression                { $$ = hb_compExprAd
 
 /* Variables
  */
-Variable : IdentName          { $$ = hb_compExprNewVar( $1, HB_COMP_PARAM ); }
+Variable : IdentName          { $$ = HB_AST_AT( hb_compExprNewVar( $1, HB_COMP_PARAM ), @1 ); }
          ;
 
 VarAlias : IdentName ALIASOP  { $$ = hb_compExprNewAlias( $1, HB_COMP_PARAM ); }
@@ -701,7 +725,7 @@ FieldVarAlias  : FieldAlias VarAlias            { HB_COMP_EXPR_FREE( $1 ); $$ = 
                | FieldAlias IfInlineAlias       { HB_COMP_EXPR_FREE( $1 ); $$ = hb_compErrorAlias( HB_COMP_PARAM, $2 ); }
                ;
 
-AliasId     : IdentName       { $$ = hb_compExprNewVar( $1, HB_COMP_PARAM ); }
+AliasId     : IdentName       { $$ = HB_AST_AT( hb_compExprNewVar( $1, HB_COMP_PARAM ), @1 ); }
             | MacroAny
             ;
 
@@ -767,7 +791,7 @@ VariableAtAlias : VariableAt ALIASOP
                 ;
 /* function call
  */
-FunIdentCall: IdentName '(' ArgList ')'   { $$ = hb_compExprNewFunCall( hb_compExprNewFunName( $1, HB_COMP_PARAM ), $3, HB_COMP_PARAM ); }
+FunIdentCall: IdentName '(' ArgList ')'   { $$ = hb_compExprNewFunCall( HB_AST_AT( hb_compExprNewFunName( $1, HB_COMP_PARAM ), @1 ), $3, HB_COMP_PARAM ); }
             ;
 
 FunCall     : FunIdentCall
@@ -789,7 +813,7 @@ Argument    : EmptyExpression
             | RefArgument
             ;
 
-RefArgument : '@' IdentName    { $$ = hb_compCheckPassByRef( HB_COMP_PARAM, hb_compExprNewVarRef( $2, HB_COMP_PARAM ) ); }
+RefArgument : '@' IdentName    { $$ = hb_compCheckPassByRef( HB_COMP_PARAM, HB_AST_AT( hb_compExprNewVarRef( $2, HB_COMP_PARAM ), @2 ) ); }
             | '@' MacroVar     { $$ = hb_compCheckPassByRef( HB_COMP_PARAM, hb_compExprNewRef( $2, HB_COMP_PARAM ) ); }
             | '@' AliasVar     { $$ = hb_compCheckPassByRef( HB_COMP_PARAM, hb_compExprNewRef( $2, HB_COMP_PARAM ) ); }
             | '@' ObjectData   { $$ = hb_compCheckPassByRef( HB_COMP_PARAM, hb_compExprNewRef( $2, HB_COMP_PARAM ) ); }
@@ -810,11 +834,11 @@ ObjectData  : LeftExpression ':' SendId   { $$ = hb_compCheckMethod( HB_COMP_PAR
                                           }
             ;
 
-SendId      : IdentName      { $$ = hb_compExprNewSend( $1, HB_COMP_PARAM ); }
+SendId      : IdentName      { $$ = HB_AST_AT( hb_compExprNewSend( $1, HB_COMP_PARAM ), @1 ); }
             | MacroAny       { $$ = hb_compExprNewMacroSend( $1, HB_COMP_PARAM ); }
             ;
 
-ObjectRef   : '(' '@' IdentName ')'       { $$ = hb_compExprNewVarRef( $3, HB_COMP_PARAM ); }
+ObjectRef   : '(' '@' IdentName ')'       { $$ = HB_AST_AT( hb_compExprNewVarRef( $3, HB_COMP_PARAM ), @3 ); }
             ;
 
 ObjectDataAlias : ObjectData ALIASOP
@@ -884,7 +908,7 @@ EmptyExpression : /* nothing => nil */    { $$ = hb_compExprNewEmpty( HB_COMP_PA
                 | Expression
                 ;
 
-LValue      : IdentName                   { $$ = hb_compExprNewVar( $1, HB_COMP_PARAM ); }
+LValue      : IdentName                   { $$ = HB_AST_AT( hb_compExprNewVar( $1, HB_COMP_PARAM ), @1 ); }
             | AliasVar
             | MacroVar
             | MacroExpr
@@ -1186,7 +1210,7 @@ VarDef     : IdentName AsType
                   if( HB_COMP_PARAM->iVarScope & HB_VSCOMP_STATIC )
                   {
                      hb_compStaticDefStart( HB_COMP_PARAM );   /* switch to statics pcode buffer */
-                     HB_COMP_EXPR_FREE( hb_compExprGenStatement( hb_compExprAssignStatic( hb_compExprNewVar( $1, HB_COMP_PARAM ), $5, HB_COMP_PARAM ), HB_COMP_PARAM ) );
+                     HB_COMP_EXPR_FREE( hb_compExprGenStatement( hb_compExprAssignStatic( HB_AST_AT( hb_compExprNewVar( $1, HB_COMP_PARAM ), @1 ), $5, HB_COMP_PARAM ), HB_COMP_PARAM ) );
                      hb_compStaticDefEnd( HB_COMP_PARAM, $1 );
                   }
                   else if( HB_COMP_PARAM->iVarScope == HB_VSCOMP_PUBLIC || HB_COMP_PARAM->iVarScope == HB_VSCOMP_PRIVATE )
@@ -1201,7 +1225,7 @@ VarDef     : IdentName AsType
                   }
                   else
                   {
-                     HB_COMP_EXPR_FREE( hb_compExprGenStatement( hb_compExprAssign( hb_compExprNewVar( $1, HB_COMP_PARAM ), $5, HB_COMP_PARAM ), HB_COMP_PARAM ) );
+                     HB_COMP_EXPR_FREE( hb_compExprGenStatement( hb_compExprAssign( HB_AST_AT( hb_compExprNewVar( $1, HB_COMP_PARAM ), @1 ), $5, HB_COMP_PARAM ), HB_COMP_PARAM ) );
                   }
                   HB_COMP_PARAM->iVarScope = $<iNumber>3;
                }
@@ -1718,7 +1742,7 @@ EndForID   : NEXT
            | ErrEndSwitch
            ;
 
-ForVar     : IdentName     { $$ = hb_compExprNewVarRef( $1, HB_COMP_PARAM ); }
+ForVar     : IdentName     { $$ = HB_AST_AT( hb_compExprNewVarRef( $1, HB_COMP_PARAM ), @1 ); }
            | AliasVar      { $$ = hb_compExprNewRef( $1, HB_COMP_PARAM ); }
            ;
 
@@ -1726,7 +1750,7 @@ ForList    : ForVar              { $$ = hb_compExprNewArgList( $1, HB_COMP_PARAM
            | ForList ',' ForVar  { $$ = hb_compExprAddListExpr( $1, $3 ); }
            ;
 
-ForExpr    : '@' IdentName       { $$ = hb_compExprNewVarRef( $2, HB_COMP_PARAM ); }
+ForExpr    : '@' IdentName       { $$ = HB_AST_AT( hb_compExprNewVarRef( $2, HB_COMP_PARAM ), @2 ); }
            | Expression
            ;
 
@@ -2020,7 +2044,7 @@ DoArgList  : ','                       { $$ = hb_compExprAddListExpr( hb_compExp
            | DoArgList ',' DoArgument  { $$ = hb_compExprAddListExpr( $1, $3 ); }
            ;
 
-DoArgument : IdentName        { $$ = hb_compExprNewVarRef( $1, HB_COMP_PARAM ); }
+DoArgument : IdentName        { $$ = HB_AST_AT( hb_compExprNewVarRef( $1, HB_COMP_PARAM ), @1 ); }
            | RefArgument
            | FunRef
            | SimpleExpression
@@ -3064,8 +3088,10 @@ HB_BOOL hb_compCheckUnclosedStru( HB_COMP_DECL, PHB_HFUNC pFunc )
    return fUnclosed;
 }
 
-void yyerror( HB_COMP_DECL, const char * s )
+void yyerror( HB_COMP_YYLTYPE * pLoc, HB_COMP_DECL, const char * s )
 {
+   HB_SYMBOL_UNUSED( pLoc );
+
    if( ! HB_COMP_PARAM->pLex->lasttok || HB_COMP_PARAM->pLex->lasttok[ 0 ] == '\n' )
    {
       if( HB_COMP_PARAM->iErrorCount == 0 || ! hb_pp_eof( HB_COMP_PARAM->pLex->pPP ) )

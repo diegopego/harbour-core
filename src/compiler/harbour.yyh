@@ -52,6 +52,16 @@
 #if HB_COMP_YYDEBUG
 extern int hb_comp_yydebug;
 #endif
+/* "%code requires" blocks.  */
+#line 7 "../../../harbour.y"
+
+/* ast-21: the "location" of a grammar symbol is the index of the preprocessed
+   token that STARTS it - HB_COMP_YYLTYPE, declared in hbcompdf.h because the
+   compiler passes it around well outside this parser.  Telling bison it is
+   already declared keeps it from emitting its own four-field default. */
+#define HB_COMP_YYLTYPE_IS_DECLARED  1
+
+#line 65 "harboury.h"
 
 /* Token kinds.  */
 #ifndef HB_COMP_YYTOKENTYPE
@@ -182,7 +192,7 @@ extern int hb_comp_yydebug;
 #if ! defined HB_COMP_YYSTYPE && ! defined HB_COMP_YYSTYPE_IS_DECLARED
 union HB_COMP_YYSTYPE
 {
-#line 126 "../../../harbour.y"
+#line 145 "../../../harbour.y"
 
    const char * string; /* to hold a string returned by lex */
    int     iNumber;     /* to hold a temporary integer number */
@@ -221,12 +231,26 @@ union HB_COMP_YYSTYPE
    } asCodeblock;
    PHB_VARTYPE asVarType;
 
-#line 225 "harboury.h"
+#line 235 "harboury.h"
 
 };
 typedef union HB_COMP_YYSTYPE HB_COMP_YYSTYPE;
 # define HB_COMP_YYSTYPE_IS_TRIVIAL 1
 # define HB_COMP_YYSTYPE_IS_DECLARED 1
+#endif
+
+/* Location type.  */
+#if ! defined HB_COMP_YYLTYPE && ! defined HB_COMP_YYLTYPE_IS_DECLARED
+typedef struct HB_COMP_YYLTYPE HB_COMP_YYLTYPE;
+struct HB_COMP_YYLTYPE
+{
+  int first_line;
+  int first_column;
+  int last_line;
+  int last_column;
+};
+# define HB_COMP_YYLTYPE_IS_DECLARED 1
+# define HB_COMP_YYLTYPE_IS_TRIVIAL 1
 #endif
 
 

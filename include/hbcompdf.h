@@ -353,6 +353,27 @@ typedef enum
 
 typedef HB_USHORT HB_EXPRTYPE;
 
+/* ast-21: the position of a grammar symbol, as the index of the preprocessed
+   token that STARTS it.
+
+   The AST dump (-x) records every token the lexer pulls, in order, so an index
+   into that stream is already a complete position: file, line, column and
+   provenance.  What was missing was the link from a token to the expression
+   node built out of it - and maintaining exactly that link, in step with the
+   semantic values, is what a parser's location stack is for.  The lexer stamps
+   the index on each symbol it hands over (hb_compAstTokMark), bison carries the
+   stamps, and a rule action reads @N to learn the token that produced symbol N.
+   No counting, no lookahead arithmetic, no searching the stream for a name that
+   matches.
+
+   Only the first token of a symbol is ever needed, so this replaces bison's
+   four-field default and its range arithmetic; YYLLOC_DEFAULT in harbour.y is
+   a single assignment. */
+typedef struct
+{
+   HB_SIZE nTok;
+} HB_COMP_YYLTYPE;
+
 typedef struct HB_EXPR_
 {
    union

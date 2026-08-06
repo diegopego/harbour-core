@@ -63,8 +63,41 @@ typedef  HB_EXPR_FUNC( ( * PHB_EXPR_FUNC ) );
 
 #if ! defined( HB_COMMON_SUPPORT )
 extern const PHB_EXPR_FUNC hb_comp_ExprTable[ HB_EXPR_COUNT ];
+
+#if defined( HB_MACRO_SUPPORT )
 #define  HB_EXPR_USE( pSelf, iMessage )  \
          hb_comp_ExprTable[ (pSelf)->ExprType ]( (pSelf), (iMessage), HB_COMP_PARAM )
+/* the macro compiler writes no AST dump, so the marks below are nothing */
+#define  HB_AST_SITE_BEGIN( pNode, pSave )   HB_SYMBOL_UNUSED( pSave )
+#define  HB_AST_SITE_END( pSave )            do {} while( 0 )
+#else
+/* ast-21: while -x is on, say which node is being walked.
+
+   A site (a variable occurrence, a call, a message) is recorded deep inside
+   code generation, where the only thing in hand is a name; the node that knows
+   which token spelled that name is several calls up.  This is the one place
+   every node passes through, so it is where the two meet.
+
+   Off, the expression walk is byte for byte what it was: one test of a flag
+   already in cache, then the same indirect call. */
+extern PHB_EXPR hb_compAstExprUse( PHB_EXPR pSelf, HB_EXPR_MESSAGE iMessage, HB_COMP_DECL );
+#define  HB_EXPR_USE( pSelf, iMessage )  \
+         ( HB_COMP_PARAM->fAst \
+           ? hb_compAstExprUse( (pSelf), (iMessage), HB_COMP_PARAM ) \
+           : hb_comp_ExprTable[ (pSelf)->ExprType ]( (pSelf), (iMessage), HB_COMP_PARAM ) )
+
+/* ast-21: pcode generated for a name that belongs to ANOTHER node than the
+   one being walked - an optimized call reads the callee name straight out of
+   its pFunName child instead of walking it.  Saying whose name it is keeps
+   the site's position exact; without it the site comes out with none. */
+extern PHB_EXPR hb_compAstNodeOn( HB_COMP_DECL, PHB_EXPR pNode );
+extern void hb_compAstNodeOff( HB_COMP_DECL, PHB_EXPR pSave );
+#define  HB_AST_SITE_BEGIN( pNode, pSave )  \
+         ( ( pSave ) = HB_COMP_PARAM->fAst \
+                       ? hb_compAstNodeOn( HB_COMP_PARAM, ( pNode ) ) : NULL )
+#define  HB_AST_SITE_END( pSave )  \
+         do { if( HB_COMP_PARAM->fAst ) hb_compAstNodeOff( HB_COMP_PARAM, ( pSave ) ); } while( 0 )
+#endif
 #endif
 
 extern HB_EXPORT_INT PHB_EXPR hb_compExprNewEmpty( HB_COMP_DECL );
