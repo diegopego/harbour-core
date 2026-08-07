@@ -749,6 +749,9 @@ extern HB_EXPORT HB_BOOL hb_pp_trackApplyToken( PHB_PP_STATE pState, int iApply,
                                                 int * piMarker, int * piLine,
                                                 int * piCol, HB_BOOL * pfMainFile,
                                                 int * piRuleTok );
+/* ast-23: which rule application produced this token (see ppcore.c) */
+extern HB_EXPORT HB_BOOL hb_pp_tokenAppGet( PHB_PP_STATE pState,
+                                            PHB_PP_TOKEN pToken, int * piApp );
 extern HB_EXPORT int     hb_pp_tokenFromCount( PHB_PP_STATE pState,
                                                PHB_PP_TOKEN pToken );
 extern HB_EXPORT HB_BOOL hb_pp_tokenFromGet( PHB_PP_STATE pState,

@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-22"
+#define HB_AST_SCHEMA         "ast-23"
 
 /* how much of a dump is read back to find the provenance block: it sits in
    the first lines, before the token stream, so a fixed head is enough */
@@ -88,6 +88,11 @@ typedef struct
    char      cProv;           /* 's' main source, 'i' include, 'n' synthesized */
    PHB_ASTFROM pFrom;         /* derivation facts, NULL = none */
    int       iFromCount;
+   /* ast-23: the rule application that PRODUCED this token, -1 = none.
+      Answers "which directive wrote this name?" for a token whose only
+      written position is in another file - the 40% of sites that a .ch
+      contributes in real Harbour code. */
+   int       iApp;
 } HB_ASTTOKEN, * PHB_ASTTOKEN;
 
 /* "this node has no token of its own" - and it stays that way rather than
@@ -320,6 +325,8 @@ void hb_compAstToken( HB_COMP_DECL, PHB_PP_TOKEN pToken )
    pTok->iCol  = iCol;
    pTok->type  = HB_PP_TOKEN_TYPE( pToken->type );
    pTok->cProv = cProv;
+   if( ! hb_pp_tokenAppGet( HB_COMP_PARAM->pLex->pPP, pToken, &pTok->iApp ) )
+      pTok->iApp = -1;
 
    /* derivation facts must be copied now: the pp entry dies with the
       token, the dump is written much later */
@@ -661,8 +668,20 @@ static void hb_compAstWriteSitePos( FILE * file, PHB_ASTDUMP pAst,
       return;
 
    pTok = &pAst->pTokens[ nTok ];
+
    if( pTok->cProv != 's' || pTok->iCol < 0 || pTok->iLine <= 0 )
+   {
+      /* ast-23: sem posicao NESTE arquivo - mas se o nome foi escrito por uma
+         diretiva, o lugar que o programador de fato editaria e' a APLICACAO
+         dela, que ppApplications[] ja' publica com linha, coluna e tamanho.
+         E' o unico fato que existe sobre este sitio, e sem ele o consumidor
+         recebia so' a linha do statement (40,3% dos sitios de codigo real).
+         O indice, nunca "a aplicacao que esta' na mesma linha": duas diretivas
+         numa linha tornariam isso adivinhacao. */
+      if( pTok->iApp >= 0 )
+         fprintf( file, ", \"app\": %d", pTok->iApp );
       return;
+   }
 
    if( pTok->iLine != iLine )
       fprintf( file, ", \"tokLine\": %d", pTok->iLine );
@@ -2249,6 +2268,8 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
       fprintf( file, "\"len\": %" HB_PFS "u, \"type\": %d, \"prov\": \"%c\", \"text\": ",
                pTok->nLen, ( int ) pTok->type, pTok->cProv );
       hb_compAstWriteStr( file, pTok->szText );
+      if( pTok->iApp >= 0 )
+         fprintf( file, ", \"app\": %d", pTok->iApp );
       if( pTok->iFromCount > 0 )
       {
          int i;

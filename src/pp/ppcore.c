@@ -669,6 +669,13 @@ typedef struct
    HB_SIZE      len;
    PHB_PP_FROMITEM pFrom;
    int          iFromCount;
+   /* ast-23: the rule application this token was PRODUCED by - the index into
+      the table hb_pp_trackApply() fills.  Distinct from pFrom, which says what
+      OPERATION made the text (clone, paste, stringify): a word written plainly
+      in a rule's result pattern is the product of an application and of no
+      operation at all, so it had no link back to the directive that wrote it.
+      -1 = the token is not the product of an application. */
+   int          iApp;
 } HB_PP_DRVITEM, * PHB_PP_DRVITEM;
 
 typedef struct
@@ -763,7 +770,12 @@ static void hb_pp_drvSet( PHB_PP_STATE pState, PHB_PP_TOKEN pKey,
    while( pTbl->pItems[ nAt ].pKey && pTbl->pItems[ nAt ].pKey != pKey )
       nAt = ( nAt + 1 ) & ( pTbl->nSize - 1 );
    if( ! pTbl->pItems[ nAt ].pKey )
+   {
       pTbl->nCount++;
+      /* hb_xgrabz() zeroes, and 0 is a VALID application index - so "none"
+         has to be written explicitly (ast-23) */
+      pTbl->pItems[ nAt ].iApp = -1;
+   }
    else if( pTbl->pItems[ nAt ].pFrom )
       hb_xfree( pTbl->pItems[ nAt ].pFrom );
    pTbl->pItems[ nAt ].pKey = pKey;
@@ -771,6 +783,29 @@ static void hb_pp_drvSet( PHB_PP_STATE pState, PHB_PP_TOKEN pKey,
    pTbl->pItems[ nAt ].len = pKey->len;
    pTbl->pItems[ nAt ].pFrom = pFrom;
    pTbl->pItems[ nAt ].iFromCount = iFromCount;
+}
+
+/* ast-23: record that this token is the product of the application currently
+   being expanded.  Called for the tokens a rule's RESULT pattern writes
+   plainly - the ones that carry no marker content and therefore never had a
+   from-item.  It is what lets a consumer answer "which directive wrote this
+   name?" for a token whose only other position is in another file. */
+static void hb_pp_drvAppSet( PHB_PP_STATE pState, PHB_PP_TOKEN pKey )
+{
+   PHB_PP_DRVITEM pItem;
+
+   if( pState->iDrvApp < 0 )
+      return;
+
+   /* garante o slot sem tocar no pFrom de quem ja' tem um */
+   pItem = hb_pp_drvFind( pState, pKey );
+   if( ! pItem )
+   {
+      hb_pp_drvSet( pState, pKey, NULL, 0 );
+      pItem = hb_pp_drvFind( pState, pKey );
+   }
+   if( pItem )
+      pItem->iApp = pState->iDrvApp;
 }
 
 /* record a whole-token derivation: the common case of a marker result
@@ -5766,6 +5801,14 @@ static PHB_PP_TOKEN *  hb_pp_patternStuff( PHB_PP_STATE pState,
       else
       {
          *pResultPtr = hb_pp_tokenClone( pState, pResultPattern );
+         /* ast-23: um nome escrito PLAINLY no resultado da regra (o `nAcc` de
+            `#xcommand CMD_SOMA <v> => nAcc += <v>`) nao vem de marcador nenhum,
+            entao nunca teve from-item - e ficava sem qualquer ligacao com a
+            diretiva que o escreveu.  A aplicacao corrente ja' foi registrada
+            aqui: hb_pp_patternReplace() chama hb_pp_trackApply() ANTES de
+            expandir o resultado, entao iDrvApp e' a DESTA aplicacao. */
+         if( pState->fTrackPos )
+            hb_pp_drvAppSet( pState, *pResultPtr );
          pResultPtr = &( *pResultPtr )->pNext;
       }
       pResultPattern = pResultPattern->pNext;
@@ -7231,6 +7274,23 @@ HB_BOOL hb_pp_trackApplyToken( PHB_PP_STATE pState, int iApply, int iToken,
    marker of which tracked application each byte range of a synthesized
    token derives - 'c'lone, 'p'aste or 's'tringify.  Zero entries means
    the token was not synthesized from a match marker */
+/* ast-23: which rule application PRODUCED this token, or HB_FALSE when it is
+   not the product of one.  A separate question from hb_pp_tokenFromGet(),
+   which reports the OPERATION that made the text - a plainly written result
+   word is the product of an application and of no operation. */
+HB_BOOL hb_pp_tokenAppGet( PHB_PP_STATE pState, PHB_PP_TOKEN pToken, int * piApp )
+{
+   PHB_PP_DRVITEM pItem = hb_pp_drvFind( pState, pToken );
+
+   if( pItem && pItem->iApp >= 0 )
+   {
+      if( piApp )
+         *piApp = pItem->iApp;
+      return HB_TRUE;
+   }
+   return HB_FALSE;
+}
+
 int hb_pp_tokenFromCount( PHB_PP_STATE pState, PHB_PP_TOKEN pToken )
 {
    PHB_PP_DRVITEM pItem = hb_pp_drvFind( pState, pToken );
