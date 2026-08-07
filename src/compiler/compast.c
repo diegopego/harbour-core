@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-21"
+#define HB_AST_SCHEMA         "ast-22"
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -1835,6 +1835,104 @@ static void hb_compAstWriteRuleToks( FILE * file, PHB_PP_STATE pPP,
    fprintf( file, "%s]", iCount ? "\n      " : "" );
 }
 
+/* Content checksum of one source file, FNV-1a 64-bit, as lowercase hex.
+   Returns HB_FALSE when the file cannot be read (the caller then omits the
+   file's checksum rather than writing a wrong one).
+
+   Why a local checksum instead of hb_md5file(): md5 lives in libhbrtl, and
+   linking it here would drag the whole runtime (hb_fileExtOpen, hb_fileRead,
+   hb_parc, hb_retclen, ...) into the compiler, which is deliberately lean.
+   This is not cryptography - the adversary is "the file changed", not a
+   forger - so a fast non-cryptographic content hash is the right tool. */
+static HB_BOOL hb_compAstFileSum( const char * pszFileName, char * szOut,
+                                  HB_FOFFSET * pnSize )
+{
+   FILE *        file;
+   HB_U64        nHash = HB_ULL( 14695981039346656037 );
+   unsigned char buffer[ 4096 ];
+   size_t        nRead;
+   HB_FOFFSET    nSize = 0;
+
+   file = hb_fopen( pszFileName, "rb" );
+   if( ! file )
+      return HB_FALSE;
+
+   while( ( nRead = fread( buffer, 1, sizeof( buffer ), file ) ) > 0 )
+   {
+      size_t i;
+
+      for( i = 0; i < nRead; ++i )
+      {
+         nHash ^= ( HB_U64 ) buffer[ i ];
+         nHash *= HB_ULL( 1099511628211 );
+      }
+      nSize += ( HB_FOFFSET ) nRead;
+   }
+   fclose( file );
+
+   hb_snprintf( szOut, 17, "%016" PFHL "x", nHash );
+   *pnSize = nSize;
+
+   return HB_TRUE;
+}
+
+/* ast-22: PROVENANCE - what this dump was made FROM.
+   The consumer's question is "does this dump still correspond to the sources?",
+   and until now the only available evidence was the file timestamp. That
+   evidence lies in two measured ways: an edit within the same second as the
+   compile is invisible (the incremental build compares with ~1s resolution),
+   and a deleted dump leaves no trace at all. Both are decided here instead:
+   the artifact carries the identity of every file it was built from, so the
+   answer is a comparison of facts, never an inference from the clock.
+
+   The file list is the compiler's own (HB_COMP_PARAM->incfiles): it already
+   resolves transitive includes and honours conditional compilation, which is
+   exactly what "-gd" reports. The defines are listed because the same bytes
+   compiled with a different -D legitimately produce a different dump. */
+static void hb_compAstWriteProvenance( HB_COMP_DECL, FILE * file )
+{
+   PHB_INCLST   pIncFile = HB_COMP_PARAM->incfiles;
+   PHB_PPDEFINE pDefine  = HB_COMP_PARAM->ppdefines;
+   HB_BOOL      fFirst   = HB_TRUE;
+
+   fprintf( file, ",\n  \"provenance\": { \"sum\": \"fnv1a64\", \"files\": [" );
+
+   while( pIncFile )
+   {
+      char       szSum[ 17 ];
+      HB_FOFFSET nSize = 0;
+
+      fprintf( file, "%s\n    { \"path\": ", fFirst ? "" : "," );
+      hb_compAstWriteStr( file, pIncFile->szFileName );
+      if( hb_compAstFileSum( pIncFile->szFileName, szSum, &nSize ) )
+         fprintf( file, ", \"size\": %" PFHL "d, \"sum\": \"%s\" }", nSize, szSum );
+      else
+         fprintf( file, ", \"unreadable\": true }" );
+
+      fFirst   = HB_FALSE;
+      pIncFile = pIncFile->pNext;
+   }
+
+   fprintf( file, "%s ]", fFirst ? "" : "\n   " );
+
+   fprintf( file, ", \"defines\": [" );
+   fFirst = HB_TRUE;
+   while( pDefine )
+   {
+      fprintf( file, "%s\n    { \"name\": ", fFirst ? "" : "," );
+      hb_compAstWriteStr( file, pDefine->szName );
+      if( pDefine->szValue )
+      {
+         fprintf( file, ", \"value\": " );
+         hb_compAstWriteStr( file, pDefine->szValue );
+      }
+      fprintf( file, " }" );
+      fFirst  = HB_FALSE;
+      pDefine = pDefine->pNext;
+   }
+   fprintf( file, "%s ] }", fFirst ? "" : "\n   " );
+}
+
 HB_BOOL hb_compAstSave( HB_COMP_DECL )
 {
    PHB_ASTDUMP pAst;
@@ -1914,6 +2012,8 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
 
    fprintf( file, ",\n  \"module\": " );
    hb_compAstWriteStr( file, pAst->szModule ? pAst->szModule : "" );
+
+   hb_compAstWriteProvenance( HB_COMP_PARAM, file );
 
    fprintf( file, ",\n  \"hasCDump\": %s,",
             HB_COMP_PARAM->inlines.iCount > 0 ? "true" : "false" );

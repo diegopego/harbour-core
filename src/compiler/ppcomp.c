@@ -402,7 +402,11 @@ void hb_compInitPP( HB_COMP_DECL, PHB_PP_OPEN_FUNC pOpenFunc )
                   HB_COMP_ISSUPPORTED( HB_COMPFLAG_HB_INLINE ) ?
                   hb_pp_hb_inLine : NULL, hb_pp_CompilerSwitch );
 
-      if( HB_COMP_PARAM->iTraceInclude )
+      /* ast-22: the AST dump needs the same list "-gd" reports, to record what
+         the dump was made FROM (see hb_compAstWriteProvenance). Without this,
+         the list is only collected when dependencies were explicitly asked
+         for, and the dump would carry an empty - that is, a LYING - provenance */
+      if( HB_COMP_PARAM->iTraceInclude || HB_COMP_PARAM->fAst )
          hb_pp_setIncFunc( HB_COMP_PARAM->pLex->pPP, hb_pp_fileIncluded );
 
       if( ! HB_COMP_PARAM->szStdCh )
