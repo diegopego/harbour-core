@@ -2089,10 +2089,15 @@ static HB_BOOL hb_compAstProvFresh( const char * pszDump, char * szWhy, int iWhy
    return fFresh;
 }
 
-/* --ast-fresh: one line per dump, `fresh <path>` or `stale <path>: <why>`.
-   Exit is non-zero when ANY dump is stale, so a caller that only wants the
-   yes/no can read the exit and ignore the lines; one that wants to regenerate
-   just the affected modules reads the lines. */
+/* --ast-fresh: prints ONLY the dumps that no longer match, one per line, as
+   `<dump><TAB><why>`. Silence means every dump given still corresponds to its
+   sources, and the exit is non-zero when any line was printed.
+
+   Printing only the stale ones is not brevity: a caller that has to tell them
+   apart by a `fresh`/`stale` prefix is deciding a ROLE by comparing text, and
+   text is the one thing this project refuses to decide by. Here the presence
+   of the line IS the fact, and its first field is the dump - nothing to
+   classify. */
 void hb_compAstFreshPrint( HB_COMP_DECL, int argc, const char * const argv[] )
 {
    int i;
@@ -2106,15 +2111,12 @@ void hb_compAstFreshPrint( HB_COMP_DECL, int argc, const char * const argv[] )
          continue;
 
       szWhy[ 0 ] = '\0';
-      if( hb_compAstProvFresh( argv[ i ], szWhy, sizeof( szWhy ) ) )
-         hb_snprintf( szLine, sizeof( szLine ), "fresh %s\n", argv[ i ] );
-      else
+      if( ! hb_compAstProvFresh( argv[ i ], szWhy, sizeof( szWhy ) ) )
       {
-         hb_snprintf( szLine, sizeof( szLine ), "stale %s: %s\n", argv[ i ], szWhy );
+         hb_snprintf( szLine, sizeof( szLine ), "%s\t%s\n", argv[ i ], szWhy );
          HB_COMP_PARAM->fAstStale = HB_TRUE;
+         hb_compOutStd( HB_COMP_PARAM, szLine );
       }
-
-      hb_compOutStd( HB_COMP_PARAM, szLine );
    }
 }
 
