@@ -1,6 +1,6 @@
-<!-- changelog-baseline: harbour-core@c37f8b7c93 (feature/compiler-ast-dump) -->
+<!-- changelog-baseline: harbour-core@9d42e27866 (feature/compiler-ast-dump) -->
 <!-- Delta pointer. Everything after this commit is NOT yet described here.
-     To catch up:  git log c37f8b7c93..HEAD   (see § Maintaining this file). -->
+     To catch up:  git log 9d42e27866..HEAD   (see § Maintaining this file). -->
 
 # NEWS — `feature/compiler-ast-dump`
 
@@ -30,6 +30,58 @@ regexes. Neither costs you anything if you don't ask for it: without the switch,
 compiled program is **identical, byte for byte**, to the one stock Harbour produces.
 
 ---
+
+## 2026-08-07 — the dump says what it was made from, and the compiler can tell you if it still holds
+
+A tool that keeps a dump around has one question before trusting it again: *do the
+sources still match this?* Until now the only way to answer was the file timestamp,
+and the timestamp lies in two ordinary situations — an edit made within the same
+second as the compile is invisible (incremental builds compare with about one second
+of resolution), and a dump you deleted leaves no trace at all, because what the build
+watches is the `.c`.
+
+So the dump now records its own provenance: every file the compiler read to produce it
+— the `.prg` and its includes, transitive ones included — each with its size and a
+content hash, plus the `-D` defines in force.
+
+```jsonc
+"provenance": {
+  "sum": "fnv1a64",
+  "files": [ { "path": "m.prg", "size": 115, "sum": "45a9ac2775bbd192" },
+             { "path": "a.ch",  "size":  56, "sum": "abd3ede22738a271" } ],
+  "defines": [ { "name": "LIGA_C" } ] }
+```
+
+The list is the compiler's own — the same one `-gd` reports — so a header pulled in by
+another header is in it, and one skipped by a false `#ifdef` is not.
+
+And you do not have to compare it yourself. Two new switches answer about files and
+compile nothing:
+
+```
+$ harbour --ast-fresh work/*.ast.json      # silence: every dump still matches
+$ echo $?
+0
+$ harbour --ast-fresh work/*.ast.json      # after an edit whose mtime was restored
+work/m1.ast.json	m1.prg: changed
+$ echo $?
+1
+```
+
+Only stale dumps are printed, one per line as `<dump><TAB><why>`; silence means all of
+them still hold, and the exit carries the yes/no for callers that want only that. There
+is also `--filesum <file>…`, which prints `<sum> <size> <path>` for files you want to
+check without having a dump.
+
+Measured: 207 files, 2.1 MB, verified in 4 ms. On the same state, an incremental build
+recompiles nothing — which is precisely the case this exists for.
+
+Two notes for whoever reads the diff. The hash is a local FNV-1a 64 rather than
+`hb_md5file()`: md5 keeps its computation and its `HB_FUNC` wrapper in one object, so
+linking it would pull `hb_parc`, `hb_retclen` and the rest of the runtime into a
+compiler that today links none of it. And include tracking, which used to be collected
+only for `-gd`, is now also collected for `-x` — without that the dump shipped an empty
+provenance, which is worse than none, because it looks like an answer.
 
 ## 2026-08-06 — `-x`: a recorded use now carries the token it was written as
 
