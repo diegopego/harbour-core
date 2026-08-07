@@ -1,6 +1,6 @@
-<!-- changelog-baseline: harbour-core@9d42e27866 (feature/compiler-ast-dump) -->
+<!-- changelog-baseline: harbour-core@30352b5d56 (feature/compiler-ast-dump) -->
 <!-- Delta pointer. Everything after this commit is NOT yet described here.
-     To catch up:  git log 9d42e27866..HEAD   (see § Maintaining this file). -->
+     To catch up:  git log 30352b5d56..HEAD   (see § Maintaining this file). -->
 
 # NEWS — `feature/compiler-ast-dump`
 
@@ -82,6 +82,28 @@ linking it would pull `hb_parc`, `hb_retclen` and the rest of the runtime into a
 compiler that today links none of it. And include tracking, which used to be collected
 only for `-gd`, is now also collected for `-x` — without that the dump shipped an empty
 provenance, which is worse than none, because it looks like an answer.
+
+## 2026-08-07 — `-x`: a token says which directive wrote it
+
+A name a rule writes plainly in its result - the `nAcc` of `#xcommand CMD_SOMA <v> =>
+nAcc += <v>` - reaches the compiler from another file, and a column in another file is
+not a column in this one. So every use that name produced came out with a line and
+nothing else: a tool could tell you the statement, never the word.
+
+Measured on `tbrowse.prg` in this tree, that is **40.3% of all sites**. In Harbour it is
+not a corner case; it is how real code is written.
+
+Such a token now carries `app`, the index of the rule application that produced it, and
+so does the recorded site. The place a reader wants is the **application** - the
+`CMD_SOMA` the programmer typed - which `ppApplications` already published with line,
+column and length, and which is what an editor would have to open to change anything.
+
+The index is a fact carried from the expansion, not "the application on the same line":
+two directives on one line would make that a guess.
+
+**Unchanged when the switch is off.** The stamp is guarded by the same position tracking
+`-x` turns on. Compiling this tree with both compilers, no new switches: 889/889 `.hrb`
+byte-identical, 0 divergent.
 
 ## 2026-08-06 — `-x`: a recorded use now carries the token it was written as
 
