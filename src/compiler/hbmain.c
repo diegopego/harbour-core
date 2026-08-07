@@ -104,6 +104,27 @@ int hb_compMainExt( int argc, const char * const argv[],
       if( HB_COMP_PARAM->fCredits )
          hb_compPrintCredits( HB_COMP_PARAM );
 
+      /* ast-22: --filesum answers about files and compiles nothing. It runs
+         here, before the pp and the identifier table are set up, because none
+         of that is needed to read bytes - and because the caller's reason for
+         asking is precisely to avoid paying for a compile. */
+      if( HB_COMP_PARAM->fFileSum )
+      {
+         hb_compAstSumsPrint( HB_COMP_PARAM, argc, argv );
+         HB_COMP_PARAM->fExit = HB_TRUE;
+      }
+
+      if( HB_COMP_PARAM->fAstFresh )
+      {
+         hb_compAstFreshPrint( HB_COMP_PARAM, argc, argv );
+         HB_COMP_PARAM->fExit = HB_TRUE;
+         /* the VERDICT is the exit status, not a word to be scraped from the
+            output: a caller that only wants yes/no reads the exit and stops
+            there. Stale is a legitimate answer, not a failure of the run. */
+         if( HB_COMP_PARAM->fAstStale )
+            HB_COMP_PARAM->iErrorCount++;
+      }
+
       /* Set Search Path */
       if( HB_COMP_PARAM->fINCLUDE )
          hb_compChkAddIncPaths( HB_COMP_PARAM );

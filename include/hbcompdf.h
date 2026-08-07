@@ -874,6 +874,9 @@ typedef struct _HB_COMP
    HB_BOOL           fNoStartUp;          /* C code generation embed HB_FS_FIRST or not */
    HB_BOOL           fCredits;            /* print credits */
    HB_BOOL           fBuildInfo;          /* print build info */
+   HB_BOOL           fFileSum;            /* --filesum: print content hashes and exit (ast-22 provenance) */
+   HB_BOOL           fAstFresh;           /* --ast-fresh: check dumps against their provenance and exit */
+   HB_BOOL           fAstStale;           /* ...and at least one of them no longer matches */
    HB_BOOL           fLogo;               /* print logo */
    HB_BOOL           fSwitchCase;         /* generate PCODE for CASE value of SWITCH statement */
    HB_BOOL           fDescend;            /* add descendant FOR EACH iterators */

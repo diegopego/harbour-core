@@ -193,6 +193,30 @@ static const char * hb_compChkParseSwitch( HB_COMP_DECL, const char * szSwitch,
          HB_COMP_PARAM->fLogo = HB_TRUE;
          HB_COMP_PARAM->fQuiet = HB_TRUE;
       }
+      /* ast-22: print the content hash of each listed file and exit, without
+         compiling anything. It answers the one question a consumer of the AST
+         dump has before trusting it - "do the sources still match the
+         provenance recorded in there?" - and answers it with the SAME hash the
+         dump was written with. Asking costs a process; recomputing the hash
+         elsewhere costs a second implementation that will drift. */
+      else if( strncmp( szSwPtr + 2, "filesum", 7 ) == 0 )
+      {
+         szSwPtr += 9;
+         HB_COMP_PARAM->fFileSum = HB_TRUE;
+         HB_COMP_PARAM->fQuiet = HB_TRUE;
+         HB_COMP_PARAM->fLogo = HB_FALSE;
+      }
+      /* ast-22: given AST dumps, say which ones still match the sources they
+         were made from - and compile nothing. The comparison lives here, with
+         the code that WROTE the provenance, so the caller never has to know
+         what "matching" means. */
+      else if( strncmp( szSwPtr + 2, "ast-fresh", 9 ) == 0 )
+      {
+         szSwPtr += 11;
+         HB_COMP_PARAM->fAstFresh = HB_TRUE;
+         HB_COMP_PARAM->fQuiet = HB_TRUE;
+         HB_COMP_PARAM->fLogo = HB_FALSE;
+      }
       else if( strncmp( szSwPtr + 2, "help", 4 ) == 0 )
       {
          szSwPtr += 6;

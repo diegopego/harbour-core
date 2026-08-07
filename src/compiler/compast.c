@@ -58,6 +58,10 @@
 #include "hbcomp.h"
 
 #define HB_AST_SCHEMA         "ast-22"
+
+/* how much of a dump is read back to find the provenance block: it sits in
+   the first lines, before the token stream, so a fixed head is enough */
+#define HB_AST_PROV_HEAD      ( 256 * 1024 )
 #define HB_AST_ALLOC_BASE     64
 
 /* one derivation fact of a synthesized token (see hb_pp_tokenFromGet()):
@@ -1931,6 +1935,210 @@ static void hb_compAstWriteProvenance( HB_COMP_DECL, FILE * file )
       pDefine = pDefine->pNext;
    }
    fprintf( file, "%s ] }", fFirst ? "" : "\n   " );
+}
+
+/* --filesum: the content hash of each listed file, one per line, and nothing
+   else. Format is `<sum> <size> <path>`, in the order given - the same shape
+   `md5sum` and friends use, so it reads the same way by eye and by script.
+   A file that cannot be read prints `- - <path>`: the caller must be able to
+   tell "changed" from "could not look", and a missing line would blur them.
+
+   This exists so that whoever holds a dump can ask whether it still matches
+   the sources WITHOUT compiling: the expensive thing is the compile, and
+   compiling to find out whether we needed to compile saves nothing. The hash
+   is computed by the same code that wrote the provenance into the dump, which
+   is the whole point - a second implementation elsewhere would drift, and the
+   day it drifted every cached dump would silently look stale (or, worse,
+   fresh). */
+/* --- reading back the provenance -----------------------------------------
+   The compiler reads a block it WROTE itself, in a shape it controls, sitting
+   in the first bytes of the file (before "hasCDump"). That is why this is a
+   linear scan and not a JSON parser: a general parser would be a large thing
+   to carry for one known block, and this one lives next to the writer above,
+   so the two move together.
+   ------------------------------------------------------------------------- */
+
+/* copies the JSON string starting at *pSrc (which points at the opening quote)
+   into szOut, undoing the three escapes the writer emits. Returns the position
+   after the closing quote, or NULL when the string is not well formed. */
+static const char * hb_compAstReadStr( const char * pSrc, char * szOut, int iMax )
+{
+   int i = 0;
+
+   if( *pSrc != '"' )
+      return NULL;
+   ++pSrc;
+
+   while( *pSrc && *pSrc != '"' )
+   {
+      char c = *pSrc++;
+
+      if( c == '\\' )
+      {
+         if( *pSrc == 'u' )
+         {
+            int  j;
+            long lVal = 0;
+
+            ++pSrc;
+            for( j = 0; j < 4 && HB_ISXDIGIT( ( HB_UCHAR ) *pSrc ); ++j )
+            {
+               char h = *pSrc++;
+               lVal = lVal * 16 + ( HB_ISDIGIT( ( HB_UCHAR ) h ) ? h - '0' :
+                                    ( HB_TOUPPER( h ) - 'A' + 10 ) );
+            }
+            c = ( char ) lVal;
+         }
+         else
+            c = *pSrc++;
+      }
+      if( i < iMax - 1 )
+         szOut[ i++ ] = c;
+   }
+   if( *pSrc != '"' )
+      return NULL;
+
+   szOut[ i ] = '\0';
+
+   return pSrc + 1;
+}
+
+/* Does the dump still match the sources it was made from?
+   szWhy receives the FIRST divergence found, in the caller's words - "which
+   file and what about it", never a bare false: a consumer that is told only
+   "stale" has to guess whether to recompile one module or distrust the lot. */
+static HB_BOOL hb_compAstProvFresh( const char * pszDump, char * szWhy, int iWhyLen )
+{
+   FILE *       file;
+   char *       pBuf;
+   const char * p;
+   HB_SIZE      nRead;
+   HB_BOOL      fFresh = HB_TRUE;
+
+   file = hb_fopen( pszDump, "rb" );
+   if( ! file )
+   {
+      hb_snprintf( szWhy, iWhyLen, "dump not found" );
+      return HB_FALSE;
+   }
+
+   /* the block is at the top of the file, before the token stream; reading a
+      fixed head is enough and keeps a multi-megabyte dump from being paged in
+      to answer a question about its first lines */
+   pBuf = ( char * ) hb_xgrab( HB_AST_PROV_HEAD + 1 );
+   nRead = ( HB_SIZE ) fread( pBuf, 1, HB_AST_PROV_HEAD, file );
+   pBuf[ nRead ] = '\0';
+   fclose( file );
+
+   p = strstr( pBuf, "\"provenance\"" );
+   if( ! p || ! ( p = strstr( p, "\"files\"" ) ) )
+   {
+      hb_snprintf( szWhy, iWhyLen, "no provenance in the dump (older schema?)" );
+      hb_xfree( pBuf );
+      return HB_FALSE;
+   }
+
+   while( fFresh && ( p = strstr( p, "{ \"path\": " ) ) != NULL )
+   {
+      char       szPath[ HB_PATH_MAX ];
+      char       szSum[ 32 ];
+      char       szNow[ 17 ];
+      HB_FOFFSET nSize = 0, nNow = 0;
+
+      p += 10;
+      p = hb_compAstReadStr( p, szPath, sizeof( szPath ) );
+      if( ! p )
+         break;
+
+      /* a file the compiler could not read when it wrote the dump cannot be
+         confirmed now either - saying "fresh" here would be inventing a fact */
+      if( strstr( p, "\"unreadable\"" ) != NULL &&
+          strstr( p, "\"unreadable\"" ) < strstr( p, "}" ) )
+      {
+         hb_snprintf( szWhy, iWhyLen, "%s: was unreadable when the dump was written", szPath );
+         fFresh = HB_FALSE;
+         break;
+      }
+
+      p = strstr( p, "\"size\": " );
+      if( ! p )
+         break;
+      nSize = ( HB_FOFFSET ) strtol( p + 8, NULL, 10 );
+
+      p = strstr( p, "\"sum\": " );
+      if( ! p )
+         break;
+      p = hb_compAstReadStr( p + 7, szSum, sizeof( szSum ) );
+      if( ! p )
+         break;
+
+      if( ! hb_compAstFileSum( szPath, szNow, &nNow ) )
+      {
+         hb_snprintf( szWhy, iWhyLen, "%s: gone", szPath );
+         fFresh = HB_FALSE;
+      }
+      else if( nNow != nSize || strcmp( szNow, szSum ) != 0 )
+      {
+         hb_snprintf( szWhy, iWhyLen, "%s: changed", szPath );
+         fFresh = HB_FALSE;
+      }
+   }
+
+   hb_xfree( pBuf );
+
+   return fFresh;
+}
+
+/* --ast-fresh: one line per dump, `fresh <path>` or `stale <path>: <why>`.
+   Exit is non-zero when ANY dump is stale, so a caller that only wants the
+   yes/no can read the exit and ignore the lines; one that wants to regenerate
+   just the affected modules reads the lines. */
+void hb_compAstFreshPrint( HB_COMP_DECL, int argc, const char * const argv[] )
+{
+   int i;
+
+   for( i = 1; i < argc; ++i )
+   {
+      char szWhy[ 256 ];
+      char szLine[ HB_PATH_MAX + 320 ];
+
+      if( HB_ISOPTSEP( argv[ i ][ 0 ] ) )
+         continue;
+
+      szWhy[ 0 ] = '\0';
+      if( hb_compAstProvFresh( argv[ i ], szWhy, sizeof( szWhy ) ) )
+         hb_snprintf( szLine, sizeof( szLine ), "fresh %s\n", argv[ i ] );
+      else
+      {
+         hb_snprintf( szLine, sizeof( szLine ), "stale %s: %s\n", argv[ i ], szWhy );
+         HB_COMP_PARAM->fAstStale = HB_TRUE;
+      }
+
+      hb_compOutStd( HB_COMP_PARAM, szLine );
+   }
+}
+
+void hb_compAstSumsPrint( HB_COMP_DECL, int argc, const char * const argv[] )
+{
+   int i;
+
+   for( i = 1; i < argc; ++i )
+   {
+      char       szSum[ 17 ];
+      char       szLine[ HB_PATH_MAX + 64 ];
+      HB_FOFFSET nSize = 0;
+
+      if( HB_ISOPTSEP( argv[ i ][ 0 ] ) )
+         continue;
+
+      if( hb_compAstFileSum( argv[ i ], szSum, &nSize ) )
+         hb_snprintf( szLine, sizeof( szLine ), "%s %" PFHL "d %s\n",
+                      szSum, nSize, argv[ i ] );
+      else
+         hb_snprintf( szLine, sizeof( szLine ), "- - %s\n", argv[ i ] );
+
+      hb_compOutStd( HB_COMP_PARAM, szLine );
+   }
 }
 
 HB_BOOL hb_compAstSave( HB_COMP_DECL )

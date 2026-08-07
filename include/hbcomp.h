@@ -350,6 +350,8 @@ extern void hb_compI18nAddPlural( HB_COMP_DECL, const char ** szTexts, HB_ULONG 
    one-line hook calls gated by HB_COMP_PARAM->fAst. */
 extern void hb_compAstFree( HB_COMP_DECL );
 extern HB_BOOL hb_compAstSave( HB_COMP_DECL );
+extern void hb_compAstSumsPrint( HB_COMP_DECL, int argc, const char * const argv[] );
+extern void hb_compAstFreshPrint( HB_COMP_DECL, int argc, const char * const argv[] );
 extern void hb_compAstToken( HB_COMP_DECL, PHB_PP_TOKEN pToken );
 extern void hb_compAstNodeBorn( HB_COMP_DECL, PHB_EXPR pExpr );
 /* ast-21: the token chain - the lexer stamps, a rule action hands over, code
