@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-23"
+#define HB_AST_SCHEMA         "ast-24"
 
 /* how much of a dump is read back to find the provenance block: it sits in
    the first lines, before the token stream, so a fixed head is enough */
@@ -1867,11 +1867,30 @@ static void hb_compAstWriteRuleToks( FILE * file, PHB_PP_STATE pPP,
    hb_parc, hb_retclen, ...) into the compiler, which is deliberately lean.
    This is not cryptography - the adversary is "the file changed", not a
    forger - so a fast non-cryptographic content hash is the right tool. */
+/* FNV-1a 64: the digest of this dump - the provenance file sums and the
+   per-function pcode hashes below all use it, so a consumer carries one
+   comparison rule.  Every hash is paired with the exact byte count of the
+   hashed stream: a collision would additionally need equal length */
+#define HB_AST_FNV_INIT       HB_ULL( 14695981039346656037 )
+
+static HB_U64 hb_compAstFnv( HB_U64 nHash, const void * pData, HB_SIZE nLen )
+{
+   const unsigned char * pBytes = ( const unsigned char * ) pData;
+   HB_SIZE n;
+
+   for( n = 0; n < nLen; ++n )
+   {
+      nHash ^= ( HB_U64 ) pBytes[ n ];
+      nHash *= HB_ULL( 1099511628211 );
+   }
+   return nHash;
+}
+
 static HB_BOOL hb_compAstFileSum( const char * pszFileName, char * szOut,
                                   HB_FOFFSET * pnSize )
 {
    FILE *        file;
-   HB_U64        nHash = HB_ULL( 14695981039346656037 );
+   HB_U64        nHash = HB_AST_FNV_INIT;
    unsigned char buffer[ 4096 ];
    size_t        nRead;
    HB_FOFFSET    nSize = 0;
@@ -1882,13 +1901,7 @@ static HB_BOOL hb_compAstFileSum( const char * pszFileName, char * szOut,
 
    while( ( nRead = fread( buffer, 1, sizeof( buffer ), file ) ) > 0 )
    {
-      size_t i;
-
-      for( i = 0; i < nRead; ++i )
-      {
-         nHash ^= ( HB_U64 ) buffer[ i ];
-         nHash *= HB_ULL( 1099511628211 );
-      }
+      nHash = hb_compAstFnv( nHash, buffer, ( HB_SIZE ) nRead );
       nSize += ( HB_FOFFSET ) nRead;
    }
    fclose( file );
@@ -1897,6 +1910,114 @@ static HB_BOOL hb_compAstFileSum( const char * pszFileName, char * szOut,
    *pnSize = nSize;
 
    return HB_TRUE;
+}
+
+/* ast-24: per-function pcode identity, so a consumer can prove "this
+   refactoring left every function's code alone" from the dump instead of
+   parsing the .hrb container - a private reader of a foreign binary format
+   drifts, the dump's schema is exact and refuses loudly when it moves.
+
+   Two hashes per function, both over pFunc->pCode (the same bytes the
+   .hrb/.c generators serialize, still alive here because hb_compAstSave()
+   runs after hb_compGenOutput() and before hb_compCompileEnd()):
+
+   - "pcodeHash": the raw bytes.  Equality means byte-identical code.
+   - "pcodeNormHash": the bytes with every symbol-table INDEX operand
+     replaced by the symbol's NAME (and the near/wide opcode pairs folded
+     into the wide one, since the index width is an encoding accident).
+     pcode addresses memvars, fields, messages and function symbols by
+     position in the module's symbol table, so ADDING one symbol renumbers
+     the table and changes the raw pcode of every function that references
+     one behind it - without changing what any of them does.  This hash is
+     the fact that survives that renumbering.
+
+   The opcode list mirrors genc.c, the in-tree authority on which operands
+   are symbol-table indexes (each hb_compSymbolName() site in its verbose
+   comments); the operand is always the first one.  HB_P_WITHOBJECTMESSAGE
+   uses 0xFFFF as "no symbol - already pushed via HB_P_MACROSYMBOL", kept
+   as raw bytes below, exactly as the VM special-cases it. */
+static int hb_compAstSymOperand( HB_BYTE opcode, HB_BYTE * pCanon )
+{
+   *pCanon = opcode;
+   switch( opcode )
+   {
+      case HB_P_PUSHSYMNEAR:
+         *pCanon = HB_P_PUSHSYM;
+         return 1;
+      case HB_P_PUSHALIASEDFIELDNEAR:
+         *pCanon = HB_P_PUSHALIASEDFIELD;
+         return 1;
+      case HB_P_POPALIASEDFIELDNEAR:
+         *pCanon = HB_P_POPALIASEDFIELD;
+         return 1;
+      case HB_P_MESSAGE:
+      case HB_P_PARAMETER:
+      case HB_P_POPALIASEDFIELD:
+      case HB_P_POPALIASEDVAR:
+      case HB_P_POPFIELD:
+      case HB_P_POPMEMVAR:
+      case HB_P_POPVARIABLE:
+      case HB_P_PUSHALIASEDFIELD:
+      case HB_P_PUSHALIASEDVAR:
+      case HB_P_PUSHFIELD:
+      case HB_P_PUSHFUNCSYM:
+      case HB_P_PUSHMEMVAR:
+      case HB_P_PUSHMEMVARREF:
+      case HB_P_PUSHSYM:
+      case HB_P_PUSHVARIABLE:
+      case HB_P_WITHOBJECTMESSAGE:
+         return 2;
+   }
+   return 0;
+}
+
+static void hb_compAstPcodeHashes( HB_COMP_DECL, PHB_HFUNC pFunc,
+                                   char * szRaw, char * szNorm )
+{
+   HB_U64  nRaw  = hb_compAstFnv( HB_AST_FNV_INIT, pFunc->pCode,
+                                  pFunc->nPCodePos );
+   HB_U64  nNorm = HB_AST_FNV_INIT;
+   HB_SIZE nPos  = 0;
+
+   while( nPos < pFunc->nPCodePos )
+   {
+      HB_BYTE      opcode = pFunc->pCode[ nPos ];
+      HB_ISIZ      nSize  = hb_compPCodeSize( pFunc, nPos );
+      HB_BYTE      cCanon;
+      int          iWidth = hb_compAstSymOperand( opcode, &cCanon );
+      const char * szName = NULL;
+
+      if( nSize <= 0 || nPos + ( HB_SIZE ) nSize > pFunc->nPCodePos )
+      {
+         /* unknown or truncated opcode: no way to keep walking - hash the
+            rest raw so the value still commits to every byte */
+         nNorm = hb_compAstFnv( nNorm, pFunc->pCode + nPos,
+                                pFunc->nPCodePos - nPos );
+         break;
+      }
+      if( iWidth > 0 )
+      {
+         HB_USHORT uiSym = iWidth == 1 ? pFunc->pCode[ nPos + 1 ] :
+                           HB_PCODE_MKUSHORT( &pFunc->pCode[ nPos + 1 ] );
+
+         if( ! ( opcode == HB_P_WITHOBJECTMESSAGE && uiSym == 0xFFFF ) )
+            szName = hb_compSymbolName( HB_COMP_PARAM, uiSym );
+      }
+      if( szName )
+      {
+         nNorm = hb_compAstFnv( nNorm, &cCanon, 1 );
+         nNorm = hb_compAstFnv( nNorm, szName, strlen( szName ) + 1 );
+         nNorm = hb_compAstFnv( nNorm, pFunc->pCode + nPos + 1 + iWidth,
+                                ( HB_SIZE ) nSize - 1 - iWidth );
+      }
+      else
+         nNorm = hb_compAstFnv( nNorm, pFunc->pCode + nPos,
+                                ( HB_SIZE ) nSize );
+      nPos += ( HB_SIZE ) nSize;
+   }
+
+   hb_snprintf( szRaw, 17, "%016" PFHL "x", nRaw );
+   hb_snprintf( szNorm, 17, "%016" PFHL "x", nNorm );
 }
 
 /* ast-22: PROVENANCE - what this dump was made FROM.
@@ -2534,6 +2655,33 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
       fprintf( file, "%s ] },", fFirstDecl ? "" : "\n    " );
    }
 
+   /* ast-24: the module's symbol table, in table order - the same list the
+      .hrb generator serializes (genhrb.c), so index N here IS the index the
+      pcode operands reference.  "scope" is the full 16-bit compiler scope
+      (the .hrb byte format strips the upper byte - a known FIXME there);
+      "link" is the linker classification the .hrb symbol type byte carries:
+      "func" defined here, "extern" defined elsewhere, "deferred" late-bound,
+      "none" not a function */
+   fprintf( file, "\n  \"symbols\": [" );
+   {
+      PHB_HSYMBOL pSym = HB_COMP_PARAM->symbols.pFirst;
+      HB_BOOL fFirstSym = HB_TRUE;
+
+      while( pSym )
+      {
+         fprintf( file, "%s\n    { \"name\": ", fFirstSym ? "" : "," );
+         fFirstSym = HB_FALSE;
+         hb_compAstWriteStr( file, pSym->szName );
+         fprintf( file, ", \"scope\": %d, \"link\": \"%s\" }",
+                  ( int ) pSym->cScope,
+                  ( pSym->cScope & HB_FS_LOCAL ) ? "func" :
+                  ( pSym->cScope & HB_FS_DEFERRED ) ? "deferred" :
+                  pSym->iFunc ? "extern" : "none" );
+         pSym = pSym->pNext;
+      }
+      fprintf( file, "%s ],", fFirstSym ? "" : "\n  " );
+   }
+
    fprintf( file, "\n  \"functions\": [" );
 
    fFirstFunc = HB_TRUE;
@@ -2554,6 +2702,17 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
                ( pFunc->funFlags & HB_FUNF_FILE_DECL ) ? "true" : "false",
                hb_compAstFuncLine( pAst, pFunc ),
                hb_compAstHasMacro( pFunc ) ? "true" : "false" );
+
+      /* ast-24: only for the functions the .hrb serializes - a FILE_DECL
+         pseudo function never becomes code */
+      if( ( pFunc->funFlags & HB_FUNF_FILE_DECL ) == 0 && pFunc->pCode )
+      {
+         char szRaw[ 17 ], szNorm[ 17 ];
+
+         hb_compAstPcodeHashes( HB_COMP_PARAM, pFunc, szRaw, szNorm );
+         fprintf( file, "\n    \"pcodeSize\": %" HB_PFS "u, \"pcodeHash\": \"%s\", \"pcodeNormHash\": \"%s\",",
+                  pFunc->nPCodePos, szRaw, szNorm );
+      }
 
       fprintf( file, "\n    \"declarations\": [" );
       fFirst = HB_TRUE;
