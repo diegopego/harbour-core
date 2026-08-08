@@ -255,7 +255,7 @@ divergent modules                             <span class="ok">none</span>
   <section>
     <div class="col">
       <h2>The consolidated shape</h2>
-      <p>The dump grew one schema version at a time, but the versions are not the ideas: there are four
+      <p>The dump grew one schema version at a time, but the versions are not the ideas: there are five
       channels. (The version-by-version record lives in <a href="NEWS.md">NEWS.md</a>; git has the
       rest.)</p>
     </div>
@@ -288,6 +288,14 @@ divergent modules                             <span class="ok">none</span>
         <p>The declared types stop being advisory. Checked on entry, after each store, on
         <code>RETURN</code>, and on <b>every <code>Eval</code></b> of an annotated block. The is-a test
         runs on the live object, so runtime-assembled classes pass.</p>
+      </div>
+      <div class="ch" style="grid-column:1 / -1">
+        <div class="k">Channel five</div>
+        <h3>The dump answers for itself</h3>
+        <p><b>Provenance</b>: every file and define it was made from, so a consumer asks the compiler —
+        not a timestamp — whether it still holds. And the module's <b>identity</b>: the symbol table
+        plus per-function code fingerprints (byte-exact, and a form immune to symbol renumbering), so
+        a tool proves an edit preserved behaviour without shipping its own <code>.hrb</code> parser.</p>
       </div>
     </div>
   </section>
