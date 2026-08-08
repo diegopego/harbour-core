@@ -1,4 +1,4 @@
-<!-- changelog-baseline: harbour-core@30352b5d56 (feature/compiler-ast-dump) -->
+<!-- changelog-baseline: harbour-core@71c0363c1f (feature/compiler-ast-dump) -->
 <!-- Delta pointer. Everything after this commit is NOT yet described here.
      To catch up:  git log 30352b5d56..HEAD   (see § Maintaining this file). -->
 
@@ -31,7 +31,41 @@ compiled program is **identical, byte for byte**, to the one stock Harbour produ
 
 ---
 
-## 2026-08-07 — the dump says what it was made from, and the compiler can tell you if it still holds
+## 2026-08-08 — the dump carries the module's identity, so tools stop parsing binaries
+
+A refactoring tool has one closing duty: *prove* the edit changed nothing it did
+not mean to change. The facts for that proof — which symbols a module has, and
+whether each function's compiled code is still the same — lived only inside the
+`.hrb` file, so any tool wanting them had to ship its own reader of that binary
+format. A private reader of someone else's format drifts silently; the dump's
+schema refuses loudly when it moves. So the dump now states those facts itself:
+
+```jsonc
+"symbols": [   // the symbol table, in table order
+  { "name": "MAIN",   "scope": 517,  "link": "func" },
+  { "name": "OUTSTD", "scope": 8192, "link": "extern" } ],
+"functions": [
+  { "name": "MAIN", "pcodeSize": 34,
+    "pcodeHash": "641ef8115be05f41",       // the compiled bytes, exactly
+    "pcodeNormHash": "7d10bed9943a2871",   // the same bytes, immune to
+    ... } ]                                // symbol renumbering
+```
+
+`scope` is the compiler's full 16-bit scope — richer than the `.hrb` itself,
+whose format truncates the upper half. Equal `pcodeHash` means the function's
+compiled code is byte-for-byte the same.
+
+The second hash answers a subtler question. Compiled code refers to variables,
+fields and functions by their *position* in the module's symbol table — so
+adding one symbol renumbers the table, and the raw bytes of functions nobody
+touched change with it, while their behaviour does not. `pcodeNormHash` is
+computed with each of those position references replaced by the symbol's name:
+it stays identical across renumbering and moves on any real change. Measured
+both ways: a symbol inserted mid-table leaves untouched functions with the raw
+hash different and the normalized hash identical; a one-line edit changes both.
+
+As with everything on this branch: without `-x`, none of this runs, and the
+compiled program is byte-identical to stock Harbour's.
 
 A tool that keeps a dump around has one question before trusting it again: *do the
 sources still match this?* Until now the only way to answer was the file timestamp,
