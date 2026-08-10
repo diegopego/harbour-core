@@ -163,3 +163,111 @@ HB_BOOL hb_compFunCallCheck( HB_COMP_DECL, const char * szFuncCall, int iArgs )
 
    return HB_TRUE;
 }
+
+/* --- run-time name resolution (ast-25; message class ast-26) -----------------------------------
+ *
+ * Which core functions reach a SYMBOL through a value the program computes
+ * while it runs.  `__mvGet( cName )` reads a memvar nobody can name at
+ * compile time; `hb_macroBlock( cExpr )` compiles whatever the string holds.
+ * The compiler already knows the call is there - what it never said is that
+ * this particular callee is a door out of the static graph.
+ *
+ * Whoever reads a dump is then able to answer a question that used to have no
+ * answer: does anything here reach a name I am about to change?  The tool that
+ * asks it today is a refactoring one, and before this table its only way of
+ * guessing was to compare the text of string literals against the symbol -
+ * which one concatenation defeats (`__mvGet( "xC" + "fg" )`).  The knowledge
+ * belongs here because it is knowledge about the RTL, and the RTL is ours.
+ * The same table lets the compiler warn about dynamic access under dead code
+ * elimination, where it is a real trap.
+ *
+ * HOW THE LIST WAS DERIVED, so it can be re-derived: every HB_FUNC in
+ * src/rtl and src/vm exported by include/harbour.hbx whose body turns a
+ * character value taken from a PARAMETER into a dynamic symbol
+ * (hb_dynsym*), a memvar (hb_memvar*), a message (hb_objGetMsgSym) or
+ * compiled code (hb_macro*).  Hits whose string is a constant inside the C
+ * (HBHash, HBPointer and __XHelp look up "NEW"/"HELP") are NOT resolving a
+ * name for the program, and stay out.
+ *
+ * The workarea field family (FieldBlock, FieldWBlock) was measured with the
+ * rest and is deliberately NOT here yet: nothing consumes it, and a fact with
+ * no consumer is a fact nobody checks.
+ *
+ * Two class functions stay out for a stronger reason than that, and it is
+ * worth writing down because their names would otherwise look like an
+ * oversight.  __clsAddMsg, __clsModMsg and __clsDelMsg DO resolve a message
+ * from a string - but hbclass.ch emits them for every member of every class,
+ * with the name it stringified from the source itself.  Marking them would
+ * put a run-time door in every program that declares a class, all of them
+ * false.  __clsInstSuper is the same story with a compile-time symbol
+ * (`@<ClassFuncName>()`) as the argument: a door that is closed.
+ *
+ * __objHasMsg and __objHasMsgAssigned were in this table for one measurement
+ * and came straight back out, which is why they are named here: hbclass.ch
+ * emits `__objHasMsg( oInstance, "InitClass" )` in the class-creation
+ * sequence, so EVERY `ENDCLASS` in every program reported a run-time door at
+ * the line of its own declaration.  They also only ASK whether a message
+ * exists - they do not send it - so nothing is reached through them anyway.
+ *
+ * NOTE: THIS TABLE MUST BE SORTED ALPHABETICALLY (ASCII, so '_' comes last)
+ */
+typedef struct
+{
+   const char * cFuncName;
+   const char * cKind;      /* what class of symbol the name reaches */
+} HB_DYNNAMEINFO;
+
+static const HB_DYNNAMEINFO s_dynName[] =
+{
+   { "DO"               , "function" },
+   { "HB_EXECFROMARRAY" , "function" },
+   { "HB_MACROBLOCK"    , "code"     },
+   { "HB_THREADSTART"   , "function" },
+   { "MEMVARBLOCK"      , "memvar"   },
+   { "PROCFILE"         , "function" },
+   { "TYPE"             , "code"     },
+   { "__CLSMSGTYPE"     , "message"  },
+   { "__DYNSN2PTR"      , "function" },
+   { "__DYNSN2SYM"      , "function" },
+   { "__MVEXIST"        , "memvar"   },
+   { "__MVGET"          , "memvar"   },
+   { "__MVGETDEF"       , "memvar"   },
+   { "__MVPRIVATE"      , "memvar"   },
+   { "__MVPUBLIC"       , "memvar"   },
+   { "__MVPUT"          , "memvar"   },
+   { "__MVRELEASE"      , "memvar"   },
+   { "__MVRESTORE"      , "memvar"   },
+   { "__MVSAVE"         , "memvar"   },
+   { "__MVSCOPE"        , "memvar"   },
+   { "__MVXRELEASE"     , "memvar"   },
+   { "__OBJSENDMSG"     , "message"  }
+};
+
+/* The name class this call resolves at run time, or NULL for the calls that
+ * resolve nothing - which is nearly all of them.
+ *
+ * The match is EXACT, unlike hb_compFunCallCheck() above: the 4-letter
+ * shortcut there is Cl*pper compatibility for the argument count check, and
+ * an abbreviated call does not link to the abbreviated symbol anyway.  A
+ * statement about what a call does must hold for the call that is really
+ * being made.
+ */
+const char * hb_compFunDynName( const char * szFuncCall )
+{
+   unsigned int uiFirst = 0, uiLast = HB_SIZEOFARRAY( s_dynName );
+
+   while( uiFirst < uiLast )
+   {
+      unsigned int uiMiddle = ( uiFirst + uiLast ) >> 1;
+      int iCmp = strcmp( szFuncCall, s_dynName[ uiMiddle ].cFuncName );
+
+      if( iCmp == 0 )
+         return s_dynName[ uiMiddle ].cKind;
+      else if( iCmp < 0 )
+         uiLast = uiMiddle;
+      else
+         uiFirst = uiMiddle + 1;
+   }
+
+   return NULL;
+}

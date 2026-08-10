@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-24"
+#define HB_AST_SCHEMA         "ast-26"
 
 /* how much of a dump is read back to find the provenance block: it sits in
    the first lines, before the token stream, so a fixed head is enough */
@@ -2776,6 +2776,15 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
 
          if( pCall->pFunc == pFunc )
          {
+            /* ast-25: this callee reaches a symbol through a name the program
+               computes while it runs (hb_compFunDynName()).  Only for a call
+               the SOURCE makes: `PRIVATE x` compiles into a __mvPrivate() of
+               its own, and the name there is a compile-time symbol that
+               declarations[] already carries - there is no written call to
+               point a reader at, and reporting one would invent a door. */
+            const char * szDyn = pCall->nTok != HB_AST_TOK_NONE ?
+                                 hb_compFunDynName( pCall->szSym ) : NULL;
+
             if( ! fFirst )
                fprintf( file, "," );
             fFirst = HB_FALSE;
@@ -2783,6 +2792,8 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
             hb_compAstWriteStr( file, pCall->szSym );
             fprintf( file, ", \"line\": %d", pCall->iLine );
             hb_compAstWriteSitePos( file, pAst, pCall->nTok, pCall->iLine );
+            if( szDyn )
+               fprintf( file, ", \"dyn\": \"%s\"", szDyn );
             fprintf( file, ", \"block\": %s }", pCall->fBlock ? "true" : "false" );
          }
       }

@@ -136,6 +136,9 @@ extern               void         hb_compFunctionSetScope( HB_COMP_DECL, const c
 extern               PHB_HINLINE  hb_compInlineAdd( HB_COMP_DECL, const char * szFunName, int iLine );
 extern HB_EXPORT_INT const char * hb_compGetFuncID( const char * szFuncName, HB_FUNC_ID * pFunID, int * piFlags );
 extern               HB_BOOL      hb_compFunCallCheck( HB_COMP_DECL, const char *, int );
+/* ast-25: the class of symbol this core function resolves from a value the
+   program computes at run time ("memvar", "function", "code"), or NULL */
+extern               const char * hb_compFunDynName( const char * );
 
 extern PHB_VARTYPE hb_compVarTypeNew( HB_COMP_DECL, HB_BYTE cVarType, const char * szFromClass );
 extern void hb_compVariableAdd( HB_COMP_DECL, const char * szVarName, PHB_VARTYPE pVarType ); /* add a new param, local, static variable to a function definition or a public or private */

@@ -31,6 +31,80 @@ compiled program is **identical, byte for byte**, to the one stock Harbour produ
 
 ---
 
+## 2026-08-09 — `-x`: a message reached by name joins the same channel
+
+`dyn` gains its fourth class, **`message`**: `__objSendMsg( oObj, cMsg )` sends
+whatever message that string names, and now the dump says so.
+
+```jsonc
+"calls": [
+  { "sym": "__OBJSENDMSG", "line": 21, "col": 3, "dyn": "message", "block": false } ]
+```
+
+The interesting part of this one is what stayed out. `__clsAddMsg`,
+`__clsModMsg`, `__clsDelMsg` and `__clsInstSuper` all resolve a message or a
+class function from a value — and all four are emitted by `hbclass.ch` itself,
+once per member of every class you declare, from names the preprocessor
+stringified out of your own source. Marking them would report a run-time door in
+every program that declares a class, every one of them false.
+
+`__objHasMsg` was in the table for exactly one measurement and came straight
+back out for the same reason: `hbclass.ch` emits `__objHasMsg( oInstance,
+"InitClass" )` while building a class, so every `ENDCLASS` in every program
+reported a door at the line of its own declaration. It also only *asks* whether
+a message exists — it never sends it.
+
+Schema `ast-26`; 889 of 889 `.hrb` files still byte-identical to stock's.
+
+## 2026-08-09 — `-x`: which calls reach a symbol by a name that only exists at run time
+
+`__mvGet( cName )` reads a variable nobody can name at compile time.
+`hb_macroBlock( cExpr )` compiles whatever the string holds. A tool reading the
+dump could see the *call* — it has always been in `calls[]` — but nothing said
+that this particular callee is a door out of the static graph, so tools guessed:
+they compared the text of string literals against the symbol they were about to
+change. One concatenation defeats that. With `__mvGet( "xC" + "fg" )` the module
+has the strings `xC` and `fg` and no guess can connect them, so a refactoring
+tool would rename the variable, prove the compiled code identical — correctly —
+and hand you a program that dies with `Variable does not exist`.
+
+The compiler knows which of *its own* functions do this. Now it says so:
+
+```jsonc
+"calls": [
+  { "sym": "DUPLA",   "line": 10, "col": 19, "block": false },
+  { "sym": "__MVGET", "line": 13, "col": 20, "dyn": "memvar", "block": false },
+  { "sym": "TYPE",    "line": 14, "col":  7, "dyn": "code",   "block": false } ]
+```
+
+`dyn` is present only when the callee resolves a symbol from a value computed
+while the program runs, and it says which class: **`memvar`** (`__mvGet`,
+`__mvPut`, `__mvPublic`, `MemVarBlock`, …), **`function`** (`Do`,
+`hb_ExecFromArray`, `hb_threadStart`, …) or **`code`** — `Type` and
+`hb_macroBlock`, which compile source at run time and can therefore reach
+anything.
+
+It marks only calls your source writes. `PRIVATE x` compiles into a
+`__mvPrivate()` of its own, and the name there is a compile-time symbol that
+`declarations[]` already carries — that call is left unmarked, because reporting
+it would put a door in every program that has a `PRIVATE`.
+
+**What it does not tell you, deliberately: *which* name the call resolves.** That
+is not knowable, and a field that pretended otherwise would put the guess back in,
+one level deeper. The fact answers a different question — *is there a door here?*
+— which is the one a tool needs before it claims a rename is complete.
+
+The list lives beside the compiler's existing table of RTL argument counts, and
+its header records how it was derived so it can be re-derived: every exported
+function in `src/rtl`/`src/vm` whose body turns a character value taken from a
+parameter into a dynamic symbol, a memvar, a message or compiled code. Two
+families are measured and deliberately absent for now — messages by name
+(`__objSendMsg` and friends) and workarea fields (`FieldBlock`) — since nothing
+consumes them yet.
+
+Schema `ast-25`. Without `-x` nothing here runs; measured after this change,
+889 of 889 `.hrb` files compile byte-identical to stock Harbour's.
+
 ## 2026-08-08 — the dump carries the module's identity, so tools stop parsing binaries
 
 A refactoring tool has one closing duty: *prove* the edit changed nothing it did
