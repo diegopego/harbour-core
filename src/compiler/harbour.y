@@ -552,12 +552,15 @@ EmptyStats : /* empty */               { $<lNumber>$ = 0; }
            | Statements
            ;
 
-ExtList    : IdentName                 { hb_compExternAdd( HB_COMP_PARAM, $1, 0 ); }
-           | ExtList ',' IdentName     { hb_compExternAdd( HB_COMP_PARAM, $3, 0 ); }
+/* ast-27: the second call publishes the SITE.  This action is the only place
+   that knows it: @N is the index of the token that spells the name, carried
+   here by the location stack, and one statement may list several names. */
+ExtList    : IdentName                 { hb_compExternAdd( HB_COMP_PARAM, $1, 0 ); hb_compAstExternAdd( HB_COMP_PARAM, $1, @1, HB_FALSE ); }
+           | ExtList ',' IdentName     { hb_compExternAdd( HB_COMP_PARAM, $3, 0 ); hb_compAstExternAdd( HB_COMP_PARAM, $3, @3, HB_FALSE ); }
            ;
 
-DynList    : IdentName                 { hb_compExternAdd( HB_COMP_PARAM, $1, HB_FS_DEFERRED ); }
-           | DynList ',' IdentName     { hb_compExternAdd( HB_COMP_PARAM, $3, HB_FS_DEFERRED ); }
+DynList    : IdentName                 { hb_compExternAdd( HB_COMP_PARAM, $1, HB_FS_DEFERRED ); hb_compAstExternAdd( HB_COMP_PARAM, $1, @1, HB_TRUE ); }
+           | DynList ',' IdentName     { hb_compExternAdd( HB_COMP_PARAM, $3, HB_FS_DEFERRED ); hb_compAstExternAdd( HB_COMP_PARAM, $3, @3, HB_TRUE ); }
            ;
 
 IdentName  : IDENTIFIER

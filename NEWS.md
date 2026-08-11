@@ -31,6 +31,32 @@ compiled program is **identical, byte for byte**, to the one stock Harbour produ
 
 ---
 
+## 2026-08-11 — `-x`: where a `REQUEST` writes a function name
+
+`REQUEST Alvo` names a function in text. Rename that function and the line stays
+behind: the module still declares the old symbol, the recompilation notices, and
+whoever was renaming gets told that a symbol count changed - true, and useless.
+
+The parser knows which token spells that name; it just had nowhere to say it. Now
+it does:
+
+```jsonc
+"externs": [
+  { "sym": "ALVO",   "line": 1, "col":  8, "kind": "request" },
+  { "sym": "OUTRA",  "line": 1, "col": 14, "kind": "request" },
+  { "sym": "TARDIA", "line": 3, "col":  8, "kind": "dynamic" } ]
+```
+
+`REQUEST` and `EXTERNAL` come out as `request`, `DYNAMIC` as `dynamic`. The column
+is the one the location stack already carries for every other site, so two names
+on one line are two sites, not one - `REQUEST Alvo, Outra` above.
+
+It is not a dependency list: it says where the name is WRITTEN, so a tool editing
+that symbol can edit the line too. What the module imports is still `symbols[]`.
+
+Schema `ast-27`; 889 of 889 `.hrb` byte-identical to stock's, with the parser
+regenerated.
+
 ## 2026-08-09 — `-x`: a message reached by name joins the same channel
 
 `dyn` gains its fourth class, **`message`**: `__objSendMsg( oObj, cMsg )` sends

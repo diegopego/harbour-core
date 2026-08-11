@@ -376,6 +376,9 @@ extern void hb_compAstUseChk( HB_COMP_DECL, const char * szVarName );           
 extern void hb_compAstDeclChk( HB_COMP_DECL, const char * szVarName );                       /* ast-8: parameter covered by an emitted -kt prologue check */
 extern void hb_compAstCallAdd( HB_COMP_DECL, const char * szFunName );
 extern void hb_compAstSendAdd( HB_COMP_DECL, const char * szMsgName );
+/* ast-27: REQUEST/EXTERNAL/DYNAMIC <name> - the site, from the parser's
+   location stack (the grammar action is the only place that knows the token) */
+extern void hb_compAstExternAdd( HB_COMP_DECL, const char *, HB_COMP_YYLTYPE, HB_BOOL );
 extern void hb_compAstBlock( HB_COMP_DECL, int iKind, int iEvent );
 extern void hb_compAstReturn( HB_COMP_DECL );
 

@@ -57,7 +57,7 @@
 
 #include "hbcomp.h"
 
-#define HB_AST_SCHEMA         "ast-26"
+#define HB_AST_SCHEMA         "ast-27"
 
 /* how much of a dump is read back to find the provenance block: it sits in
    the first lines, before the token stream, so a fixed head is enough */
@@ -170,6 +170,20 @@ typedef struct
    HB_SIZE      nTok;         /* ast-21, same as HB_ASTUSE */
 } HB_ASTCALL, * PHB_ASTCALL;
 
+/* ast-27: a name the module DECLARES without calling - `REQUEST`/`EXTERNAL`
+   (and `DYNAMIC`).  The line is written by a programmer and spells a function
+   name, so a tool that renames that function has to edit it; until this
+   channel existed the rename left it behind, the recompilation caught the
+   difference, and everything rolled back with a message about symbol counts.
+   The token comes from the parser's location stack, like every other site. */
+typedef struct
+{
+   const char * szSym;
+   int          iLine;
+   HB_SIZE      nTok;
+   HB_BOOL      fDeferred;    /* DYNAMIC (HB_FS_DEFERRED) x REQUEST/EXTERNAL */
+} HB_ASTEXTERN, * PHB_ASTEXTERN;
+
 /* control block event emitted by the grammar actions */
 typedef struct
 {
@@ -216,6 +230,10 @@ typedef struct _HB_ASTDUMP
    HB_ASTCALL *  pCalls;
    HB_SIZE       nCallCount;
    HB_SIZE       nCallAlloc;
+
+   HB_ASTEXTERN * pExterns;
+   HB_SIZE       nExternCount;
+   HB_SIZE       nExternAlloc;
 
    HB_ASTCALL *  pSends;
    HB_SIZE       nSendCount;
@@ -916,6 +934,32 @@ void hb_compAstCallAdd( HB_COMP_DECL, const char * szFunName )
    pCall->iLine  = HB_COMP_PARAM->currLine;
    pCall->fBlock = fBlock;
    pCall->nTok = hb_compAstSiteTok( pAst, szFunName );
+}
+
+/* ast-27: `REQUEST`/`EXTERNAL`/`DYNAMIC <name>`.  Called from the grammar
+   action, which is the only place that knows the token: the name arrives here
+   already interned, and @N gives the index the lexer stamped on it. */
+void hb_compAstExternAdd( HB_COMP_DECL, const char * szName, HB_COMP_YYLTYPE loc,
+                          HB_BOOL fDeferred )
+{
+   PHB_ASTDUMP pAst;
+   PHB_ASTEXTERN pExtern;
+
+   if( ! HB_COMP_PARAM->fAst )
+      return;
+
+   pAst = hb_compAstDump( HB_COMP_PARAM );
+   if( pAst->nExternCount == pAst->nExternAlloc )
+   {
+      pAst->nExternAlloc += HB_AST_ALLOC_BASE;
+      pAst->pExterns = ( HB_ASTEXTERN * ) hb_xrealloc( pAst->pExterns,
+                              pAst->nExternAlloc * sizeof( HB_ASTEXTERN ) );
+   }
+   pExtern = &pAst->pExterns[ pAst->nExternCount++ ];
+   pExtern->szSym     = szName;
+   pExtern->iLine     = HB_COMP_PARAM->currLine;
+   pExtern->nTok      = loc.nTok;
+   pExtern->fDeferred = fDeferred;
 }
 
 void hb_compAstSendAdd( HB_COMP_DECL, const char * szMsgName )
@@ -2680,6 +2724,29 @@ HB_BOOL hb_compAstSave( HB_COMP_DECL )
          pSym = pSym->pNext;
       }
       fprintf( file, "%s ],", fFirstSym ? "" : "\n  " );
+   }
+
+   /* ast-27: the names this module DECLARES without calling.  A site like any
+      other - name, line and the token that spells it - so a consumer that
+      renames the function can edit the line instead of discovering afterwards
+      that the old symbol survived. */
+   fprintf( file, "\n  \"externs\": [" );
+   {
+      HB_BOOL fFirstExt = HB_TRUE;
+
+      for( n = 0; n < pAst->nExternCount; ++n )
+      {
+         PHB_ASTEXTERN pExtern = &pAst->pExterns[ n ];
+
+         fprintf( file, "%s\n    { \"sym\": ", fFirstExt ? "" : "," );
+         fFirstExt = HB_FALSE;
+         hb_compAstWriteStr( file, pExtern->szSym );
+         fprintf( file, ", \"line\": %d", pExtern->iLine );
+         hb_compAstWriteSitePos( file, pAst, pExtern->nTok, pExtern->iLine );
+         fprintf( file, ", \"kind\": \"%s\" }",
+                  pExtern->fDeferred ? "dynamic" : "request" );
+      }
+      fprintf( file, "%s ],", fFirstExt ? "" : "\n  " );
    }
 
    fprintf( file, "\n  \"functions\": [" );
